@@ -18,4 +18,4 @@ ENV SPRING_PROFILES_ACTIVE=prod
 
 EXPOSE 8080
 
-CMD ["sh", "-c", "java $JAVA_OPTS -jar app.jar"]
+CMD ["sh", "-c", "mkdir -p /app/data/uploads/menu && java $JAVA_OPTS -jar app.jar"]
