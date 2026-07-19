@@ -1,0 +1,536 @@
+<!DOCTYPE html>
+<html lang="ky" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title th:text="${restaurantName}">Буйрутма</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/family-customer.css">
+    <link rel="stylesheet" th:href="${customerCss}" href="/ordo-cafe-customer.css">
+    <script th:inline="javascript">
+        window.RESTAURANT = {
+            id: /*[[${restaurantId}]]*/ 3,
+            slug: /*[[${restaurantSlug}]]*/ 'ordo-cafe',
+            name: /*[[${restaurantName}]]*/ 'ОРДО КАФЕ',
+            base: /*[[${restaurantBase}]]*/ '/ordo-cafe'
+        };
+    </script>
+    <script src="/restaurant-context.js"></script>
+    <script src="/restaurant-i18n.js"></script>
+</head>
+<body class="fam-body oc-fp-theme fp-checkout-body">
+
+<div id="checkoutPage" class="fp-checkout-page">
+    <header class="fp-checkout-head">
+        <button type="button" id="backBtn" class="fp-checkout-back hidden" onclick="goBackStep()" aria-label="Артка">←</button>
+        <h1 id="checkoutTitle">Буйрутманы оформилоо</h1>
+        <div class="fp-lang-pill fp-lang-pill-header" id="customerLangPill">
+            <button type="button" id="customerKyBtn" class="lang-opt active" onclick="CustomerI18n.setLang('ky')">KG</button>
+            <span class="lang-sep">/</span>
+            <button type="button" id="customerRuBtn" class="lang-opt" onclick="CustomerI18n.setLang('ru')">RU</button>
+        </div>
+    </header>
+
+    <div class="fp-progress">
+        <a id="progStep1" class="fp-step done" href="#">
+            <div class="fp-step-circle">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 6h15l-1.5 9h-12z"/><path d="M6 6l-1-3H2"/><circle cx="9" cy="20" r="1"/><circle cx="18" cy="20" r="1"/></svg>
+            </div>
+            <span class="fp-step-label" id="progStep1Label">1. Себет</span>
+        </a>
+        <div class="fp-step-line"></div>
+        <div class="fp-step active" id="progStep2">
+            <div class="fp-step-circle">2</div>
+            <span class="fp-step-label" id="progStep2Label">2. Маалымат</span>
+        </div>
+        <div class="fp-step-line"></div>
+        <div class="fp-step" id="progStep3">
+            <div class="fp-step-circle">3</div>
+            <span class="fp-step-label" id="progStep3Label">3. Төлөм</span>
+        </div>
+    </div>
+
+    <div id="emptyState" class="fp-empty">
+        <p id="emptyCartText">Себет бош</p>
+        <a class="fp-checkout-btn" id="emptyMenuLink" style="display:inline-block;margin-top:12px;text-decoration:none;color:#fff" th:href="${restaurantBase}" href="/ordo-cafe">Менюга кайтуу</a>
+    </div>
+
+    <div id="stepInfo" class="hidden">
+        <div id="errorBox" class="fp-error"></div>
+
+        <section class="fp-section-card">
+            <h2 class="fp-section-title" id="customerInfoTitle">Кардар маалыматы</h2>
+            <div class="fp-field-box">
+                <div class="fp-field-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 4-6 8-6s8 2 8 6"/></svg>
+                </div>
+                <div class="fp-field-body">
+                    <div class="fp-field-label" id="nameLabel">Атыңыз</div>
+                    <input id="customerName" type="text" placeholder="Атыңызды жазыңыз">
+                </div>
+            </div>
+            <div class="fp-field-box">
+                <div class="fp-field-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07 19.5 19.5 0 01-6-6A19.79 19.79 0 012.12 4.18 2 2 0 014.11 2h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L8.09 9.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 16.92z"/></svg>
+                </div>
+                <div class="fp-field-body">
+                    <div class="fp-field-label" id="phoneLabel">Телефон номери</div>
+                    <input id="phone" type="tel" placeholder="+996 700 123 456">
+                </div>
+            </div>
+            <div class="fp-field-box fp-field-box-link">
+                <div class="fp-field-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 21s7-4.5 7-10a7 7 0 10-14 0c0 5.5 7 10 7 10z"/><circle cx="12" cy="11" r="2.5"/></svg>
+                </div>
+                <div class="fp-field-body">
+                    <div class="fp-field-label" id="addressLabel">Дарегиңиз</div>
+                    <input id="address" type="text" placeholder="Шаар, көчө, үй">
+                </div>
+                <span class="fp-field-chevron">›</span>
+            </div>
+            <div class="fp-field-box">
+                <div class="fp-field-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
+                </div>
+                <div class="fp-field-body">
+                    <div class="fp-field-label" id="commentLabel">Багыт / Комментарий</div>
+                    <textarea id="comment" rows="2" placeholder="Мисалы: кызыл дарбаза"></textarea>
+                </div>
+            </div>
+        </section>
+
+        <section class="fp-section-card">
+            <div class="fp-order-card-head">
+                <h2 class="fp-section-title" id="orderListTitle">Буйрутма тизмеси</h2>
+                <a id="editCartLink" class="fp-edit-link" href="#">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 013 3L7 19l-4 1 1-4 12.5-12.5z"/></svg>
+                    <span id="editLinkText">Түзөтүү</span>
+                </a>
+            </div>
+            <div id="orderLines"></div>
+            <div class="fp-totals">
+                <div class="fp-total-row"><span id="itemsLabel">Товарлар (0)</span><span id="foodTotal">0 сом</span></div>
+                <div class="fp-total-row"><span id="deliveryLabel">Жеткируу</span><span>0 сом</span></div>
+                <div class="fp-total-row grand"><span id="grandTotalLabel">Жалпы сумма</span><span id="grandTotal">0 сом</span></div>
+            </div>
+        </section>
+    </div>
+
+    <div id="stepPayment" class="hidden">
+        <div id="errorBoxPay" class="fp-error"></div>
+
+        <section class="fp-section-card">
+            <div class="fp-section-head-icon">
+                <div class="fp-section-icon-round">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
+                </div>
+                <h2 class="fp-section-title" id="orderInfoTitle">Буйрутма тууралуу маалымат</h2>
+            </div>
+            <div class="fp-order-info-box">
+                <img id="orderInfoImg" src="https://images.unsplash.com/photo-1569718212165-3a8278d5f624?w=200&q=80" alt="">
+                <div class="fp-order-info-text">
+                    <p id="orderInfoP1">Тамактарыңыз буйрутма кабыл алынгандан кийин гана жаңыдан даярдалат.</p>
+                    <p id="orderInfoP2">Орточо даярдоо убактысы — <strong>20–25 мүнөт</strong>.</p>
+                    <p id="orderInfoP3">Сизге ар дайым жаңы, даамдуу жана жаңыдан даярдалган тамактарды жеткиребиз!</p>
+                </div>
+            </div>
+        </section>
+
+        <section class="fp-section-card">
+            <h2 class="fp-section-title" id="paymentMethodTitle">Төлөм ыкмасы</h2>
+            <div class="fp-pay-option">
+                <div class="fp-pay-check">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M5 13l4 4L19 7"/></svg>
+                </div>
+                <div>
+                    <div class="fp-pay-title" id="payBankTitle">Банк аркылуу которуу (скриншот жүктөө)</div>
+                    <div class="fp-pay-hint" id="payBankHint">Төлөмдү которуп, скриншотту ылдый жүктөңүз</div>
+                </div>
+            </div>
+            <div class="fp-bank-box">
+                <div class="fp-bank-label" id="mbankLabel">MBANK номери</div>
+                <div class="num">0600 600 828</div>
+                <div class="fp-bank-label" id="recipientLabel" style="margin-top:12px">Алуучу: Ратбек С.</div>
+                <div class="fp-bank-label" id="transferAmountLabel" style="margin-top:12px">Которула турган сумма:</div>
+                <div id="paymentAmount" class="num fp-bank-sum">0 сом</div>
+            </div>
+            <div class="fp-upload">
+                <div class="fp-upload-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                </div>
+                <p class="fp-upload-text" id="uploadReceiptText">Төлөмдүн скриншотун жүктөңүз</p>
+                <label for="receipt" id="uploadReceiptBtn">Скрин жүктөө</label>
+                <input id="receipt" type="file" accept="image/png,image/jpeg,image/jpg,image/webp" style="display:none">
+                <div id="preview" class="hidden fp-upload-preview">
+                    <img id="previewImage" alt="Чек">
+                    <button type="button" class="fp-upload-remove" id="removeReceiptBtn" onclick="removeReceipt()">Өчүрүү</button>
+                </div>
+            </div>
+        </section>
+    </div>
+</div>
+
+<section id="successState" class="jc-success">
+    <div class="jc-success-page">
+        <div class="jc-header jc-anim">
+            <img class="jc-banner" src="/jolchu/header.png?v=2" alt="Жолчу — тамак жеткирүү кызматы">
+        </div>
+
+        <div class="jc-card jc-anim jc-anim-d1">
+            <div class="jc-phone-wrap">
+                <div class="jc-phone-ring"></div>
+                <div class="jc-phone-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07 19.5 19.5 0 01-6-6A19.79 19.79 0 012.12 4.18 2 2 0 014.11 2h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L8.09 9.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 16.92z"/>
+                    </svg>
+                </div>
+            </div>
+            <h2 class="jc-thanks" id="jolchuThanks">Рахмат!</h2>
+            <p class="jc-payment-sent" id="jolchuPaymentSent">Төлөмүңүз жөнөтүлдү</p>
+            <p class="jc-contact" id="jolchuContact">Жолчу жеткирүү сервиси сиз менен байланышат.</p>
+
+            <div class="jc-timeline">
+                <div class="jc-timeline-step jc-timeline-step--done jc-anim jc-anim-d2">
+                    <div class="jc-timeline-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                            <rect x="2" y="5" width="20" height="14" rx="2"/>
+                            <path d="M2 10h20"/>
+                        </svg>
+                        <span class="jc-step-check">✓</span>
+                    </div>
+                    <span id="jolchuStep1">Төлөм жөнөтүлдү</span>
+                </div>
+                <div class="jc-timeline-line jc-anim jc-anim-d25"></div>
+                <div class="jc-timeline-step jc-anim jc-anim-d3">
+                    <div class="jc-timeline-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                            <path d="M3 18v-6a9 9 0 0118 0v6"/>
+                            <path d="M21 19a2 2 0 01-2 2h-1a2 2 0 01-2-2v-3a2 2 0 012-2h3v5z"/>
+                            <path d="M3 19a2 2 0 002 2h1a2 2 0 002-2v-3a2 2 0 00-2-2H3v5z"/>
+                        </svg>
+                    </div>
+                    <span id="jolchuStep2">Сиз менен байланышат</span>
+                </div>
+                <div class="jc-timeline-line jc-anim jc-anim-d35"></div>
+                <div class="jc-timeline-step jc-anim jc-anim-d4">
+                    <div class="jc-timeline-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                            <path d="M6 13h12"/>
+                            <path d="M6 17h12"/>
+                            <path d="M4 9h16l-1.5 10H5.5L4 9z"/>
+                            <path d="M8 9V5h8v4"/>
+                        </svg>
+                    </div>
+                    <span id="jolchuStep3">Даяр болгондо жеткирип берет</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="jc-notice jc-anim jc-anim-d5">
+            <div class="jc-notice-icon">i</div>
+            <div class="jc-notice-body">
+                <strong id="jolchuNoticeTitle">Эскертүү</strong>
+                <p id="jolchuNoticeText">Оператор сиз менен жакын арада байланышып, буйрутманы ырастайт жана жеткирүү убактысын айтып берет.</p>
+            </div>
+        </div>
+
+        <a id="homeLink" class="jc-home-btn jc-anim jc-anim-d6" href="#">Башкы бетке кайтуу</a>
+    </div>
+</section>
+
+<div id="submitFixed" class="fp-submit-fixed hidden">
+    <button id="nextButton" type="button" class="fp-submit-btn" onclick="goToPayment()">
+        <span id="nextButtonText">Төлөөгө өтүү</span>
+        <span class="fp-submit-arrow">›</span>
+    </button>
+    <button id="submitButton" type="button" class="fp-submit-btn hidden" onclick="submitOrder()">
+        <span id="submitButtonText">Буйрутманы жөнөтүү</span>
+        <span class="fp-submit-arrow">›</span>
+    </button>
+</div>
+
+<script>
+    const DELIVERY = 0;
+    let cart = [];
+    let paymentAmount = 0;
+    let currentStep = 2;
+
+    function checkoutInfoKey(field) {
+        return 'checkout:' + restaurantSlug + ':' + field;
+    }
+
+    function formatMoney(v) { return Number(v || 0).toLocaleString('ru-RU', { maximumFractionDigits: 0 }); }
+    function formatQty(v) { return Math.max(0, Math.round(Number(v || 0))); }
+    function escapeHtml(v) { return String(v || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+    function currencySuffix() { return ' ' + CustomerI18n.t('currency'); }
+
+    function applyReceiptLanguage() {
+        document.getElementById('checkoutTitle').textContent = CustomerI18n.t('checkoutTitle');
+        document.getElementById('progStep1Label').textContent = CustomerI18n.t('stepCart');
+        document.getElementById('progStep2Label').textContent = CustomerI18n.t('stepInfo');
+        document.getElementById('progStep3Label').textContent = CustomerI18n.t('stepPay');
+        document.getElementById('emptyCartText').textContent = CustomerI18n.t('emptyCart');
+        document.getElementById('emptyMenuLink').textContent = CustomerI18n.t('backToMenu');
+        document.getElementById('customerInfoTitle').textContent = CustomerI18n.t('customerInfo');
+        document.getElementById('nameLabel').textContent = CustomerI18n.t('yourName');
+        document.getElementById('customerName').placeholder = CustomerI18n.t('namePlaceholder');
+        document.getElementById('phoneLabel').textContent = CustomerI18n.t('phone');
+        document.getElementById('addressLabel').textContent = CustomerI18n.t('address');
+        document.getElementById('address').placeholder = CustomerI18n.t('addressPlaceholder');
+        document.getElementById('commentLabel').textContent = CustomerI18n.t('comment');
+        document.getElementById('comment').placeholder = CustomerI18n.t('commentPlaceholder');
+        document.getElementById('orderListTitle').textContent = CustomerI18n.t('orderList');
+        document.getElementById('editLinkText').textContent = CustomerI18n.t('edit');
+        document.getElementById('deliveryLabel').textContent = CustomerI18n.t('delivery');
+        document.getElementById('grandTotalLabel').textContent = CustomerI18n.t('grandTotal');
+        document.getElementById('orderInfoTitle').textContent = CustomerI18n.t('orderInfoTitle');
+        document.getElementById('orderInfoP1').textContent = CustomerI18n.t('orderInfoP1');
+        document.getElementById('orderInfoP2').innerHTML =
+            CustomerI18n.t('orderInfoP2') + ' <strong>' + CustomerI18n.t('orderInfoP2Time') + '</strong>.';
+        document.getElementById('orderInfoP3').textContent = CustomerI18n.t('orderInfoP3');
+        document.getElementById('paymentMethodTitle').textContent = CustomerI18n.t('paymentMethod');
+        document.getElementById('payBankTitle').textContent = CustomerI18n.t('payBankTransfer');
+        document.getElementById('payBankHint').textContent = CustomerI18n.t('payBankHint');
+        document.getElementById('mbankLabel').textContent = CustomerI18n.t('mbankLabel');
+        document.getElementById('recipientLabel').textContent = CustomerI18n.t('recipientLabel');
+        document.getElementById('transferAmountLabel').textContent = CustomerI18n.t('transferAmountLabel');
+        document.getElementById('uploadReceiptText').textContent = CustomerI18n.t('uploadReceipt');
+        document.getElementById('uploadReceiptBtn').textContent = CustomerI18n.t('uploadReceiptBtn');
+        document.getElementById('removeReceiptBtn').textContent = CustomerI18n.t('removeReceipt');
+        document.getElementById('nextButtonText').textContent = CustomerI18n.t('goToPay');
+        document.getElementById('submitButtonText').textContent = CustomerI18n.t('submitOrder');
+        document.getElementById('jolchuThanks').textContent = CustomerI18n.t('jolchuThanks');
+        document.getElementById('jolchuPaymentSent').textContent = CustomerI18n.t('jolchuPaymentSent');
+        document.getElementById('jolchuContact').textContent = CustomerI18n.t('jolchuContact');
+        document.getElementById('jolchuStep1').textContent = CustomerI18n.t('jolchuStep1');
+        document.getElementById('jolchuStep2').textContent = CustomerI18n.t('jolchuStep2');
+        document.getElementById('jolchuStep3').textContent = CustomerI18n.t('jolchuStep3');
+        document.getElementById('jolchuNoticeTitle').textContent = CustomerI18n.t('jolchuNoticeTitle');
+        document.getElementById('jolchuNoticeText').textContent = CustomerI18n.t('jolchuNoticeText');
+        document.getElementById('homeLink').textContent = CustomerI18n.t('backHome');
+        loadPage();
+    }
+
+    function showJolchuSuccess() {
+        document.getElementById('checkoutPage').classList.add('hidden');
+        document.getElementById('submitFixed').classList.add('hidden');
+        document.body.classList.add('jc-success-active');
+        const success = document.getElementById('successState');
+        success.classList.remove('show');
+        success.querySelectorAll('.jc-anim').forEach(function (el) {
+            el.classList.remove('jc-play');
+        });
+        void success.offsetWidth;
+        success.classList.add('show');
+        requestAnimationFrame(function () {
+            success.querySelectorAll('.jc-anim').forEach(function (el) {
+                el.classList.add('jc-play');
+            });
+        });
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    function showError(msg, boxId) {
+        const b = document.getElementById(boxId || 'errorBox');
+        b.textContent = msg;
+        b.classList.add('show');
+    }
+
+    function hideErrors() {
+        document.getElementById('errorBox').classList.remove('show');
+        document.getElementById('errorBoxPay').classList.remove('show');
+    }
+
+    function saveCustomerFields() {
+        localStorage.setItem(checkoutInfoKey('name'), document.getElementById('customerName').value.trim());
+        localStorage.setItem(checkoutInfoKey('phone'), document.getElementById('phone').value.trim());
+        localStorage.setItem(checkoutInfoKey('address'), document.getElementById('address').value.trim());
+        saveStoredComment(document.getElementById('comment').value.trim());
+    }
+
+    function loadCustomerFields() {
+        document.getElementById('customerName').value = localStorage.getItem(checkoutInfoKey('name')) || '';
+        document.getElementById('phone').value = localStorage.getItem(checkoutInfoKey('phone')) || '';
+        document.getElementById('address').value = localStorage.getItem(checkoutInfoKey('address')) || '';
+        document.getElementById('comment').value = getStoredComment();
+    }
+
+    function resolveImage(item) {
+        const raw = item.image ? String(item.image).trim() : '';
+        if (!raw) return '';
+        return raw.startsWith('http') || raw.startsWith('/') ? raw : '/' + raw;
+    }
+
+    function setProgressStep(step) {
+        currentStep = step;
+        const steps = [
+            document.getElementById('progStep1'),
+            document.getElementById('progStep2'),
+            document.getElementById('progStep3')
+        ];
+        steps.forEach((el, i) => {
+            el.classList.remove('active', 'done');
+            if (i + 1 < step) el.classList.add('done');
+            if (i + 1 === step) el.classList.add('active');
+        });
+        document.getElementById('backBtn').classList.toggle('hidden', step <= 2);
+    }
+
+    function loadPage() {
+        cart = getStoredCart();
+        const empty = document.getElementById('emptyState');
+        const stepInfo = document.getElementById('stepInfo');
+        const fixed = document.getElementById('submitFixed');
+
+        if (!cart.length) {
+            document.getElementById('checkoutPage').classList.remove('hidden');
+            empty.classList.remove('hidden');
+            stepInfo.classList.add('hidden');
+            document.getElementById('stepPayment').classList.add('hidden');
+            fixed.classList.add('hidden');
+            return;
+        }
+
+        empty.classList.add('hidden');
+        stepInfo.classList.remove('hidden');
+        fixed.classList.remove('hidden');
+        loadCustomerFields();
+
+        let foodTotal = 0, qty = 0, html = '';
+        cart.forEach(item => {
+            const q = formatQty(item.quantity);
+            const p = Number(item.price || 0);
+            const sum = p * q;
+            foodTotal += sum;
+            qty += q;
+            const imgUrl = resolveImage(item);
+            const img = imgUrl
+                ? `<img src="${escapeHtml(imgUrl)}" alt="">`
+                : `<div class="img-ph">🍔</div>`;
+            html += `<div class="fp-order-line">${img}<div class="fp-order-line-info"><div class="fp-order-line-name">${escapeHtml(CustomerI18n.getItemName(item))}</div><div class="fp-order-line-meta">${q} x ${formatMoney(p)}${currencySuffix()}</div></div><div class="fp-order-line-sum">${formatMoney(sum)}${currencySuffix()}</div></div>`;
+        });
+
+        document.getElementById('orderLines').innerHTML = html;
+        document.getElementById('itemsLabel').textContent = CustomerI18n.t('itemsLabel', { count: qty });
+        document.getElementById('foodTotal').textContent = formatMoney(foodTotal) + currencySuffix();
+        paymentAmount = foodTotal + DELIVERY;
+        document.getElementById('grandTotal').textContent = formatMoney(paymentAmount) + currencySuffix();
+        document.getElementById('paymentAmount').textContent = formatMoney(paymentAmount) + currencySuffix();
+
+        const firstImg = cart.length ? resolveImage(cart[0]) : '';
+        if (firstImg) {
+            document.getElementById('orderInfoImg').src = firstImg;
+        }
+    }
+
+    function goToPayment() {
+        hideErrors();
+        const customerName = document.getElementById('customerName').value.trim();
+        const phone = document.getElementById('phone').value.trim();
+        const address = document.getElementById('address').value.trim();
+
+        if (customerName.length < 2) { showError(CustomerI18n.t('errName')); return; }
+        if (phone.replace(/\D/g, '').length < 9) { showError(CustomerI18n.t('errPhone')); return; }
+        if (address.length < 3) { showError(CustomerI18n.t('errAddress')); return; }
+
+        saveCustomerFields();
+        document.getElementById('stepInfo').classList.add('hidden');
+        document.getElementById('stepPayment').classList.remove('hidden');
+        document.getElementById('nextButton').classList.add('hidden');
+        document.getElementById('submitButton').classList.remove('hidden');
+        setProgressStep(3);
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    function goBackStep() {
+        hideErrors();
+        document.getElementById('stepPayment').classList.add('hidden');
+        document.getElementById('stepInfo').classList.remove('hidden');
+        document.getElementById('nextButton').classList.remove('hidden');
+        document.getElementById('submitButton').classList.add('hidden');
+        setProgressStep(2);
+    }
+
+    document.getElementById('receipt').addEventListener('change', function () {
+        hideErrors();
+        const file = this.files[0];
+        if (!file) { removeReceipt(); return; }
+        if (!file.type.startsWith('image/')) {
+            showError(CustomerI18n.t('errImageFormat'), 'errorBoxPay');
+            this.value = '';
+            return;
+        }
+        const reader = new FileReader();
+        reader.onload = e => {
+            document.getElementById('previewImage').src = e.target.result;
+            document.getElementById('preview').classList.remove('hidden');
+        };
+        reader.readAsDataURL(file);
+    });
+
+    function removeReceipt() {
+        document.getElementById('receipt').value = '';
+        document.getElementById('preview').classList.add('hidden');
+    }
+
+    async function submitOrder() {
+        hideErrors();
+        const customerName = document.getElementById('customerName').value.trim();
+        const phone = document.getElementById('phone').value.trim();
+        const address = document.getElementById('address').value.trim();
+        const comment = document.getElementById('comment').value.trim();
+        const receiptInput = document.getElementById('receipt');
+        const btn = document.getElementById('submitButton');
+
+        if (!receiptInput.files.length) {
+            showError(CustomerI18n.t('errReceipt'), 'errorBoxPay');
+            return;
+        }
+
+        saveCustomerFields();
+
+        const itemName = cart.map(i => (CustomerI18n.getItemName(i) || 'Тамак') + ' x' + formatQty(i.quantity)).join(', ');
+        const totalQuantity = cart.reduce((s, i) => s + formatQty(i.quantity), 0);
+
+        const formData = new FormData();
+        formData.append('customerName', customerName);
+        formData.append('phone', phone);
+        formData.append('address', address);
+        formData.append('comment', comment);
+        formData.append('itemName', itemName);
+        formData.append('quantity', String(totalQuantity));
+        formData.append('totalPrice', String(paymentAmount));
+        formData.append('paymentAmount', paymentAmount.toFixed(2));
+        formData.append('restaurantId', String(restaurantId));
+        formData.append('receipt', receiptInput.files[0]);
+
+        btn.disabled = true;
+        btn.querySelector('span').textContent = CustomerI18n.t('submitting');
+
+        try {
+            const res = await fetch('/orders', { method: 'POST', body: formData });
+            if (!res.ok) throw new Error(CustomerI18n.t('errSubmit'));
+            const saved = await res.json();
+            localStorage.removeItem(cartStorageKey());
+            localStorage.removeItem(orderCommentKey());
+            ['name', 'phone', 'address'].forEach(f => localStorage.removeItem(checkoutInfoKey(f)));
+            showJolchuSuccess();
+        } catch (e) {
+            showError(e.message || CustomerI18n.t('errGeneric'), 'errorBoxPay');
+            btn.disabled = false;
+            btn.querySelector('span').textContent = CustomerI18n.t('submitOrder');
+        }
+    }
+
+    document.getElementById('editCartLink').href = rUrl('/cart');
+    document.getElementById('homeLink').href = rUrl('/');
+    document.getElementById('progStep1').href = rUrl('/cart');
+    CustomerI18n.onLanguageChange(applyReceiptLanguage);
+    CustomerI18n.updatePillUi();
+    applyReceiptLanguage();
+</script>
+</body>
+</html>
