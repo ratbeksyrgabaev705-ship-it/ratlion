@@ -1,0 +1,42 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 400" role="img" aria-label="Тамак">
+  <defs>
+    <linearGradient id="brandGold" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#D9BE63"/>
+      <stop offset="50%" stop-color="#C9A84C"/>
+      <stop offset="100%" stop-color="#9E7B28"/>
+    </linearGradient>
+  </defs>
+
+  <g fill="url(#brandGold)">
+    <path d="M160 24
+      C145 24 133 34 128 48
+      C123 62 127 74 136 82
+      C124 80 112 88 106 102
+      C100 116 104 130 116 138
+      C104 136 90 142 84 156
+      C78 170 84 184 98 190
+      C88 192 80 202 80 214
+      C80 226 90 236 102 238
+      C108 250 122 258 138 260
+      C154 258 168 250 174 238
+      C186 236 196 226 196 214
+      C196 202 188 192 178 190
+      C192 184 198 170 192 156
+      C186 142 172 136 160 138
+      C172 130 176 116 170 102
+      C164 88 152 80 140 82
+      C149 74 153 62 148 48
+      C143 34 175 24 160 24 Z
+      M160 58
+      C168 58 174 64 174 72
+      C174 80 168 86 160 86
+      C152 86 146 80 146 72
+      C146 64 152 58 160 58 Z"/>
+
+    <path d="M72 188 C56 184 42 190 32 202 C28 208 30 216 36 220 C46 210 58 204 72 206 Z"/>
+    <path d="M248 188 C264 184 278 190 288 202 C292 208 290 216 284 220 C274 210 262 204 248 206 Z"/>
+  </g>
+
+  <line x1="48" y1="268" x2="272" y2="268" stroke="url(#brandGold)" stroke-width="2.2" stroke-linecap="round"/>
+  <line x1="72" y1="278" x2="248" y2="278" stroke="url(#brandGold)" stroke-width="1.4" stroke-linecap="round" opacity="0.9"/>
+</svg>

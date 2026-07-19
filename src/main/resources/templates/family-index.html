@@ -1,0 +1,494 @@
+<!DOCTYPE html>
+<html lang="ky" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title th:text="${restaurantName}">Меню</title>
+    <link rel="stylesheet" th:href="${customerCss}" href="/family-customer.css">
+    <script th:inline="javascript">
+        window.RESTAURANT = {
+            id: /*[[${restaurantId}]]*/ 2,
+            slug: /*[[${restaurantSlug}]]*/ 'family',
+            name: /*[[${restaurantName}]]*/ 'FAMILY_PARK',
+            base: /*[[${restaurantBase}]]*/ '/r/family'
+        };
+    </script>
+    <script src="/restaurant-context.js"></script>
+    <script src="/restaurant-i18n.js"></script>
+</head>
+<body class="fam-body">
+
+<div class="fam-page">
+    <section class="fp-hero">
+        <div class="fp-hero-bg" th:style="${restaurantBanner != null && !#strings.isEmpty(restaurantBanner)} ? |background-image:url('${restaurantBanner}')| : null"></div>
+        <div class="fp-hero-overlay"></div>
+        <div class="fp-lang-pill fp-lang-pill-hero" id="customerLangPill">
+            <button type="button" id="customerKyBtn" class="lang-opt active" onclick="CustomerI18n.setLang('ky')">Кыргызча</button>
+            <span class="lang-sep">/</span>
+            <button type="button" id="customerRuBtn" class="lang-opt" onclick="CustomerI18n.setLang('ru')">Русский</button>
+        </div>
+        <div class="fp-hero-content">
+            <div class="fp-hero-top">
+                <div class="fp-logo-circle fp-logo-image" th:if="${restaurantSlug == 'family'}">
+                    <img src="/restaurant/family/logo.png" alt="FEMILY">
+                </div>
+                <div class="fp-logo-circle" th:unless="${restaurantSlug == 'family'}">
+                    <span class="fp-logo-f" th:text="${restaurantEmoji != null && !#strings.isEmpty(restaurantEmoji) ? restaurantEmoji : #strings.substring(restaurantName, 0, 1)}">F</span>
+                    <span class="fp-logo-sub"><span th:text="${restaurantName}">Ресторан</span><br>РЕСТОРАНЫ</span>
+                </div>
+                <div class="fp-hero-text">
+                    <h1 id="heroTitle" th:switch="${restaurantSlug}">
+                        <span th:case="'family'">Үй-бүлөңүз менен<br>жагымдуу эс алыңыз!</span>
+                        <span th:case="'aga-ini'">Улуттук даам —<br>үйдөгүдей!</span>
+                        <span th:case="*" th:text="${restaurantName}">Ресторан</span>
+                    </h1>
+                    <p id="heroSubtitle" th:text="${restaurantTagline != null && !#strings.isEmpty(restaurantTagline) ? restaurantTagline : 'Даамдуу тамактар жана жагымдуу атмосфера сизди күтөт.'}">Даамдуу тамактар жана жагымдуу атмосфера сизди күтөт.</p>
+                    <div class="fp-hours">
+                        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a10 10 0 100 20 10 10 0 000-20zm1 11h5v-2h-4V7h-2v6z"/></svg>
+                        <span id="hoursText" th:if="${restaurantSlug == 'family'}">10:00 – 23:30</span>
+                        <span th:unless="${restaurantSlug == 'family'}"
+                              th:text="${restaurantAddress != null && !#strings.isEmpty(restaurantAddress) ? restaurantAddress + ' · 10:00 – 23:30' : '10:00 – 23:30'}">10:00 – 23:30</span>
+                    </div>
+                </div>
+            </div>
+            <div class="fp-search">
+                <span class="fp-search-icon">🔍</span>
+                <input id="searchInput" type="text" placeholder="Издее..." oninput="renderMenu()">
+            </div>
+        </div>
+    </section>
+
+    <main id="menuArea" class="fp-menu">
+        <div class="fp-empty">Меню жүктөлүп жатат...</div>
+    </main>
+</div>
+
+<div id="floatCart" class="fp-float-cart">
+    <div class="fp-float-left">
+        <div class="fp-float-icon">
+            🛒
+            <span id="floatBadge" class="fp-float-badge">0</span>
+        </div>
+        <div class="fp-float-text">
+            <div id="floatLabel" class="fp-float-label">Себетте 0 товар</div>
+            <div id="floatSum" class="fp-float-sum">0 сом</div>
+        </div>
+    </div>
+    <a id="floatCartLink" class="fp-float-btn" href="#">Себетти көрүү ›</a>
+</div>
+
+<nav class="fp-bottom-nav">
+    <a href="#" class="fp-nav-item active" onclick="return false;">
+        <span class="fp-nav-icon">🏠</span>
+        <span id="navHomeLabel">Башкы</span>
+    </a>
+    <a id="navCartLink" class="fp-nav-item" href="#">
+        <span class="fp-nav-icon">
+            🛒
+            <span id="navBadge" class="fp-nav-badge">0</span>
+        </span>
+        <span id="navCartLabel">Себет</span>
+    </a>
+</nav>
+
+<div id="sheetOverlay" class="fp-overlay"></div>
+<div id="productSheet" class="fp-sheet" onclick="event.stopPropagation()">
+    <div class="fp-sheet-handle"></div>
+    <button type="button" class="fp-sheet-close" onclick="closeSheet(true)" aria-label="Жабуу">✕</button>
+    <div class="fp-sheet-body">
+        <div id="sheetContent"></div>
+    </div>
+    <div id="sheetFooter" class="fp-sheet-footer">
+        <button type="button" id="sheetAddBtn" class="fp-sheet-add">
+            <span>Себетке кошуу</span>
+            <span id="sheetAddPrice">0 сом</span>
+        </button>
+    </div>
+</div>
+
+<script>
+    let allMenuItems = [];
+    let sheetItem = null;
+    let sheetQty = 1;
+    let sheetLockUntil = 0;
+    const categoryScrollPos = {};
+
+    const CATEGORY_ICONS = {
+        'пицца': '🍕', 'pizza': '🍕',
+        'суши': '🍣', 'sushi': '🍣',
+        'стейк': '🥩', 'steak': '🥩',
+        'паста': '🍝', 'pasta': '🍝',
+        'салат': '🥗', 'salad': '🥗',
+        'суп': '🍲', 'шорпо': '🍲',
+        'улуттук': '🥘', 'напит': '🥤', 'суусундук': '🥤',
+        'лагман': '🍜', 'плов': '🍚', 'самса': '🥟', 'манты': '🥟', 'ичимдик': '🥤'
+    };
+
+    function formatMoney(v) { return Number(v || 0).toLocaleString('ru-RU', { maximumFractionDigits: 0 }); }
+    function formatQty(v) { return Math.max(0, Math.round(Number(v || 0))); }
+    function escapeHtml(v) { return String(v || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+    function escapeJs(v) { return String(v || '').replace(/\\/g,'\\\\').replace(/'/g,"\\'").replace(/\n/g,' '); }
+
+    function toggleCategoryAll(cat, event) {
+        event.preventDefault();
+        event.stopPropagation();
+        const section = document.querySelector('[data-cat="' + cat.replace(/"/g, '\\"') + '"]');
+        const row = section && section.querySelector('.fp-scroll-row');
+        if (!row) return;
+
+        const maxScroll = Math.max(0, row.scrollWidth - row.clientWidth);
+        if (maxScroll <= 4) return;
+
+        const current = row.scrollLeft;
+        const nearEnd = current >= maxScroll - 16;
+
+        let next;
+        if (nearEnd) {
+            next = 0;
+        } else {
+            const step = Math.max(row.clientWidth * 0.7, 150);
+            next = Math.min(current + step, maxScroll);
+        }
+
+        categoryScrollPos[cat] = next;
+        row.scrollTo({ left: next, behavior: 'smooth' });
+    }
+
+    function getCart() { return getStoredCart(); }
+    function saveCart(c) {
+        saveStoredCart(c);
+        updateCartUi();
+        if (!sheetItem) renderMenu();
+    }
+
+    function getMenuItemKey(item) {
+        return item.id != null ? 'menu-' + item.id : (item.nameKg || item.name || '');
+    }
+
+    function getName(item) {
+        return CustomerI18n.getItemName(item) || 'Тамак';
+    }
+
+    function getLongDescription(item) {
+        const lang = CustomerI18n.getLang();
+        if (lang === 'ru') {
+            return item.descriptionRu || item.description || item.descriptionKg || '';
+        }
+        return item.descriptionKg || item.description || item.descriptionRu || '';
+    }
+
+    function getIngredientsList(item) {
+        const raw = item.ingredientsKg || item.ingredientsRu || item.ingredients || '';
+        if (raw && raw.length > 2) {
+            return raw.split(/[,،;|]/).map(s => s.trim()).filter(s => s.length > 1);
+        }
+        const desc = getLongDescription(item);
+        if (!desc) return [];
+        return desc.split(/[,،;|]/).map(s => s.trim()).filter(s => s.length > 1).slice(0, 6);
+    }
+
+    function ingredientIconMarkup(name) {
+        const n = name.toLowerCase();
+        let svg = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="4"/></svg>';
+        if (n.includes('камыр') || n.includes('тесто')) {
+            svg = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 3c-3 4-7 6-7 10a7 7 0 1014 0c0-4-4-6-7-10z"/></svg>';
+        } else if (n.includes('пепперони') || n.includes('колбас') || n.includes('бекон') || n.includes('ветч') || n.includes('фарш')) {
+            svg = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="2" fill="currentColor"/></svg>';
+        } else if (n.includes('моцарелла') || n.includes('сыр') || n.includes('пармезан') || n.includes('чеддер')) {
+            svg = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 14l4-8h8l4 8H4z"/><path d="M8 14v4M12 14v4M16 14v4"/></svg>';
+        } else if (n.includes('томат') || n.includes('соус')) {
+            svg = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="7"/><path d="M8 12h8"/></svg>';
+        } else if (n.includes('орегано') || n.includes('базилик') || n.includes('розмарин')) {
+            svg = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 21V3M8 7l4-4 4 4M6 12l6-3 6 3"/></svg>';
+        }
+        return svg;
+    }
+
+    function getDesc(item) {
+        const lang = CustomerI18n.getLang();
+        if (lang === 'ru') {
+            return getLongDescription(item) || item.ingredientsRu || item.ingredients || '';
+        }
+        return getLongDescription(item) || item.ingredientsKg || item.ingredients || '';
+    }
+    function getCategory(item) { return CustomerI18n.getCategory(item); }
+
+    function getIcon(cat) {
+        const low = cat.toLowerCase();
+        for (const [k, icon] of Object.entries(CATEGORY_ICONS)) {
+            if (low.includes(k)) return icon;
+        }
+        return '🍽';
+    }
+
+    function resolveImage(item) {
+        const raw = item.image ? String(item.image).trim() : '';
+        if (!raw) return '';
+        return raw.startsWith('http') || raw.startsWith('/') ? raw : '/' + raw;
+    }
+
+    function findCartItem(item) {
+        return getCart().find(c => c.key === getMenuItemKey(item) || Number(c.itemId) === Number(item.id));
+    }
+
+    function getItemQty(item) {
+        const ex = findCartItem(item);
+        return ex ? Number(ex.quantity || 0) : 0;
+    }
+
+    function addToCart(item, qty) {
+        let cart = getCart();
+        const ex = findCartItem(item);
+        if (ex) {
+            ex.quantity = formatQty(ex.quantity + qty);
+            if (ex.quantity <= 0) cart = cart.filter(c => c !== ex);
+        } else if (qty > 0) {
+            cart.push({
+                key: getMenuItemKey(item), itemId: item.id, name: getName(item),
+                nameKg: item.nameKg || '', nameRu: item.nameRu || '',
+                price: Number(item.price || 0), quantity: qty, image: item.image || ''
+            });
+        }
+        saveCart(cart);
+    }
+
+    function setItemQty(item, qty) {
+        qty = formatQty(qty);
+        let cart = getCart();
+        const idx = cart.findIndex(c => c.key === getMenuItemKey(item) || Number(c.itemId) === Number(item.id));
+        if (qty <= 0) {
+            if (idx >= 0) cart.splice(idx, 1);
+        } else if (idx >= 0) {
+            cart[idx].quantity = qty;
+        } else {
+            cart.push({
+                key: getMenuItemKey(item), itemId: item.id, name: getName(item),
+                nameKg: item.nameKg || '', nameRu: item.nameRu || '',
+                price: Number(item.price || 0), quantity: qty, image: item.image || ''
+            });
+        }
+        saveCart(cart);
+    }
+
+    function updateCartUi() {
+        const cart = getCart();
+        const count = cart.reduce((s, i) => s + Number(i.quantity || 0), 0);
+        const total = cart.reduce((s, i) => s + Number(i.price || 0) * Number(i.quantity || 0), 0);
+        document.getElementById('floatLabel').textContent =
+            CustomerI18n.t('cartItems', { count: count });
+        document.getElementById('floatSum').textContent = formatMoney(total) + ' сом';
+        document.getElementById('floatBadge').textContent = count;
+        document.getElementById('floatCart').classList.toggle('show', count > 0);
+        document.getElementById('floatCartLink').textContent = CustomerI18n.t('viewCart');
+        const nb = document.getElementById('navBadge');
+        nb.textContent = count;
+        nb.classList.toggle('show', count > 0);
+    }
+
+    function renderCard(item) {
+        const img = resolveImage(item);
+        const qty = getItemQty(item);
+        const id = Number(item.id);
+        let action;
+        if (qty > 0) {
+            action = `<div class="fp-mini-counter" onclick="event.stopPropagation()"><button type="button" onclick="setItemQty(allMenuItems.find(m=>Number(m.id)===${id}), ${qty}-1);">−</button><span>${qty}</span><button type="button" onclick="setItemQty(allMenuItems.find(m=>Number(m.id)===${id}), ${qty}+1);">+</button></div>`;
+        } else {
+            action = `<button type="button" class="fp-add-btn" onclick="event.stopPropagation(); setItemQty(allMenuItems.find(m=>Number(m.id)===${id}), 1);">+</button>`;
+        }
+        const imgHtml = img
+            ? `<img class="fp-card-img" src="${escapeHtml(img)}" alt="" onerror="this.outerHTML='<div class=\\'fp-card-img-ph\\'>🍽</div>'">`
+            : `<div class="fp-card-img-ph">🍽</div>`;
+        return `<article class="fp-card" onclick="openSheet(${id}, event)">${imgHtml}<div class="fp-card-body"><div class="fp-card-name">${escapeHtml(getName(item))}</div><div class="fp-card-foot"><span class="fp-card-price">${formatMoney(item.price)} сом</span>${action}</div></div></article>`;
+    }
+
+    function renderMenu() {
+        const area = document.getElementById('menuArea');
+        if (!allMenuItems.length) return;
+
+        const search = document.getElementById('searchInput').value.trim().toLowerCase();
+        let items = allMenuItems;
+        if (search) {
+            items = items.filter(i => [i.name, i.nameKg, i.nameRu, i.category, i.categoryKg].filter(Boolean).join(' ').toLowerCase().includes(search));
+        }
+
+        if (!items.length) {
+            area.innerHTML = '<div class="fp-empty"><h3>Тамак табылган жок</h3></div>';
+            return;
+        }
+
+        const groups = {};
+        items.forEach(item => {
+            const cat = getCategory(item);
+            if (!groups[cat]) groups[cat] = [];
+            groups[cat].push(item);
+        });
+
+        area.innerHTML = Object.entries(groups).map(([cat, list]) => `
+            <section class="fp-section" data-cat="${escapeHtml(cat)}">
+                <div class="fp-section-head">
+                    <span class="fp-section-icon">${getIcon(cat)}</span>
+                    <h2>${escapeHtml(cat)}</h2>
+                    <a href="#" class="fp-view-all" onclick="toggleCategoryAll('${escapeJs(cat)}', event)">${CustomerI18n.t('viewAll')}</a>
+                </div>
+                <div class="fp-section-scroll-wrap">
+                    <div class="fp-scroll-row" data-row-cat="${escapeHtml(cat)}">${list.map(renderCard).join('')}</div>
+                </div>
+            </section>
+        `).join('');
+
+        requestAnimationFrame(() => {
+            Object.entries(categoryScrollPos).forEach(([cat, left]) => {
+                const row = document.querySelector('[data-row-cat="' + cat.replace(/"/g, '\\"') + '"]');
+                if (row) row.scrollLeft = left;
+            });
+        });
+    }
+
+    function parseIngredients(item) {
+        return getIngredientsList(item);
+    }
+
+    function renderIngredientChips(item) {
+        const list = getIngredientsList(item);
+        if (!list.length) return '';
+        return `<div class="fp-composition"><h3>${CustomerI18n.t('composition')}</h3><div class="fp-chips">${list.map(name => {
+            return `<span class="fp-chip"><span class="fp-chip-icon">${ingredientIconMarkup(name)}</span><span class="fp-chip-text">${escapeHtml(name)}</span></span>`;
+        }).join('')}</div></div>`;
+    }
+
+    function openSheet(itemId, event) {
+        if (event) {
+            event.preventDefault();
+            event.stopPropagation();
+        }
+        sheetItem = allMenuItems.find(m => Number(m.id) === Number(itemId));
+        if (!sheetItem) return;
+        sheetQty = Math.max(1, getItemQty(sheetItem) || 1);
+        sheetLockUntil = Date.now() + 500;
+        renderSheet();
+        document.body.classList.add('fp-sheet-open');
+        document.getElementById('sheetOverlay').classList.add('open');
+        document.getElementById('productSheet').classList.add('open');
+        document.body.style.overflow = 'hidden';
+    }
+
+    function closeSheet(force) {
+        if (!force && Date.now() < sheetLockUntil) return;
+        document.body.classList.remove('fp-sheet-open');
+        document.getElementById('sheetOverlay').classList.remove('open');
+        document.getElementById('productSheet').classList.remove('open');
+        document.body.style.overflow = '';
+        sheetItem = null;
+        renderMenu();
+    }
+
+    function renderSheet() {
+        if (!sheetItem) return;
+        const img = resolveImage(sheetItem);
+        const imgHtml = img
+            ? `<img class="fp-sheet-img" src="${escapeHtml(img)}" alt="">`
+            : `<div class="fp-sheet-img-ph">🍽</div>`;
+        const chipsHtml = renderIngredientChips(sheetItem);
+
+        document.getElementById('sheetContent').innerHTML = `
+            <div class="fp-sheet-top">
+                ${imgHtml}
+                <div class="fp-sheet-info">
+                    <div class="fp-sheet-name">${escapeHtml(getName(sheetItem))}</div>
+                    <div class="fp-sheet-desc">${escapeHtml(getLongDescription(sheetItem))}</div>
+                    <div class="fp-sheet-price-row">
+                        <div class="fp-sheet-price">${formatMoney(sheetItem.price)} <span>сом</span></div>
+                        <div class="fp-sheet-counter">
+                            <button type="button" class="fp-qty-minus" onclick="changeSheetQty(-1)">−</button>
+                            <span id="sheetQty">${sheetQty}</span>
+                            <button type="button" class="fp-qty-plus" onclick="changeSheetQty(1)">+</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            ${chipsHtml}
+        `;
+        document.getElementById('sheetAddPrice').textContent = formatMoney(Number(sheetItem.price) * sheetQty) + ' сом';
+    }
+
+    function changeSheetQty(d) {
+        sheetQty = Math.max(1, sheetQty + d);
+        renderSheet();
+    }
+
+    document.getElementById('sheetAddBtn').onclick = function (e) {
+        e.stopPropagation();
+        if (!sheetItem) return;
+        setItemQty(sheetItem, sheetQty);
+        sheetLockUntil = 0;
+        closeSheet();
+    };
+
+    document.getElementById('sheetOverlay').addEventListener('click', function (e) {
+        e.stopPropagation();
+        closeSheet();
+    });
+
+    document.getElementById('sheetOverlay').addEventListener('touchend', function (e) {
+        if (Date.now() < sheetLockUntil) {
+            e.preventDefault();
+            return;
+        }
+        e.stopPropagation();
+        closeSheet();
+    }, { passive: false });
+
+    document.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape' && sheetItem) closeSheet();
+    });
+
+    function applyFamilyLanguage() {
+        const slug = window.restaurantSlug || '';
+        document.getElementById('searchInput').placeholder = CustomerI18n.t('searchPlaceholder');
+        document.getElementById('navHomeLabel').textContent = CustomerI18n.t('home');
+        document.getElementById('navCartLabel').textContent = CustomerI18n.t('cart');
+        if (slug === 'family') {
+            const hero = document.getElementById('heroTitle');
+            if (hero) {
+                hero.innerHTML = CustomerI18n.t('heroTitleFamily');
+            }
+            const sub = document.getElementById('heroSubtitle');
+            if (sub) sub.textContent = CustomerI18n.t('heroSubtitleFamily');
+            const hours = document.getElementById('hoursText');
+            if (hours) hours.textContent = CustomerI18n.t('workingHours');
+        }
+        const addBtn = document.getElementById('sheetAddBtn');
+        if (addBtn && addBtn.firstElementChild) {
+            addBtn.firstElementChild.textContent = CustomerI18n.t('addToCart');
+        }
+        updateCartUi();
+        renderMenu();
+    }
+
+    CustomerI18n.onLanguageChange(applyFamilyLanguage);
+    CustomerI18n.updatePillUi();
+    applyFamilyLanguage();
+
+    document.getElementById('floatCartLink').href = rUrl('/cart');
+    document.getElementById('navCartLink').href = rUrl('/cart');
+
+    fetch('/menu?restaurantId=' + encodeURIComponent(restaurantId))
+        .then(r => r.ok ? r.json() : Promise.reject())
+        .then(data => {
+            allMenuItems = Array.isArray(data) ? data : [];
+            renderMenu();
+            updateCartUi();
+            const pendingItem = new URLSearchParams(location.search).get('item');
+            if (pendingItem) {
+                openSheet(Number(pendingItem));
+                history.replaceState({}, '', rUrl('/'));
+            }
+        })
+        .catch(() => {
+            document.getElementById('menuArea').innerHTML = '<div class="fp-empty"><h3>Меню жүктөлбөдү</h3><p>Серверди текшериңиз</p></div>';
+        });
+
+    updateCartUi();
+</script>
+</body>
+</html>

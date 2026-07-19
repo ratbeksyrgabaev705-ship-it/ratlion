@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="ky" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title th:text="${restaurantName}">Заказ статусу</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: Inter, system-ui, sans-serif; background: #f8fafc; min-height: 100vh; padding: 24px 16px; }
+        .track { max-width: 480px; margin: 0 auto; }
+        .track-head { text-align: center; margin-bottom: 28px; }
+        .track-head h1 { font-size: 22px; font-weight: 800; }
+        .track-head p { color: #64748b; font-size: 14px; margin-top: 4px; }
+        .track-card { background: #fff; border-radius: 16px; padding: 24px; box-shadow: 0 2px 12px rgba(0,0,0,0.06); margin-bottom: 16px; }
+        .track-num { font-size: 28px; font-weight: 800; color: #16a34a; margin-bottom: 8px; }
+        .track-status { display: inline-block; padding: 6px 14px; border-radius: 999px; font-size: 13px; font-weight: 700; background: #fef2f2; color: #dc2626; margin-bottom: 16px; }
+        .track-status.accepted { background: #dcfce7; color: #15803d; }
+        .track-status.cooking { background: #fff7ed; color: #c2410c; }
+        .track-status.ready { background: #eff6ff; color: #2563eb; }
+        .track-status.delivered { background: #dcfce7; color: #15803d; }
+        .track-status.rejected { background: #f1f5f9; color: #64748b; }
+        .track-steps { display: flex; flex-direction: column; gap: 0; }
+        .track-step { display: flex; gap: 14px; padding: 12px 0; position: relative; }
+        .track-step:not(:last-child)::before { content: ''; position: absolute; left: 11px; top: 36px; bottom: -4px; width: 2px; background: #e2e8f0; }
+        .track-step.done:not(:last-child)::before { background: #16a34a; }
+        .track-dot { width: 24px; height: 24px; border-radius: 50%; background: #e2e8f0; flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-size: 12px; }
+        .track-step.done .track-dot { background: #16a34a; color: #fff; }
+        .track-step.active .track-dot { background: #16a34a; color: #fff; box-shadow: 0 0 0 4px rgba(22,163,74,0.2); }
+        .track-label { font-size: 14px; font-weight: 600; }
+        .track-time { font-size: 12px; color: #64748b; margin-top: 2px; }
+        .track-back { display: block; text-align: center; margin-top: 20px; color: #16a34a; font-weight: 700; text-decoration: none; }
+    </style>
+    <script th:inline="javascript">
+        window.TRACK = {
+            orderId: /*[[${orderId}]]*/ null,
+            base: /*[[${restaurantBase}]]*/ '/'
+        };
+    </script>
+</head>
+<body>
+<div class="track">
+    <div class="track-head">
+        <h1 th:text="${restaurantName}">Restaurant</h1>
+        <p>Заказ статусу</p>
+    </div>
+    <div id="trackContent" class="track-card">
+        <p style="text-align:center;color:#64748b">Жүктөлүүдө...</p>
+    </div>
+    <a class="track-back" th:href="${restaurantBase}">← Менюга кайтуу</a>
+</div>
+<script>
+(function () {
+    const id = window.TRACK.orderId;
+    const base = window.TRACK.base || '/';
+    const STEPS = [
+        { key: 'NEW', label: 'Текшерүүдө', customer: 'Waiting For Verification' },
+        { key: 'ACCEPTED', label: 'Кабыл алынды', customer: 'Accepted' },
+        { key: 'COOKING', label: 'Даярдалууда', customer: 'Cooking' },
+        { key: 'READY', label: 'Даяр', customer: 'Ready' },
+        { key: 'GIVEN_TO_COURIER', label: 'Жолдо', customer: 'On Delivery' },
+        { key: 'DELIVERED', label: 'Жеткирилди', customer: 'Delivered' }
+    ];
+    const ORDER = ['NEW','ACCEPTED','COOKING','READY','GIVEN_TO_COURIER','DELIVERED'];
+    const STATUS_LABEL = {
+        NEW: 'Waiting For Verification', ACCEPTED: 'Accepted', CANCELLED: 'Rejected',
+        COOKING: 'Cooking', READY: 'Ready', GIVEN_TO_COURIER: 'On Delivery', DELIVERED: 'Delivered'
+    };
+
+    async function load() {
+        if (!id) return;
+        const res = await fetch('/orders/track/' + id);
+        if (!res.ok) {
+            document.getElementById('trackContent').innerHTML = '<p>Заказ табылган жок</p>';
+            return;
+        }
+        const o = await res.json();
+        const st = o.orderStatus;
+        const isRejected = st === 'CANCELLED';
+        const idx = ORDER.indexOf(st);
+        const cls = isRejected ? 'rejected' : (st === 'DELIVERED' ? 'delivered' : st === 'COOKING' ? 'cooking' : st === 'READY' ? 'ready' : st === 'ACCEPTED' ? 'accepted' : '');
+
+        let stepsHtml = '';
+        if (isRejected) {
+            stepsHtml = '<div class="track-step done"><div class="track-dot">✕</div><div><div class="track-label">Rejected</div></div></div>';
+        } else {
+            stepsHtml = STEPS.map((s, i) => {
+                const done = idx >= 0 && i <= idx;
+                const active = ORDER[i] === st;
+                const time = s.key === 'NEW' ? o.createdAt : s.key === 'ACCEPTED' ? o.acceptedAt : s.key === 'COOKING' ? o.cookingStartedAt : s.key === 'READY' ? o.readyAt : s.key === 'GIVEN_TO_COURIER' ? o.courierAt : s.key === 'DELIVERED' ? o.deliveredAt : null;
+                return `<div class="track-step ${done ? 'done' : ''} ${active ? 'active' : ''}">
+                    <div class="track-dot">${done ? '✓' : i + 1}</div>
+                    <div><div class="track-label">${s.customer}</div>${time ? `<div class="track-time">${new Date(time).toLocaleString('ru-RU')}</div>` : ''}</div>
+                </div>`;
+            }).join('');
+        }
+
+        document.getElementById('trackContent').innerHTML = `
+            <div class="track-num">${o.displayOrderNumber || '#' + o.id}</div>
+            <span class="track-status ${cls}">${STATUS_LABEL[st] || st}</span>
+            <div class="track-steps">${stepsHtml}</div>
+            <p style="margin-top:16px;font-size:14px;color:#64748b">${o.itemName || ''}</p>
+            <p style="font-size:18px;font-weight:800;margin-top:8px">${Number(o.totalPrice||0).toLocaleString('ru-RU')} сом</p>`;
+    }
+    load();
+    setInterval(load, 15000);
+})();
+</script>
+</body>
+</html>

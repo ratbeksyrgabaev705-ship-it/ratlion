@@ -1,0 +1,1238 @@
+<!DOCTYPE html>
+<html lang="ky">
+<head>
+    <meta charset="UTF-8">
+
+    <meta
+            name="viewport"
+            content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>Меню башкаруу</title>
+
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        :root {
+            --orange: #ff5a00;
+            --orange-dark: #df4f00;
+            --orange-light: #fff3ec;
+            --green: #16a34a;
+            --red: #dc2626;
+            --blue: #2563eb;
+            --dark: #171717;
+            --text: #333333;
+            --muted: #777777;
+            --line: #e7e7e7;
+            --white: #ffffff;
+            --background: #f5f6f8;
+        }
+
+        body {
+            margin: 0;
+            background: var(--background);
+            color: var(--dark);
+            font-family: Arial, sans-serif;
+        }
+
+        button,
+        input,
+        textarea {
+            font-family: inherit;
+        }
+
+        button {
+            cursor: pointer;
+        }
+
+        header {
+            padding: 24px 16px;
+            background:
+                linear-gradient(
+                    135deg,
+                    #ff6b00,
+                    #df4f00
+                );
+            color: white;
+            text-align: center;
+        }
+
+        header h1 {
+            margin: 0;
+            font-size: 26px;
+        }
+
+        header p {
+            margin: 8px 0 0;
+            color: rgba(255, 255, 255, 0.85);
+            font-size: 13px;
+        }
+
+        .container {
+            width: 92%;
+            max-width: 1000px;
+            margin: 24px auto 50px;
+        }
+
+        .card {
+            margin-bottom: 20px;
+            padding: 22px;
+            border: 1px solid var(--line);
+            border-radius: 18px;
+            background: var(--white);
+            box-shadow:
+                0 8px 25px
+                rgba(0, 0, 0, 0.06);
+        }
+
+        .card-title {
+            margin: 0 0 18px;
+            font-size: 20px;
+        }
+
+        .language-columns {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 18px;
+        }
+
+        .language-box {
+            padding: 16px;
+            border: 1px solid var(--line);
+            border-radius: 15px;
+            background: #fafafa;
+        }
+
+        .language-title {
+            margin: 0 0 13px;
+            font-size: 16px;
+            font-weight: 900;
+        }
+
+        .kg-title {
+            color: var(--blue);
+        }
+
+        .ru-title {
+            color: var(--red);
+        }
+
+        .form-group {
+            margin-bottom: 13px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 6px;
+            color: var(--text);
+            font-size: 12px;
+            font-weight: 800;
+        }
+
+        input,
+        textarea {
+            width: 100%;
+            padding: 12px 13px;
+            border: 1px solid #d8d8d8;
+            border-radius: 11px;
+            background: white;
+            font-size: 14px;
+            outline: none;
+        }
+
+        textarea {
+            min-height: 85px;
+            resize: vertical;
+        }
+
+        input:focus,
+        textarea:focus {
+            border-color: var(--orange);
+            box-shadow:
+                0 0 0 3px
+                rgba(255, 90, 0, 0.1);
+        }
+
+        .common-fields {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 14px;
+            margin-top: 18px;
+        }
+
+        .full-width {
+            grid-column: 1 / -1;
+        }
+
+        .image-upload {
+            padding: 18px;
+            border: 2px dashed #ffb58c;
+            border-radius: 15px;
+            background: #fffaf7;
+            text-align: center;
+        }
+
+        .image-upload-icon {
+            font-size: 42px;
+        }
+
+        .image-upload-title {
+            margin-top: 8px;
+            font-size: 15px;
+            font-weight: 900;
+        }
+
+        .image-upload-text {
+            margin-top: 6px;
+            color: var(--muted);
+            font-size: 11px;
+        }
+
+        .choose-image-button {
+            display: inline-block;
+            margin-top: 13px;
+            padding: 12px 17px;
+            border-radius: 11px;
+            background: var(--orange);
+            color: white;
+            font-size: 13px;
+            font-weight: 900;
+            cursor: pointer;
+        }
+
+        #imageFile {
+            display: none;
+        }
+
+        .image-preview {
+            display: none;
+            margin-top: 14px;
+            overflow: hidden;
+            border: 1px solid var(--line);
+            border-radius: 14px;
+            background: white;
+        }
+
+        .image-preview.show {
+            display: block;
+        }
+
+        .image-preview img {
+            display: block;
+            width: 100%;
+            max-height: 360px;
+            object-fit: contain;
+        }
+
+        .remove-image-button {
+            width: 100%;
+            padding: 12px;
+            border: none;
+            background: #fff0f0;
+            color: var(--red);
+            font-weight: 900;
+        }
+
+        .save-button {
+            width: 100%;
+            margin-top: 18px;
+            padding: 15px;
+            border: none;
+            border-radius: 12px;
+            background: var(--orange);
+            color: white;
+            font-size: 16px;
+            font-weight: 900;
+        }
+
+        .save-button:hover {
+            background: var(--orange-dark);
+        }
+
+        .save-button:disabled {
+            background: #bdbdbd;
+            cursor: not-allowed;
+        }
+
+        .back-button {
+            display: block;
+            width: 100%;
+            margin-top: 10px;
+            padding: 13px;
+            border: 1px solid var(--line);
+            border-radius: 12px;
+            background: white;
+            color: var(--dark);
+            text-align: center;
+            text-decoration: none;
+            font-size: 14px;
+            font-weight: 800;
+        }
+
+        .menu-list {
+            display: grid;
+            gap: 15px;
+        }
+
+        .food {
+            display: grid;
+            grid-template-columns: 150px 1fr;
+            gap: 17px;
+            padding: 14px;
+            border: 1px solid var(--line);
+            border-radius: 16px;
+            background: white;
+        }
+
+        .food-image,
+        .food-placeholder {
+            width: 150px;
+            height: 150px;
+            border-radius: 13px;
+        }
+
+        .food-image {
+            background: #eeeeee;
+            object-fit: cover;
+        }
+
+        .food-placeholder {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: var(--orange-light);
+            font-size: 50px;
+        }
+
+        .food-title {
+            margin: 0;
+            font-size: 19px;
+        }
+
+        .food-title-ru {
+            margin-top: 5px;
+            color: var(--muted);
+            font-size: 14px;
+        }
+
+        .food-info {
+            display: grid;
+            gap: 7px;
+            margin-top: 12px;
+        }
+
+        .food-info p {
+            margin: 0;
+            color: var(--text);
+            font-size: 13px;
+            line-height: 1.45;
+        }
+
+        .price {
+            color: var(--orange);
+            font-size: 18px;
+            font-weight: 900;
+        }
+
+        .status {
+            display: inline-block;
+            margin-top: 11px;
+            padding: 7px 11px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: 900;
+        }
+
+        .available {
+            background: #ecfdf3;
+            color: var(--green);
+        }
+
+        .unavailable {
+            background: #fef2f2;
+            color: var(--red);
+        }
+
+        .food-buttons {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 9px;
+            margin-top: 14px;
+        }
+
+        .food-button {
+            padding: 11px;
+            border: none;
+            border-radius: 10px;
+            color: white;
+            font-size: 12px;
+            font-weight: 900;
+        }
+
+        .availability-button {
+            background: var(--blue);
+        }
+
+        .delete-button {
+            background: var(--red);
+        }
+
+        .empty,
+        .error {
+            padding: 30px 20px;
+            border-radius: 14px;
+            text-align: center;
+        }
+
+        .empty {
+            background: #fafafa;
+            color: var(--muted);
+        }
+
+        .error {
+            background: #fef2f2;
+            color: var(--red);
+        }
+
+        @media (max-width: 720px) {
+            .language-columns,
+            .common-fields {
+                grid-template-columns: 1fr;
+            }
+
+            .full-width {
+                grid-column: auto;
+            }
+
+            .food {
+                grid-template-columns: 1fr;
+            }
+
+            .food-image,
+            .food-placeholder {
+                width: 100%;
+                height: 220px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+<header>
+    <h1>🍽 Меню башкаруу</h1>
+    <p>
+        Тамактын маалыматын толтуруп,
+        галереядан сүрөт тандаңыз
+    </p>
+</header>
+
+<div class="container">
+
+    <section class="card">
+
+        <h2 class="card-title">
+            ➕ Жаңы тамак кошуу
+        </h2>
+
+        <div class="language-columns">
+
+            <div class="language-box">
+
+                <h3 class="language-title kg-title">
+                    🇰🇬 Кыргызча
+                </h3>
+
+                <div class="form-group">
+                    <label for="nameKg">
+                        Тамактын аталышы *
+                    </label>
+
+                    <input
+                            id="nameKg"
+                            type="text"
+                            placeholder="Мисалы: Аш"
+                    >
+                </div>
+
+                <div class="form-group">
+                    <label for="ingredientsKg">
+                        Курамы *
+                    </label>
+
+                    <textarea
+                            id="ingredientsKg"
+                            placeholder="Күрүч, сабиз, пияз, эт..."
+                    ></textarea>
+                </div>
+
+                <div class="form-group">
+                    <label for="descriptionKg">
+                        Сүрөттөмөсү
+                    </label>
+
+                    <textarea
+                            id="descriptionKg"
+                            placeholder="Тамак тууралуу кыскача маалымат"
+                    ></textarea>
+                </div>
+
+                <div class="form-group">
+                    <label for="categoryKg">
+                        Категориясы *
+                    </label>
+
+                    <input
+                            id="categoryKg"
+                            type="text"
+                            placeholder="Мисалы: Улуттук тамактар"
+                    >
+                </div>
+
+            </div>
+
+            <div class="language-box">
+
+                <h3 class="language-title ru-title">
+                    🇷🇺 Русский
+                </h3>
+
+                <div class="form-group">
+                    <label for="nameRu">
+                        Название блюда *
+                    </label>
+
+                    <input
+                            id="nameRu"
+                            type="text"
+                            placeholder="Например: Плов"
+                    >
+                </div>
+
+                <div class="form-group">
+                    <label for="ingredientsRu">
+                        Состав *
+                    </label>
+
+                    <textarea
+                            id="ingredientsRu"
+                            placeholder="Рис, морковь, лук, мясо..."
+                    ></textarea>
+                </div>
+
+                <div class="form-group">
+                    <label for="descriptionRu">
+                        Описание
+                    </label>
+
+                    <textarea
+                            id="descriptionRu"
+                            placeholder="Краткое описание блюда"
+                    ></textarea>
+                </div>
+
+                <div class="form-group">
+                    <label for="categoryRu">
+                        Категория *
+                    </label>
+
+                    <input
+                            id="categoryRu"
+                            type="text"
+                            placeholder="Например: Национальные блюда"
+                    >
+                </div>
+
+            </div>
+
+        </div>
+
+        <div class="common-fields">
+
+            <div class="form-group">
+                <label for="price">
+                    Баасы, сом *
+                </label>
+
+                <input
+                        id="price"
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        placeholder="Мисалы: 250"
+                >
+            </div>
+
+            <div class="form-group">
+                <label for="weight">
+                    Салмагы, грамм
+                </label>
+
+                <input
+                        id="weight"
+                        type="number"
+                        min="0"
+                        placeholder="Мисалы: 500"
+                >
+            </div>
+
+            <div class="form-group full-width">
+
+                <label>Тамактын сүрөтү</label>
+
+                <div class="image-upload">
+
+                    <div class="image-upload-icon">
+                        📷
+                    </div>
+
+                    <div class="image-upload-title">
+                        Галереядан сүрөт тандаңыз
+                    </div>
+
+                    <div class="image-upload-text">
+                        JPG, PNG же WEBP.
+                        Максималдуу көлөмү 8 MB.
+                    </div>
+
+                    <label
+                            for="imageFile"
+                            class="choose-image-button"
+                    >
+                        Сүрөттү тандоо
+                    </label>
+
+                    <input
+                            id="imageFile"
+                            type="file"
+                            accept="image/jpeg,image/jpg,image/png,image/webp"
+                    >
+
+                    <div
+                            id="imagePreview"
+                            class="image-preview"
+                    >
+                        <img
+                                id="imagePreviewElement"
+                                alt="Тандалган тамактын сүрөтү"
+                        >
+
+                        <button
+                                type="button"
+                                class="remove-image-button"
+                                onclick="removeSelectedImage()"
+                        >
+                            🗑 Сүрөттү өчүрүү
+                        </button>
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+        <button
+                id="saveButton"
+                type="button"
+                class="save-button"
+                onclick="addFood()"
+        >
+            ✅ Тамакты сактоо
+        </button>
+
+        <a href="/admin" class="back-button">
+            ← Админ панелге кайтуу
+        </a>
+
+    </section>
+
+    <section class="card">
+
+        <h2 class="card-title">
+            📋 Менюдагы тамактар
+        </h2>
+
+        <div id="menuList" class="menu-list">
+            <div class="empty">
+                Меню жүктөлүүдө...
+            </div>
+        </div>
+
+    </section>
+
+</div>
+
+<script>
+    const imageInput =
+        document.getElementById("imageFile");
+
+    const imagePreview =
+        document.getElementById("imagePreview");
+
+    const imagePreviewElement =
+        document.getElementById(
+            "imagePreviewElement"
+        );
+
+    imageInput.addEventListener(
+        "change",
+        function () {
+            const file = imageInput.files[0];
+
+            if (!file) {
+                removeSelectedImage();
+                return;
+            }
+
+            if (!file.type.startsWith("image/")) {
+                alert(
+                    "Сүрөт форматындагы файл тандаңыз."
+                );
+
+                removeSelectedImage();
+                return;
+            }
+
+            if (file.size > 8 * 1024 * 1024) {
+                alert(
+                    "Сүрөт 8 MBдан чоң болбошу керек."
+                );
+
+                removeSelectedImage();
+                return;
+            }
+
+            const reader = new FileReader();
+
+            reader.onload = function (event) {
+                imagePreviewElement.src =
+                    event.target.result;
+
+                imagePreview.classList.add("show");
+            };
+
+            reader.readAsDataURL(file);
+        }
+    );
+
+    function removeSelectedImage() {
+        imageInput.value = "";
+        imagePreviewElement.src = "";
+        imagePreview.classList.remove("show");
+    }
+
+    function loadMenu() {
+        const menuList =
+            document.getElementById("menuList");
+
+        menuList.innerHTML = `
+            <div class="empty">
+                Меню жүктөлүүдө...
+            </div>
+        `;
+
+        fetch("/menu")
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(
+                        "Менюну алуу мүмкүн болгон жок"
+                    );
+                }
+
+                return response.json();
+            })
+            .then(data => {
+                if (
+                    !Array.isArray(data) ||
+                    data.length === 0
+                ) {
+                    menuList.innerHTML = `
+                        <div class="empty">
+                            Азырынча менюга тамак
+                            кошулган эмес.
+                        </div>
+                    `;
+
+                    return;
+                }
+
+                menuList.innerHTML = data
+                    .map(item => createFoodCard(item))
+                    .join("");
+            })
+            .catch(error => {
+                menuList.innerHTML = `
+                    <div class="error">
+                        ${escapeHtml(error.message)}
+                    </div>
+                `;
+            });
+    }
+
+    function createFoodCard(item) {
+        const nameKg =
+            item.nameKg ||
+            item.name ||
+            "Аталышы жок";
+
+        const nameRu =
+            item.nameRu ||
+            "Русское название не заполнено";
+
+        const ingredientsKg =
+            item.ingredientsKg ||
+            item.ingredients ||
+            "Курамы жазылган эмес";
+
+        const ingredientsRu =
+            item.ingredientsRu ||
+            "Состав не заполнен";
+
+        const categoryKg =
+            item.categoryKg ||
+            item.category ||
+            "Категория жок";
+
+        const categoryRu =
+            item.categoryRu ||
+            "Категория не заполнена";
+
+        const available =
+            item.available !== false;
+
+        const imageHtml = item.image
+            ? `
+                <img
+                    class="food-image"
+                    src="${escapeHtml(item.image)}"
+                    alt="${escapeHtml(nameKg)}"
+                    onerror="
+                        this.outerHTML =
+                        '<div class=&quot;food-placeholder&quot;>🍲</div>'
+                    "
+                >
+            `
+            : `
+                <div class="food-placeholder">
+                    🍲
+                </div>
+            `;
+
+        return `
+            <article class="food">
+
+                ${imageHtml}
+
+                <div>
+
+                    <h3 class="food-title">
+                        ${escapeHtml(nameKg)}
+                    </h3>
+
+                    <div class="food-title-ru">
+                        ${escapeHtml(nameRu)}
+                    </div>
+
+                    <div class="food-info">
+
+                        <div class="price">
+                            ${formatMoney(item.price)} сом
+                        </div>
+
+                        <p>
+                            <b>🇰🇬 Курамы:</b>
+                            ${escapeHtml(ingredientsKg)}
+                        </p>
+
+                        <p>
+                            <b>🇷🇺 Состав:</b>
+                            ${escapeHtml(ingredientsRu)}
+                        </p>
+
+                        <p>
+                            <b>Категория:</b>
+                            ${escapeHtml(categoryKg)}
+                            /
+                            ${escapeHtml(categoryRu)}
+                        </p>
+
+                        <p>
+                            <b>Салмагы:</b>
+                            ${Number(item.weight || 0)} г
+                        </p>
+
+                    </div>
+
+                    <span class="status ${
+                        available
+                            ? "available"
+                            : "unavailable"
+                    }">
+                        ${
+                            available
+                                ? "✅ Менюда бар"
+                                : "❌ Убактылуу жок"
+                        }
+                    </span>
+
+                    <div class="food-buttons">
+
+                        <button
+                            type="button"
+                            class="food-button availability-button"
+                            onclick="toggleAvailability(
+                                ${Number(item.id)},
+                                ${available}
+                            )"
+                        >
+                            ${
+                                available
+                                    ? "Убактылуу жок кылуу"
+                                    : "Менюга кайтаруу"
+                            }
+                        </button>
+
+                        <button
+                            type="button"
+                            class="food-button delete-button"
+                            onclick="deleteFood(
+                                ${Number(item.id)}
+                            )"
+                        >
+                            🗑 Өчүрүү
+                        </button>
+
+                    </div>
+
+                </div>
+
+            </article>
+        `;
+    }
+
+    async function addFood() {
+        const nameKg =
+            document
+                .getElementById("nameKg")
+                .value
+                .trim();
+
+        const nameRu =
+            document
+                .getElementById("nameRu")
+                .value
+                .trim();
+
+        const ingredientsKg =
+            document
+                .getElementById("ingredientsKg")
+                .value
+                .trim();
+
+        const ingredientsRu =
+            document
+                .getElementById("ingredientsRu")
+                .value
+                .trim();
+
+        const descriptionKg =
+            document
+                .getElementById("descriptionKg")
+                .value
+                .trim();
+
+        const descriptionRu =
+            document
+                .getElementById("descriptionRu")
+                .value
+                .trim();
+
+        const categoryKg =
+            document
+                .getElementById("categoryKg")
+                .value
+                .trim();
+
+        const categoryRu =
+            document
+                .getElementById("categoryRu")
+                .value
+                .trim();
+
+        const price =
+            Number(
+                document
+                    .getElementById("price")
+                    .value
+            );
+
+        const weightValue =
+            document
+                .getElementById("weight")
+                .value;
+
+        if (
+            !nameKg ||
+            !nameRu ||
+            !ingredientsKg ||
+            !ingredientsRu ||
+            !categoryKg ||
+            !categoryRu ||
+            price <= 0
+        ) {
+            alert(
+                "Милдеттүү талааларды жана баасын толтуруңуз."
+            );
+
+            return;
+        }
+
+        const selectedImage =
+            imageInput.files[0];
+
+        if (!selectedImage) {
+            alert(
+                "Тамактын сүрөтүн галереядан тандаңыз."
+            );
+
+            return;
+        }
+
+        const formData = new FormData();
+
+        formData.append("nameKg", nameKg);
+        formData.append("nameRu", nameRu);
+
+        formData.append(
+            "ingredientsKg",
+            ingredientsKg
+        );
+
+        formData.append(
+            "ingredientsRu",
+            ingredientsRu
+        );
+
+        formData.append(
+            "descriptionKg",
+            descriptionKg
+        );
+
+        formData.append(
+            "descriptionRu",
+            descriptionRu
+        );
+
+        formData.append(
+            "categoryKg",
+            categoryKg
+        );
+
+        formData.append(
+            "categoryRu",
+            categoryRu
+        );
+
+        formData.append(
+            "price",
+            String(price)
+        );
+
+        if (weightValue) {
+            formData.append(
+                "weight",
+                weightValue
+            );
+        }
+
+        formData.append(
+            "spicyLevel",
+            "0"
+        );
+
+        formData.append(
+            "image",
+            selectedImage
+        );
+
+        const saveButton =
+            document.getElementById("saveButton");
+
+        saveButton.disabled = true;
+        saveButton.textContent =
+            "⏳ Сакталып жатат...";
+
+        try {
+            const response = await fetch(
+                "/menu",
+                {
+                    method: "POST",
+                    body: formData
+                }
+            );
+
+            if (!response.ok) {
+                const errorText =
+                    await response.text();
+
+                throw new Error(
+                    errorText ||
+                    "Тамакты сактоо мүмкүн болгон жок"
+                );
+            }
+
+            await response.json();
+
+            alert(
+                "✅ Тамак сүрөтү менен менюга кошулду!"
+            );
+
+            clearForm();
+            loadMenu();
+
+        } catch (error) {
+            alert(
+                "❌ Ката: " + error.message
+            );
+
+        } finally {
+            saveButton.disabled = false;
+            saveButton.textContent =
+                "✅ Тамакты сактоо";
+        }
+    }
+
+    function clearForm() {
+        const fieldIds = [
+            "nameKg",
+            "nameRu",
+            "ingredientsKg",
+            "ingredientsRu",
+            "descriptionKg",
+            "descriptionRu",
+            "categoryKg",
+            "categoryRu",
+            "price",
+            "weight"
+        ];
+
+        fieldIds.forEach(id => {
+            document.getElementById(id).value = "";
+        });
+
+        removeSelectedImage();
+    }
+
+    function toggleAvailability(
+        id,
+        currentlyAvailable
+    ) {
+        const newAvailable =
+            !currentlyAvailable;
+
+        const question = newAvailable
+            ? "Бул тамакты кайра менюга чыгарасызбы?"
+            : "Бул тамакты убактылуу жок кыласызбы?";
+
+        if (!confirm(question)) {
+            return;
+        }
+
+        fetch(
+            "/menu/"
+            + id
+            + "/availability?available="
+            + newAvailable,
+            {
+                method: "PUT"
+            }
+        )
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(
+                        "Тамактын статусун өзгөртүү мүмкүн болгон жок"
+                    );
+                }
+
+                return response.json();
+            })
+            .then(() => {
+                loadMenu();
+            })
+            .catch(error => {
+                alert(
+                    "❌ Ката: " + error.message
+                );
+            });
+    }
+
+    function deleteFood(id) {
+        if (
+            !confirm(
+                "Бул тамакты толугу менен өчүрөсүзбү?"
+            )
+        ) {
+            return;
+        }
+
+        fetch(
+            "/menu/" + id,
+            {
+                method: "DELETE"
+            }
+        )
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(
+                        "Тамакты өчүрүү мүмкүн болгон жок"
+                    );
+                }
+
+                alert(
+                    "✅ Тамак өчүрүлдү!"
+                );
+
+                loadMenu();
+            })
+            .catch(error => {
+                alert(
+                    "❌ Ката: " + error.message
+                );
+            });
+    }
+
+    function formatMoney(value) {
+        return Number(value || 0)
+            .toLocaleString(
+                "ru-RU",
+                {
+                    minimumFractionDigits: 0,
+                    maximumFractionDigits: 2
+                }
+            );
+    }
+
+    function escapeHtml(value) {
+        if (
+            value === null ||
+            value === undefined
+        ) {
+            return "";
+        }
+
+        return String(value)
+            .replaceAll("&", "&amp;")
+            .replaceAll("<", "&lt;")
+            .replaceAll(">", "&gt;")
+            .replaceAll('"', "&quot;")
+            .replaceAll("'", "&#039;");
+    }
+
+    loadMenu();
+</script>
+
+</body>
+</html>

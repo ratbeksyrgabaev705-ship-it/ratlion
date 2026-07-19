@@ -1,0 +1,496 @@
+<!DOCTYPE html>
+<html lang="ky" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title th:text="${restaurantName != null ? restaurantName + ' — Ашкана' : 'Ашкана панели'}">Ашкана панели</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+        :root {
+            --bg: #1a1a2e;
+            --card: #252542;
+            --card-border: #3d3d5c;
+            --text: #ffffff;
+            --muted: #9ca3af;
+            --accent: #c9a227;
+            --green: #22c55e;
+            --orange: #f97316;
+            --blue: #3b82f6;
+            --purple: #a855f7;
+            --red-pulse: #ef4444;
+        }
+        html, body {
+            min-height: 100vh;
+            font-family: Inter, system-ui, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+        }
+        button { font: inherit; cursor: pointer; border: none; }
+
+        .topbar {
+            position: sticky; top: 0; z-index: 50;
+            display: flex; align-items: center; justify-content: space-between; gap: 16px;
+            padding: 16px 20px;
+            background: rgba(26,26,46,0.95);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid var(--card-border);
+        }
+        .brand { display: flex; align-items: center; gap: 12px; }
+        .brand-icon {
+            width: 48px; height: 48px; border-radius: 14px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 26px; background: var(--card);
+        }
+        .brand-name { font-size: 20px; font-weight: 800; }
+        .brand-sub { font-size: 12px; color: var(--muted); margin-top: 2px; }
+        .topbar-right { display: flex; align-items: center; gap: 14px; }
+        .clock { font-size: 22px; font-weight: 800; font-variant-numeric: tabular-nums; }
+        .active-count {
+            padding: 8px 14px; border-radius: 999px;
+            background: rgba(34,197,94,0.15); color: var(--green);
+            font-size: 13px; font-weight: 700;
+        }
+        .refresh-btn {
+            width: 44px; height: 44px; border-radius: 12px;
+            background: var(--card); color: var(--text); font-size: 18px;
+        }
+
+        .hint-bar {
+            padding: 10px 20px;
+            background: rgba(201,162,39,0.12);
+            color: #fcd34d;
+            font-size: 13px;
+            font-weight: 600;
+            text-align: center;
+            border-bottom: 1px solid rgba(201,162,39,0.2);
+        }
+
+        .filters {
+            display: flex; gap: 8px; padding: 16px 20px;
+            overflow-x: auto;
+        }
+        .filter-btn {
+            padding: 12px 18px; border-radius: 999px;
+            background: var(--card); color: var(--muted);
+            font-size: 14px; font-weight: 700; white-space: nowrap;
+            border: 1px solid transparent;
+        }
+        .filter-btn.active {
+            background: var(--accent); color: #111; border-color: var(--accent);
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+            gap: 16px;
+            padding: 0 20px 32px;
+        }
+
+        .order-card {
+            background: var(--card);
+            border: 2px solid var(--card-border);
+            border-radius: 20px;
+            padding: 20px;
+            transition: transform 0.2s, border-color 0.3s;
+        }
+        .order-card:hover { transform: translateY(-2px); }
+        .order-card.is-new {
+            border-color: var(--red-pulse);
+            animation: pulse 2s infinite;
+        }
+        @keyframes pulse {
+            0%, 100% { box-shadow: 0 0 0 0 rgba(239,68,68,0.35); }
+            50% { box-shadow: 0 0 0 8px rgba(239,68,68,0); }
+        }
+
+        .order-top {
+            display: flex; justify-content: space-between; align-items: flex-start;
+            gap: 12px; margin-bottom: 14px;
+        }
+        .order-num { font-size: 36px; font-weight: 900; color: var(--accent); letter-spacing: 1px; }
+        .status {
+            padding: 6px 12px; border-radius: 999px;
+            font-size: 11px; font-weight: 800;
+        }
+        .status-ACCEPTED { background: rgba(239,68,68,0.2); color: #fca5a5; }
+        .status-COOKING { background: rgba(249,115,22,0.2); color: #fdba74; }
+        .status-READY { background: rgba(59,130,246,0.2); color: #93c5fd; }
+        .status-GIVEN_TO_COURIER { background: rgba(168,85,247,0.2); color: #d8b4fe; }
+
+        .status-track {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 6px;
+            margin-bottom: 16px;
+        }
+
+        .status-step {
+            text-align: center;
+            padding: 8px 4px;
+            border-radius: 10px;
+            background: rgba(255,255,255,0.04);
+            border: 1px solid rgba(255,255,255,0.06);
+            font-size: 9px;
+            font-weight: 700;
+            line-height: 1.25;
+            color: var(--muted);
+        }
+
+        .status-step.done {
+            background: rgba(34,197,94,0.12);
+            border-color: rgba(34,197,94,0.25);
+            color: #86efac;
+        }
+
+        .status-step.active {
+            background: rgba(201,162,39,0.18);
+            border-color: var(--accent);
+            color: #fde68a;
+            box-shadow: 0 0 0 1px rgba(201,162,39,0.25);
+        }
+
+        .status-step .step-icon {
+            display: block;
+            font-size: 14px;
+            margin-bottom: 3px;
+        }
+
+        .meta { display: grid; gap: 6px; font-size: 14px; margin-bottom: 14px; }
+        .meta span { color: var(--muted); }
+        .items {
+            padding: 14px; border-radius: 12px;
+            background: rgba(0,0,0,0.25);
+            font-size: 15px; font-weight: 600; line-height: 1.55;
+            margin-bottom: 12px;
+        }
+        .comment {
+            padding: 10px 12px; border-radius: 10px;
+            background: rgba(201,162,39,0.1);
+            font-size: 13px; color: #fcd34d;
+            margin-bottom: 14px;
+        }
+        .action-btn {
+            width: 100%; padding: 18px; border-radius: 14px;
+            font-size: 16px; font-weight: 800; color: #fff;
+        }
+        .action-btn.orange { background: var(--orange); }
+        .action-btn.blue { background: var(--blue); }
+        .action-btn.purple { background: var(--purple); }
+        .action-btn.green { background: var(--green); }
+        .action-btn:disabled { opacity: 0.4; cursor: default; }
+
+        .empty {
+            grid-column: 1 / -1;
+            text-align: center; padding: 80px 24px; color: var(--muted);
+        }
+        .empty-icon { font-size: 56px; margin-bottom: 12px; }
+        .empty h3 { color: var(--text); font-size: 20px; margin-bottom: 8px; }
+
+        .pick-restaurant {
+            max-width: 480px; margin: 60px auto; padding: 32px;
+            background: var(--card); border-radius: 20px; text-align: center;
+        }
+        .pick-restaurant h2 { margin-bottom: 8px; }
+        .pick-restaurant p { color: var(--muted); font-size: 14px; margin-bottom: 20px; }
+        .rest-list { display: grid; gap: 10px; }
+        .rest-link {
+            display: block; padding: 16px; border-radius: 14px;
+            background: rgba(255,255,255,0.06); color: var(--text);
+            text-decoration: none; font-weight: 700; font-size: 16px;
+        }
+        .rest-link:hover { background: rgba(255,255,255,0.1); }
+
+        .toast {
+            position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%);
+            padding: 14px 24px; border-radius: 14px;
+            background: var(--green); color: #fff;
+            font-weight: 700; opacity: 0; transition: opacity 0.25s; z-index: 100;
+        }
+        .toast.show { opacity: 1; }
+    </style>
+    <script th:inline="javascript">
+        window.KITCHEN = {
+            id: /*[[${restaurantId}]]*/ null,
+            slug: /*[[${restaurantSlug}]]*/ null,
+            name: /*[[${restaurantName}]]*/ null,
+            emoji: /*[[${restaurantEmoji}]]*/ '🍽',
+            color: /*[[${restaurantColor}]]*/ '#c9a227'
+        };
+    </script>
+</head>
+<body>
+
+<div id="pickScreen" class="pick-restaurant" style="display:none;">
+    <h2>🍳 Ашкана панели</h2>
+    <p>Ресторан тандаңыз — RATLION'дан кабыл алынган заказдар гана көрүнөт</p>
+    <div id="restList" class="rest-list"></div>
+</div>
+
+<div id="kitchenApp" style="display:none;">
+    <header class="topbar">
+        <div class="brand">
+            <div id="brandIcon" class="brand-icon">🍽</div>
+            <div>
+                <div id="brandName" class="brand-name">Ашкана</div>
+                <div class="brand-sub">Чек текшерилгенден кийин</div>
+            </div>
+        </div>
+        <div class="topbar-right">
+            <div id="clock" class="clock">--:--</div>
+            <div id="activeCount" class="active-count">0 заказ</div>
+            <button class="refresh-btn" onclick="loadOrders()" title="Жаңыртуу">🔄</button>
+        </div>
+    </header>
+
+    <div class="hint-bar">
+        ⚠️ Жаңы заказдар RATLION'да чек текшерилгенден кийин гана бул жерге түшөт
+    </div>
+
+    <div class="filters">
+        <button class="filter-btn active" onclick="setFilter('ALL', this)">Баары</button>
+        <button class="filter-btn" onclick="setFilter('ACCEPTED', this)">🆕 Жаңы</button>
+        <button class="filter-btn" onclick="setFilter('COOKING', this)">🍳 Даярдоо башталды</button>
+        <button class="filter-btn" onclick="setFilter('READY', this)">✅ Даяр болду</button>
+        <button class="filter-btn" onclick="setFilter('GIVEN_TO_COURIER', this)">🛵 Курьерге берилди</button>
+    </div>
+
+    <div id="ordersGrid" class="grid"></div>
+</div>
+
+<div id="toast" class="toast"></div>
+
+<script>
+    const STATUS_STEPS = [
+        { key: 'ACCEPTED', icon: '🆕', label: 'Жаңы заказ' },
+        { key: 'COOKING', icon: '🍳', label: 'Даярдоо башталды' },
+        { key: 'READY', icon: '✅', label: 'Даяр болду' },
+        { key: 'GIVEN_TO_COURIER', icon: '🛵', label: 'Курьерге берилди' }
+    ];
+
+    const STATUS_ORDER = ['ACCEPTED', 'COOKING', 'READY', 'GIVEN_TO_COURIER'];
+
+    const TOAST_ON_CHANGE = {
+        cook: 'Даярдоо башталды 🍳',
+        ready: 'Даяр болду ✅',
+        courier: 'Курьерге берилди 🛵',
+        deliver: 'Жеткирилди ✓'
+    };
+
+    let orders = [];
+    let currentFilter = 'ALL';
+    let restaurantId = null;
+    let knownIds = new Set();
+
+    function init() {
+        const k = window.KITCHEN || {};
+        if (k.id) {
+            restaurantId = k.id;
+            applyBrand(k);
+            showKitchen();
+            loadOrders();
+            setInterval(loadOrders, 4000);
+            setInterval(updateClock, 1000);
+            updateClock();
+            document.addEventListener('visibilitychange', () => {
+                if (!document.hidden) loadOrders();
+            });
+        } else {
+            loadRestaurantPicker();
+        }
+    }
+
+    function applyBrand(k) {
+        document.getElementById('brandIcon').textContent = k.emoji || '🍽';
+        document.getElementById('brandName').textContent = k.name || 'Ашкана';
+        if (k.color) {
+            document.documentElement.style.setProperty('--accent', k.color);
+        }
+        document.title = (k.name || 'Ашкана') + ' — Ашкана';
+    }
+
+    async function loadRestaurantPicker() {
+        document.getElementById('pickScreen').style.display = 'block';
+        try {
+            const res = await fetch('/api/restaurants/public');
+            const list = await res.json();
+            document.getElementById('restList').innerHTML = list.map(r =>
+                `<a class="rest-link" href="/kitchen/${encodeURIComponent(r.slug)}">${r.emoji || '🏪'} ${escapeHtml(r.name)}</a>`
+            ).join('') || '<p style="color:var(--muted)">Ресторан жок</p>';
+        } catch (e) {
+            document.getElementById('restList').innerHTML = '<p>Жүктөлбөдү</p>';
+        }
+    }
+
+    function showKitchen() {
+        document.getElementById('pickScreen').style.display = 'none';
+        document.getElementById('kitchenApp').style.display = 'block';
+    }
+
+    function updateClock() {
+        const now = new Date();
+        document.getElementById('clock').textContent =
+            now.toLocaleTimeString('ky-KG', { hour: '2-digit', minute: '2-digit' });
+    }
+
+    async function loadOrders() {
+        if (!restaurantId) return;
+        try {
+            const res = await fetch('/orders/cafe?restaurantId=' + encodeURIComponent(restaurantId));
+            if (!res.ok) { toast('Жүктөөдө ката'); return; }
+            const fresh = await res.json();
+            const incoming = fresh.filter(o => o.orderStatus === 'ACCEPTED' && !knownIds.has(o.id));
+            if (knownIds.size && incoming.length) {
+                playNewOrderSound();
+                toast('🆕 Жаңы заказ: ' + (incoming[0].displayOrderNumber || incoming[0].id));
+            }
+            fresh.forEach(o => knownIds.add(o.id));
+            orders = fresh;
+            document.getElementById('activeCount').textContent = orders.length + ' заказ';
+            renderOrders();
+        } catch (e) {
+            toast('Жүктөөдө ката');
+        }
+    }
+
+    function playNewOrderSound() {
+        try {
+            const ctx = new (window.AudioContext || window.webkitAudioContext)();
+            [880, 1100].forEach((freq, i) => {
+                const osc = ctx.createOscillator();
+                const gain = ctx.createGain();
+                osc.connect(gain);
+                gain.connect(ctx.destination);
+                osc.frequency.value = freq;
+                gain.gain.setValueAtTime(0.15, ctx.currentTime + i * 0.15);
+                gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + i * 0.15 + 0.2);
+                osc.start(ctx.currentTime + i * 0.15);
+                osc.stop(ctx.currentTime + i * 0.15 + 0.25);
+            });
+        } catch (e) { /* audio blocked */ }
+    }
+
+    function setFilter(f, btn) {
+        currentFilter = f;
+        document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        renderOrders();
+    }
+
+    function filtered() {
+        if (currentFilter === 'ALL') return orders;
+        return orders.filter(o => o.orderStatus === currentFilter);
+    }
+
+    function renderOrders() {
+        const grid = document.getElementById('ordersGrid');
+        const list = filtered();
+
+        if (!list.length) {
+            grid.innerHTML = `
+                <div class="empty">
+                    <div class="empty-icon">🍽</div>
+                    <h3>Заказ жок</h3>
+                    <p>RATLION'дан кабыл алынган заказ күтүлүүдө</p>
+                </div>`;
+            return;
+        }
+
+        grid.innerHTML = list.map(order => {
+            const st = order.orderStatus || 'ACCEPTED';
+            const isNew = st === 'ACCEPTED';
+            const items = formatItems(order.itemName);
+            return `
+                <article class="order-card${isNew ? ' is-new' : ''}">
+                    <div class="order-top">
+                        <div class="order-num">${escapeHtml(order.displayOrderNumber || '—')}</div>
+                        <span class="status status-${st}">${statusText(st)}</span>
+                    </div>
+                    ${statusTrack(st)}
+                    <div class="meta">
+                        <div>👤 ${escapeHtml(order.customerName || '—')}</div>
+                        <div>📞 ${escapeHtml(order.phone || '—')}</div>
+                        <div>📍 ${escapeHtml(order.address || '—')}</div>
+                        <div>💰 <strong>${money(order.totalPrice)} сом</strong> · ${formatTime(order.createdAt)}</div>
+                    </div>
+                    <div class="items">${items}</div>
+                    ${order.foodComment ? `<div class="comment">🍽 ${escapeHtml(order.foodComment)}</div>` : ''}
+                    ${actionBtn(order)}
+                </article>`;
+        }).join('');
+    }
+
+    function statusTrack(current) {
+        const idx = STATUS_ORDER.indexOf(current);
+        return `<div class="status-track">${STATUS_STEPS.map((step, i) => {
+            let cls = 'status-step';
+            if (i < idx) cls += ' done';
+            if (i === idx) cls += ' active';
+            return `<div class="${cls}"><span class="step-icon">${step.icon}</span>${step.label}</div>`;
+        }).join('')}</div>`;
+    }
+
+    function formatItems(raw) {
+        if (!raw) return '—';
+        return escapeHtml(raw).split(',').map(s => s.trim()).filter(Boolean).join('<br>');
+    }
+
+    function actionBtn(order) {
+        const id = order.id;
+        const st = order.orderStatus;
+        if (st === 'ACCEPTED') return btn(id, 'cook', '🍳 Даярдоону баштоо', 'orange');
+        if (st === 'COOKING') return btn(id, 'ready', '✅ Даяр болду', 'blue');
+        if (st === 'READY') return btn(id, 'courier', '🛵 Курьерге берүү', 'purple');
+        if (st === 'GIVEN_TO_COURIER') return btn(id, 'deliver', '✓ Жеткирилди', 'green');
+        return '<button class="action-btn" disabled>—</button>';
+    }
+
+    function btn(id, ep, text, color) {
+        return `<button class="action-btn ${color}" onclick="changeStatus(${id}, '${ep}')">${text}</button>`;
+    }
+
+    async function changeStatus(id, ep) {
+        try {
+            const res = await fetch('/orders/' + id + '/' + ep, { method: 'PUT' });
+            if (!res.ok) { toast('Ката чыкты'); return; }
+            toast(TOAST_ON_CHANGE[ep] || 'Статус өзгөрдү ✓');
+            await loadOrders();
+        } catch (e) {
+            toast('Тармак катасы');
+        }
+    }
+
+    function statusText(st) {
+        return {
+            ACCEPTED: 'Жаңы заказ',
+            COOKING: 'Даярдоо башталды',
+            READY: 'Даяр болду',
+            GIVEN_TO_COURIER: 'Курьерге берилди'
+        }[st] || st;
+    }
+
+    function money(v) {
+        return Number(v || 0).toLocaleString('ru-RU', { maximumFractionDigits: 0 });
+    }
+
+    function formatTime(iso) {
+        if (!iso) return '';
+        return new Date(iso).toLocaleTimeString('ky-KG', { hour: '2-digit', minute: '2-digit' });
+    }
+
+    function toast(msg) {
+        const el = document.getElementById('toast');
+        el.textContent = msg;
+        el.classList.add('show');
+        setTimeout(() => el.classList.remove('show'), 2500);
+    }
+
+    function escapeHtml(v) {
+        return String(v || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    }
+
+    init();
+</script>
+</body>
+</html>

@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="ky" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title th:text="${restaurantName != null ? restaurantName + ' — Admin' : 'Restaurant Admin'}">Restaurant Admin</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/restaurant-admin.css">
+    <script th:inline="javascript">
+        window.ADMIN = {
+            id: /*[[${restaurantId}]]*/ null,
+            slug: /*[[${restaurantSlug}]]*/ null,
+            name: /*[[${restaurantName}]]*/ null,
+            emoji: /*[[${restaurantEmoji}]]*/ '🏪',
+            color: /*[[${restaurantColor}]]*/ '#16a34a'
+        };
+    </script>
+</head>
+<body class="adm-body">
+
+<div id="admPick" class="adm-pick" style="display:none;">
+    <div class="adm-lang-pill" id="pickLangPill">
+        <button type="button" class="adm-lang-opt active" data-lang="ky" onclick="admChangeLanguage('ky')">Кыргызча</button>
+        <span class="adm-lang-sep">/</span>
+        <button type="button" class="adm-lang-opt" data-lang="ru" onclick="admChangeLanguage('ru')">Русский</button>
+    </div>
+    <h1 data-i18n="pickTitle">🏪 Ресторан админ панели</h1>
+    <p data-i18n="pickSub">Ресторан тандаңыз — заказдар, ашкана, меню жана отчёттор бир панelde</p>
+    <div id="admRestList" class="adm-rest-list"></div>
+</div>
+
+<div id="admLayout" class="adm-layout" style="display:none;">
+    <aside class="adm-sidebar">
+        <div class="adm-brand">
+            <div id="brandIcon" class="adm-brand-icon">🏪</div>
+            <div>
+                <div id="brandName" class="adm-brand-title">Admin</div>
+                <div id="brandSub" class="adm-brand-sub" data-i18n="brandSub">Админ панели</div>
+            </div>
+        </div>
+        <div class="adm-lang-pill" id="sidebarLangPill">
+            <button type="button" class="adm-lang-opt active" data-lang="ky" onclick="admChangeLanguage('ky')">Кыргызча</button>
+            <span class="adm-lang-sep">/</span>
+            <button type="button" class="adm-lang-opt" data-lang="ru" onclick="admChangeLanguage('ru')">Русский</button>
+        </div>
+        <nav class="adm-nav">
+            <button type="button" class="adm-nav-item active" data-sec="dashboard" onclick="admNav('dashboard', this)">📊 <span data-i18n="navDashboard">Башкы бет</span></button>
+            <button type="button" class="adm-nav-item" data-sec="orders" onclick="admNav('orders', this)">📋 <span data-i18n="navOrders">Заказдар</span></button>
+            <button type="button" class="adm-nav-item" data-sec="kitchen" onclick="admNav('kitchen', this)">🍳 <span data-i18n="navKitchen">Ашкана экраны</span></button>
+            <button type="button" class="adm-nav-item" data-sec="menu" onclick="admNav('menu', this)">🍽 <span data-i18n="navMenu">Меню башкаруу</span></button>
+            <button type="button" class="adm-nav-item" data-sec="reports" onclick="admNav('reports', this)">📈 <span data-i18n="navReports">Отчёттор</span></button>
+        </nav>
+        <div class="adm-nav-ext">
+            <a id="linkRatlion" href="/ratlion" target="_blank" data-i18n="linkRatlion">🧾 RATLION (борбордук)</a>
+            <a id="linkCafe" href="/cafe" target="_blank" data-i18n="linkCafe">🍳 Ашкана (толук)</a>
+            <a id="linkMenu" href="/" target="_blank" data-i18n="linkCustomer">🌐 Кардар сайты</a>
+            <a href="/platform" target="_blank" data-i18n="linkPlatform">⚙️ Платформа</a>
+        </div>
+    </aside>
+
+    <main class="adm-main">
+
+        <!-- Dashboard -->
+        <section id="sec-dashboard" class="adm-section active">
+            <div class="adm-page-head">
+                <div>
+                    <h1 data-i18n="dashTitle">Башкы бет</h1>
+                    <p data-i18n="dashSub">Бүгünкү көрсөткүчтөр</p>
+                </div>
+            </div>
+            <div class="adm-cards">
+                <div class="adm-card"><div class="adm-card-label" data-i18n="cardRevenue">Бүгүнкү киреше</div><div id="cardRevenue" class="adm-card-value">0 сом</div></div>
+                <div class="adm-card"><div class="adm-card-label" data-i18n="cardTodayOrders">Бүгүнкү заказдар</div><div id="cardTodayOrders" class="adm-card-value muted">0</div></div>
+                <div class="adm-card"><div class="adm-card-label" data-i18n="cardCooking">Даярдалып жатат</div><div id="cardCooking" class="adm-card-value muted">0</div></div>
+                <div class="adm-card"><div class="adm-card-label" data-i18n="cardReady">Даяр заказдар</div><div id="cardReady" class="adm-card-value muted">0</div></div>
+                <div class="adm-card"><div class="adm-card-label" data-i18n="cardDelivered">Жеткирилген</div><div id="cardDelivered" class="adm-card-value muted">0</div></div>
+            </div>
+        </section>
+
+        <!-- Orders -->
+        <section id="sec-orders" class="adm-section">
+            <div class="adm-page-head">
+                <div><h1 data-i18n="ordersTitle">Заказдар</h1><p data-i18n="ordersSub">RATLION кабыл алган заказдар гана</p></div>
+            </div>
+            <div class="adm-panel">
+                <div class="adm-panel-head">
+                    <h2 data-i18n="ordersList">Заказдар тизмеси</h2>
+                    <div class="adm-toolbar">
+                        <input id="orderSearch" class="adm-input" type="search" data-i18n-placeholder="search" placeholder="Издөө..." oninput="admFilterOrders()">
+                        <select id="orderStatusFilter" class="adm-select" onchange="admFilterOrders()"></select>
+                        <button type="button" class="adm-btn adm-btn-outline" onclick="loadOrders()">🔄 <span data-i18n="refresh">Жаңыртуу</span></button>
+                    </div>
+                </div>
+                <div class="adm-table-wrap">
+                    <table class="adm-table">
+                        <thead><tr>
+                            <th data-i18n="colNo">№</th>
+                            <th data-i18n="colCustomer">Кардар</th>
+                            <th data-i18n="colPhone">Телефон</th>
+                            <th data-i18n="colFood">Тамактар</th>
+                            <th data-i18n="colSum">Сумма</th>
+                            <th data-i18n="colStatus">Статус</th>
+                            <th></th>
+                        </tr></thead>
+                        <tbody id="ordersTableBody"><tr><td colspan="7" data-i18n="loading">Жүктөлүүдө...</td></tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <!-- Kitchen -->
+        <section id="sec-kitchen" class="adm-section">
+            <div class="adm-page-head">
+                <div><h1 data-i18n="kitchenTitle">Ашкана экраны</h1><p data-i18n="kitchenSub">Даярдоо статустарын башкаруу</p></div>
+                <button type="button" class="adm-btn adm-btn-outline" onclick="loadKitchen()">🔄 <span data-i18n="refresh">Жаңыртуу</span></button>
+            </div>
+            <div id="kitchenGrid" class="adm-kitchen-grid"></div>
+        </section>
+
+        <!-- Menu -->
+        <section id="sec-menu" class="adm-section">
+            <div class="adm-page-head">
+                <div><h1 data-i18n="menuTitle">Меню башкаруу</h1><p data-i18n="menuSub">Тамак кошуу, түзөтүү, жашыруу</p></div>
+                <button type="button" class="adm-btn adm-btn-primary" onclick="admOpenMenuForm()">➕ <span data-i18n="newFood">Жаңы тамак</span></button>
+            </div>
+            <div class="adm-panel">
+                <div class="adm-panel-head">
+                    <h2 data-i18n="menuListTitle">Меню</h2>
+                    <input id="menuSearch" class="adm-input" type="search" data-i18n-placeholder="search" placeholder="Издөө..." oninput="admFilterMenu()">
+                </div>
+                <div id="menuList" class="adm-menu-grid"><div class="adm-empty" data-i18n="loading">Жүктөлүүдө...</div></div>
+            </div>
+        </section>
+
+        <!-- Reports -->
+        <section id="sec-reports" class="adm-section">
+            <div class="adm-page-head">
+                <div><h1 data-i18n="reportsTitle">Отчёттор</h1><p data-i18n="reportsSub">Күнүмдük, кечки жана айлык отчёттор</p></div>
+            </div>
+            <div class="adm-panel">
+                <div class="adm-panel-head">
+                    <h2 data-i18n="reportParams">Отчёт параметрлери</h2>
+                    <div class="adm-toolbar">
+                        <select id="reportType" class="adm-select"></select>
+                        <select id="reportRange" class="adm-select"></select>
+                        <input id="reportFrom" class="adm-input" type="date">
+                        <input id="reportTo" class="adm-input" type="date">
+                        <input id="reportSearch" class="adm-input" type="search" data-i18n-placeholder="search" placeholder="Издөө..." oninput="admLoadReport()">
+                        <button type="button" class="adm-btn adm-btn-primary" onclick="admLoadReport()" data-i18n="showReport">Көрсөт</button>
+                        <button type="button" class="adm-btn adm-btn-outline" onclick="admPrintReport()">🖨 <span data-i18n="print">Басып чыгаруу</span></button>
+                        <button type="button" class="adm-btn adm-btn-outline" onclick="admExportPdf()">PDF</button>
+                        <button type="button" class="adm-btn adm-btn-outline" onclick="admExportExcel()">Excel</button>
+                    </div>
+                </div>
+            </div>
+            <div id="reportResult"></div>
+        </section>
+
+    </main>
+</div>
+
+<!-- Menu modal -->
+<div id="menuModal" class="adm-modal-overlay" onclick="if(event.target===this)admCloseMenuModal()">
+    <div class="adm-modal">
+        <div class="adm-modal-head">
+            <h3 id="menuModalTitle" data-i18n="newFood">Жаңы тамак</h3>
+            <button type="button" class="adm-btn adm-btn-outline adm-btn-sm" onclick="admCloseMenuModal()">✕</button>
+        </div>
+        <form id="menuForm">
+            <div class="adm-form-grid">
+                <div class="adm-field"><label data-i18n="lblNameKg">Аты (KG) *</label><input id="mfName" required></div>
+                <div class="adm-field"><label data-i18n="lblNameRu">Аты (RU)</label><input id="mfNameRu"></div>
+                <div class="adm-field"><label data-i18n="lblCatKg">Категория (KG) *</label><input id="mfCategory" required></div>
+                <div class="adm-field"><label data-i18n="lblCatRu">Категория (RU)</label><input id="mfCategoryRu"></div>
+                <div class="adm-field full"><label data-i18n="lblDescKg">Сүрөттөмө (KG)</label><textarea id="mfDesc"></textarea></div>
+                <div class="adm-field full"><label data-i18n="lblDescRu">Сүрөттөмө (RU)</label><textarea id="mfDescRu"></textarea></div>
+                <div class="adm-field full"><label data-i18n="lblIngredients">Курамы</label><textarea id="mfIngredients"></textarea></div>
+                <div class="adm-field"><label data-i18n="lblPrice">Баасы, сом *</label><input id="mfPrice" type="number" min="0" step="0.01" required></div>
+                <div class="adm-field full">
+                    <label data-i18n="lblImage">Сүрөт *</label>
+                    <label class="adm-img-upload">
+                        <span data-i18n="imgUploadHint">📷 Сүрөт тандаңыз (JPG, PNG, WEBP · 8MB)</span>
+                        <input id="menuImgInput" type="file" accept="image/*" style="display:none">
+                    </label>
+                    <div id="menuImgPreview" class="adm-img-preview"><img alt="Preview"></div>
+                </div>
+            </div>
+            <div style="display:flex;gap:10px;margin-top:20px">
+                <button type="submit" class="adm-btn adm-btn-primary" style="flex:1">💾 <span data-i18n="save">Сактоо</span></button>
+                <button type="button" class="adm-btn adm-btn-outline" onclick="admCloseMenuModal()" data-i18n="cancel">Жокко чыгар</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div id="admToast" class="adm-toast"></div>
+
+<script src="/restaurant-admin.js"></script>
+</body>
+</html>

@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="ky">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Жүктөлүүдө...</title>
+    <script src="/restaurant-context.js"></script>
+</head>
+<body>
+<script>
+    (function () {
+        const params = new URLSearchParams(location.search);
+        const id = params.get('id');
+        const slug = params.get('slug')
+            || localStorage.getItem('lastRestaurantSlug')
+            || '';
+        if (!slug) {
+            location.replace('/');
+            return;
+        }
+        const base = '/' + slug.replace(/^\/+/, '');
+        if (id) {
+            location.replace(base + '?item=' + encodeURIComponent(id));
+        } else {
+            location.replace(base);
+        }
+    })();
+</script>
+</body>
+</html>

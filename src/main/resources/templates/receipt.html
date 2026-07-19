@@ -1,0 +1,1281 @@
+<!DOCTYPE html>
+<html lang="ky" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title th:text="${restaurantName}">Заказ</title>
+    <link rel="icon" href="/logo.png" type="image/png">
+    <link rel="stylesheet" th:href="${customerCss}" href="/default-customer.css">
+    <script th:inline="javascript">
+        window.RESTAURANT = {
+            id: /*[[${restaurantId}]]*/ null,
+            slug: /*[[${restaurantSlug}]]*/ '',
+            name: /*[[${restaurantName}]]*/ '',
+            base: /*[[${restaurantBase}]]*/ '/'
+        };
+    </script>
+    <script src="/restaurant-context.js"></script>
+    <script src="/restaurant-i18n.js"></script>
+
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: Arial, sans-serif;
+        }
+
+        :root {
+            --orange: #b8860b;
+            --orange-dark: #9a7209;
+            --orange-light: #f5ecd8;
+            --cream: #faf3e4;
+            --green: #13a653;
+            --dark: #151515;
+            --muted: #6f6f6f;
+            --line: #e5e5e5;
+            --white: #ffffff;
+            --background: #faf6ee;
+            --red: #d93025;
+        }
+
+        body {
+            background: var(--background);
+            color: var(--dark);
+            padding-bottom: 30px;
+        }
+
+        button,
+        input,
+        textarea {
+            font: inherit;
+        }
+
+        button {
+            cursor: pointer;
+        }
+
+        .page {
+            width: 100%;
+            max-width: 620px;
+            min-height: 100vh;
+            margin: auto;
+            padding-bottom: 25px;
+        }
+
+        .page-top {
+            padding: 12px 16px 0;
+            background: var(--background);
+        }
+
+        .top-row {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 12px;
+        }
+
+        .logo-center {
+            flex: 1;
+            text-align: center;
+        }
+
+        .logo-center img {
+            height: 56px;
+            object-fit: contain;
+        }
+
+        .page-heading {
+            text-align: center;
+            padding: 0 16px 16px;
+        }
+
+        .page-heading h1 {
+            font-size: 20px;
+            font-weight: 900;
+        }
+
+        .page-heading p {
+            margin-top: 6px;
+            color: var(--muted);
+            font-size: 13px;
+        }
+
+        .section-head {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 14px;
+            font-size: 15px;
+            font-weight: 900;
+        }
+
+        .section-icon {
+            width: 36px;
+            height: 36px;
+            border-radius: 10px;
+            background: var(--orange-light);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+        }
+
+        .input-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 10px;
+            padding: 0 4px;
+            border-bottom: 1px solid var(--line);
+        }
+
+        .input-row input {
+            flex: 1;
+            border: none;
+            background: transparent;
+            padding: 14px 0;
+            outline: none;
+            font-size: 14px;
+        }
+
+        .input-row .ico { font-size: 18px; color: var(--orange); }
+
+        .order-info-box {
+            display: grid;
+            grid-template-columns: 80px 1fr;
+            gap: 12px;
+            align-items: start;
+        }
+
+        .order-info-box img {
+            width: 80px;
+            height: 80px;
+            border-radius: 12px;
+            object-fit: cover;
+        }
+
+        .order-info-text {
+            font-size: 13px;
+            line-height: 1.55;
+            color: #444;
+        }
+
+        .order-info-text strong {
+            color: var(--orange-dark);
+        }
+
+        .bank-card {
+            background: var(--cream) !important;
+            border: none !important;
+        }
+
+        .upload-zone {
+            border: 2px dashed var(--orange);
+            border-radius: 14px;
+            padding: 20px;
+            text-align: center;
+            background: #fffdf8;
+        }
+
+        .upload-zone p {
+            font-size: 12px;
+            color: var(--muted);
+            line-height: 1.5;
+            margin: 10px 0;
+        }
+
+        .upload-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 18px;
+            border: 1px solid var(--line);
+            border-radius: 10px;
+            background: white;
+            font-weight: 700;
+            font-size: 13px;
+        }
+
+        .submit-button {
+            width: 100%;
+            padding: 16px;
+            border: none;
+            border-radius: 14px;
+            background: linear-gradient(180deg, #d4a843, var(--orange));
+            color: white;
+            font-size: 17px;
+            font-weight: 900;
+            margin-top: 8px;
+        }
+
+        .header {
+            display: none;
+        }
+
+        .back-button {
+            width: 45px;
+            height: 45px;
+            border: 1px solid var(--line);
+            border-radius: 12px;
+            background: white;
+            font-size: 24px;
+        }
+
+        .header-logo {
+            width: 42px;
+            height: 42px;
+            flex-shrink: 0;
+            border-radius: 10px;
+            background: #fff8e7;
+            padding: 4px;
+        }
+
+        .header-logo img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+        }
+
+        .header-main {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex: 1;
+            min-width: 0;
+        }
+
+        .header-title {
+            font-size: 20px;
+            font-weight: 900;
+        }
+
+        .header-subtitle {
+            margin-top: 4px;
+            color: var(--muted);
+            font-size: 11px;
+        }
+
+        .content {
+            padding: 14px;
+        }
+
+        .card {
+            margin-bottom: 13px;
+            padding: 18px;
+            border: 1px solid var(--line);
+            border-radius: 17px;
+            background: white;
+            box-shadow: 0 5px 16px rgba(0, 0, 0, 0.04);
+        }
+
+        .summary-row {
+            display: flex;
+            justify-content: space-between;
+            gap: 15px;
+            padding: 8px 0;
+            font-size: 14px;
+        }
+
+        .summary-row strong {
+            white-space: nowrap;
+        }
+
+        .summary-total {
+            margin-top: 10px;
+            padding-top: 16px;
+            border-top: 1px dashed #cccccc;
+            font-size: 20px;
+            font-weight: 900;
+        }
+
+        .summary-total strong {
+            color: var(--orange-dark);
+            font-size: 24px;
+        }
+
+        .section-title {
+            margin-bottom: 13px;
+            font-size: 15px;
+            font-weight: 900;
+        }
+
+        .form-grid {
+            display: grid;
+            gap: 11px;
+        }
+
+        .form-input,
+        .form-textarea {
+            width: 100%;
+            padding: 13px;
+            border: 1px solid #dddddd;
+            border-radius: 11px;
+            background: #fafafa;
+            outline: none;
+        }
+
+        .form-input:focus,
+        .form-textarea:focus {
+            border-color: var(--orange);
+            background: white;
+        }
+
+        .form-textarea {
+            min-height: 75px;
+            resize: vertical;
+        }
+
+        .warning {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            margin-bottom: 13px;
+            overflow: hidden;
+            border: 1px solid #ed8a4e;
+            border-radius: 16px;
+            background: #fffaf7;
+        }
+
+        .warning-part {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            min-height: 110px;
+            padding: 16px;
+        }
+
+        .warning-part + .warning-part {
+            border-left: 1px solid #efc9b5;
+        }
+
+        .warning-icon {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex: 0 0 auto;
+            width: 55px;
+            height: 55px;
+            border-radius: 50%;
+            background: var(--orange);
+            color: white;
+            font-size: 30px;
+            font-weight: 900;
+        }
+
+        .warning-title {
+            color: var(--orange-dark);
+            font-size: 14px;
+            font-weight: 900;
+        }
+
+        .warning-text {
+            margin-top: 5px;
+            font-size: 12px;
+            line-height: 1.45;
+        }
+
+        .bank-card {
+            padding: 0;
+            overflow: hidden;
+        }
+
+        .bank-top {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 13px;
+            padding: 22px 18px;
+            background: linear-gradient(135deg, #ff6500, #ff3b00);
+            color: white;
+        }
+
+        .bank-main {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+        }
+
+        .bank-logo {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 65px;
+            height: 65px;
+            border-radius: 13px;
+            background: white;
+            color: #0ca64d;
+            font-size: 25px;
+            font-weight: 900;
+        }
+
+        .bank-number {
+            font-size: 23px;
+            font-weight: 900;
+        }
+
+        .bank-label {
+            margin-top: 5px;
+            font-size: 12px;
+            font-weight: 800;
+        }
+
+        .copy-button {
+            width: 46px;
+            height: 46px;
+            border: none;
+            border-radius: 11px;
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            font-size: 20px;
+        }
+
+        .bank-info {
+            padding: 10px 18px;
+        }
+
+        .info-row {
+            display: grid;
+            grid-template-columns: 45px 1fr 45px;
+            align-items: center;
+            gap: 12px;
+            padding: 14px 0;
+            border-bottom: 1px solid #eeeeee;
+        }
+
+        .info-row:last-child {
+            border-bottom: none;
+        }
+
+        .round-icon {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 42px;
+            height: 42px;
+            border-radius: 50%;
+            background: var(--orange-light);
+            font-size: 20px;
+        }
+
+        .info-label {
+            color: var(--muted);
+            font-size: 11px;
+        }
+
+        .info-value {
+            margin-top: 4px;
+            font-size: 15px;
+            font-weight: 900;
+        }
+
+        .amount {
+            color: var(--orange-dark);
+            font-size: 20px;
+        }
+
+        .copy-small {
+            width: 42px;
+            height: 42px;
+            border: none;
+            border-radius: 10px;
+            background: #f1f1f1;
+            font-size: 18px;
+        }
+
+        .secure-card {
+            display: flex;
+            align-items: center;
+            gap: 13px;
+            background: #effbf3;
+            border-color: #d8efdf;
+        }
+
+        .secure-icon {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex: 0 0 auto;
+            width: 52px;
+            height: 52px;
+            border-radius: 50%;
+            background: var(--green);
+            color: white;
+            font-size: 27px;
+        }
+
+        .secure-title {
+            color: var(--green);
+            font-size: 14px;
+            font-weight: 900;
+        }
+
+        .secure-text {
+            margin-top: 4px;
+            font-size: 11px;
+        }
+
+        .file-zone {
+            display: grid;
+            grid-template-columns: 1fr auto;
+            align-items: center;
+            gap: 13px;
+            padding: 15px;
+            border: 2px dashed #e1a07b;
+            border-radius: 14px;
+        }
+
+        .file-title {
+            font-size: 14px;
+            font-weight: 900;
+        }
+
+        .file-help {
+            margin-top: 5px;
+            color: var(--muted);
+            font-size: 10px;
+            line-height: 1.4;
+        }
+
+        .choose-file {
+            padding: 13px 15px;
+            border-radius: 11px;
+            background: var(--orange);
+            color: white;
+            font-size: 12px;
+            font-weight: 900;
+            cursor: pointer;
+        }
+
+        #receipt {
+            display: none;
+        }
+
+        .preview {
+            display: none;
+            margin-top: 12px;
+            overflow: hidden;
+            border: 1px solid var(--line);
+            border-radius: 13px;
+        }
+
+        .preview.show {
+            display: block;
+        }
+
+        .preview img {
+            display: block;
+            width: 100%;
+            max-height: 400px;
+            object-fit: contain;
+        }
+
+        .remove-button {
+            width: 100%;
+            padding: 11px;
+            border: none;
+            background: #fff0f0;
+            color: var(--red);
+            font-weight: 900;
+        }
+
+        .error-box {
+            display: none;
+            margin-bottom: 12px;
+            padding: 12px;
+            border-radius: 10px;
+            background: #fff0f0;
+            color: var(--red);
+            font-size: 12px;
+            font-weight: 900;
+        }
+
+        .error-box.show {
+            display: block;
+        }
+
+        .submit-button {
+            width: 100%;
+            padding: 17px;
+            border: none;
+            border-radius: 13px;
+            background: linear-gradient(90deg, #ff6500, #ff3b00);
+            color: white;
+            font-size: 15px;
+            font-weight: 900;
+        }
+
+        .submit-button:disabled {
+            background: #aaaaaa;
+        }
+
+        .empty-state,
+        .success-state {
+            display: none;
+            padding: 35px 18px;
+            border: 1px solid var(--line);
+            border-radius: 17px;
+            background: white;
+            text-align: center;
+        }
+
+        .empty-state.show,
+        .success-state.show {
+            display: block;
+        }
+
+        .success-icon {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 78px;
+            height: 78px;
+            margin: auto;
+            border-radius: 50%;
+            background: #eaf9ef;
+            color: var(--green);
+            font-size: 42px;
+        }
+
+        .state-title {
+            margin-top: 15px;
+            font-size: 20px;
+            font-weight: 900;
+        }
+
+        .state-text {
+            margin-top: 8px;
+            color: var(--muted);
+            font-size: 12px;
+            line-height: 1.5;
+        }
+
+        .order-number-box {
+            margin-top: 18px;
+            padding: 15px;
+            border-radius: 13px;
+            background: var(--orange-light);
+        }
+
+        .order-number {
+            margin-top: 5px;
+            color: var(--orange-dark);
+            font-size: 28px;
+            font-weight: 900;
+        }
+
+        .home-link {
+            display: block;
+            margin-top: 16px;
+            padding: 14px;
+            border-radius: 11px;
+            background: var(--orange);
+            color: white;
+            text-decoration: none;
+            font-weight: 900;
+        }
+
+        @media (max-width: 520px) {
+            .warning {
+                grid-template-columns: 1fr;
+            }
+
+            .warning-part + .warning-part {
+                border-top: 1px solid #efc9b5;
+                border-left: none;
+            }
+
+            .file-zone {
+                grid-template-columns: 1fr;
+            }
+
+            .choose-file {
+                text-align: center;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+<div class="page">
+
+    <div class="page-top">
+        <div class="top-row">
+            <button type="button" class="back-button" onclick="window.location.href='/cart'">←</button>
+            <div class="logo-center">
+                <img src="/logo.png" th:alt="${restaurantName}" alt="">
+            </div>
+            <div style="width:45px;"></div>
+        </div>
+        <div class="page-heading">
+            <h1>Заказ маалыматтары</h1>
+            <p>Маалыматыңызды толтуруңуз жана төлөңүз</p>
+        </div>
+    </div>
+
+    <header class="header" style="display:none;">
+        <button
+                type="button"
+                class="back-button"
+                onclick="window.location.href='/cart'"
+        >
+            ←
+        </button>
+
+        <div class="header-main">
+            <div class="header-logo">
+                <img src="/logo.png" th:alt="${restaurantName}" alt="">
+            </div>
+            <div>
+            <div class="header-title">Заказ маалыматтары</div>
+            <div class="header-subtitle">
+                Маалыматыңызды толтуруңуз жана төлөңүз
+            </div>
+            </div>
+        </div>
+    </header>
+
+    <main class="content">
+
+        <section id="emptyState" class="empty-state">
+            <div style="font-size: 50px;">🛒</div>
+            <div class="state-title">Себет бош</div>
+            <div class="state-text">
+                Заказ берүү үчүн менюдан тамак тандаңыз.
+            </div>
+            <a href="/" class="home-link">Менюга кайтуу</a>
+        </section>
+
+        <form id="orderForm">
+
+            <div id="errorBox" class="error-box"></div>
+
+            <section class="card">
+                <div class="section-head">
+                    <div class="section-icon">👤</div>
+                    Кардардын маалыматы
+                </div>
+
+                <div class="input-row">
+                    <span class="ico">👤</span>
+                    <input id="customerName" type="text" placeholder="Атыңызды жазыңыз">
+                </div>
+                <div class="input-row">
+                    <span class="ico">📍</span>
+                    <input id="address" type="text" placeholder="Жеткирүү дарегиңизди жазыңыз">
+                </div>
+                <div class="input-row">
+                    <span class="ico">📞</span>
+                    <input id="phone" type="tel" placeholder="Курьер чалган телефон номериңиз">
+                </div>
+                <textarea id="comment" class="form-textarea" placeholder="Комментарий (милдеттүү эмес)" style="margin-top:10px;width:100%;padding:12px;border:1px solid var(--line);border-radius:10px;background:#fafafa;"></textarea>
+            </section>
+
+            <section class="card">
+                <div class="section-head">
+                    <div class="section-icon">🕐</div>
+                    Заказ тууралуу маалымат
+                </div>
+                <div class="order-info-box">
+                    <img src="https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=200&q=80" alt="">
+                    <div class="order-info-text">
+                        Заказ кабыл алынгandan кийин тамактарыңыз свежий даярдалат.
+                        Орточо даярдоо убактысы — <strong>20-25 мүнөт</strong>.
+                        Сизге даамдуу жана ысык тамактарды жеткиребиз.
+                    </div>
+                </div>
+            </section>
+
+            <section class="card bank-card">
+                <div class="section-head">
+                    <div class="section-icon">💳</div>
+                    Төлөм маалыматы
+                </div>
+
+                <div class="bank-top">
+                    <div class="bank-main">
+                        <div class="bank-logo">M</div>
+                        <div>
+                            <div id="bankNumber" class="bank-number">0600 600 828</div>
+                            <div class="bank-label">MBANK номери</div>
+                        </div>
+                    </div>
+                    <button type="button" class="copy-button" onclick="copyText('0600600828')">📋</button>
+                </div>
+
+                <div class="bank-info">
+                    <div class="info-row">
+                        <div class="round-icon">👤</div>
+                        <div>
+                            <div class="info-label">Алуучунун аты-жөнү:</div>
+                            <div class="info-value">Ратбек С.</div>
+                        </div>
+                        <button type="button" class="copy-small" onclick="copyText('Ратбек С.')">📋</button>
+                    </div>
+                    <div class="info-row">
+                        <div class="round-icon">💰</div>
+                        <div>
+                            <div class="info-label">Которула турган сумма:</div>
+                            <div id="paymentAmount" class="info-value amount">0 сом</div>
+                        </div>
+                        <button type="button" class="copy-small" onclick="copyPaymentAmount()">📋</button>
+                    </div>
+                </div>
+                <p style="margin-top:12px;font-size:12px;color:var(--muted);">Сумманы жогорудагы номерге которуңуз.</p>
+                <span id="foodTotal" style="display:none">0</span>
+                <span id="totalPrice" style="display:none">0</span>
+            </section>
+
+            <section class="card">
+                <div class="section-head">
+                    <div class="section-icon">📷</div>
+                    Чектин скринин жүктөңүз
+                </div>
+
+                <div class="upload-zone">
+                    <div style="font-size:32px;">🧾</div>
+                    <p>Төлөмдү жасагандан кийин чектин скринин жүктөңүз. Чек текшерилгенден кийин заказ кабыл алынат.</p>
+                    <label for="receipt" class="upload-btn">⬆ Скрин жүктөө</label>
+                    <input id="receipt" type="file" accept="image/png,image/jpeg,image/jpg,image/webp" style="display:none;">
+                </div>
+
+                <div id="preview" class="preview" style="margin-top:12px;">
+                    <img id="previewImage" alt="Төлөм чеги" style="max-width:100%;border-radius:12px;">
+                    <button type="button" class="remove-button" onclick="removeReceipt()">Чекти өчүрүү</button>
+                </div>
+            </section>
+
+            <button id="submitButton" type="submit" class="submit-button">
+                ✈ Жөнөтүү
+            </button>
+
+        </form>
+
+        <section id="successState" class="success-state">
+
+            <div class="success-icon">✓</div>
+
+            <div class="state-title">
+                Заказ ийгиликтүү жөнөтүлдү!
+            </div>
+
+            <div class="state-text">
+                Төлөмдүн чегин администратор текшерет.
+            </div>
+
+            <div class="order-number-box">
+                <div style="font-size: 11px; color: #777;">
+                    Сиздин заказ номериңиз
+                </div>
+
+                <div
+                        id="successOrderNumber"
+                        class="order-number"
+                >
+                    №0
+                </div>
+            </div>
+
+            <a href="/" class="home-link">
+                Башкы бетке кайтуу
+            </a>
+
+        </section>
+
+    </main>
+
+</div>
+
+<script>
+    const DELIVERY_PRICE = 150;
+
+    let currentLanguage =
+        localStorage.getItem("customerLanguage") || "ky";
+
+    function formatQuantity(value) {
+        return String(Math.max(0, Math.round(Number(value || 0))));
+    }
+
+    let cart = [];
+    let foodTotal = 0;
+    let orderTotal = 0;
+    let paymentAmount = 0;
+
+    const orderForm =
+        document.getElementById("orderForm");
+
+    const emptyState =
+        document.getElementById("emptyState");
+
+    const successState =
+        document.getElementById("successState");
+
+    const errorBox =
+        document.getElementById("errorBox");
+
+    const receiptInput =
+        document.getElementById("receipt");
+
+    const preview =
+        document.getElementById("preview");
+
+    const previewImage =
+        document.getElementById("previewImage");
+
+    const submitButton =
+        document.getElementById("submitButton");
+
+    function loadPage() {
+        try {
+            const savedCart =
+                JSON.parse(localStorage.getItem("cart"));
+
+            cart =
+                Array.isArray(savedCart)
+                    ? savedCart
+                    : [];
+
+        } catch (error) {
+            cart = [];
+        }
+
+        if (cart.length === 0) {
+            orderForm.style.display = "none";
+            emptyState.classList.add("show");
+            return;
+        }
+
+        foodTotal = cart.reduce(
+            (sum, item) => {
+                return sum +
+                    Number(item.price || 0) *
+                    Number(item.quantity || 0);
+            },
+            0
+        );
+
+        orderTotal = foodTotal + DELIVERY_PRICE;
+
+        paymentAmount = orderTotal;
+
+        const savedComment = localStorage.getItem("orderComment") || "";
+        const commentField = document.getElementById("comment");
+        if (commentField) {
+            commentField.value = savedComment;
+        }
+
+        document.getElementById("foodTotal").textContent =
+            formatMoney(foodTotal) + " сом";
+
+        document.getElementById("totalPrice").textContent =
+            formatMoney(paymentAmount) + " сом";
+
+        document.getElementById("paymentAmount").textContent =
+            formatMoney(paymentAmount) + " сом";
+    }
+
+    receiptInput.addEventListener(
+        "change",
+        function () {
+
+            hideError();
+
+            const file =
+                receiptInput.files[0];
+
+            if (!file) {
+                removeReceipt();
+                return;
+            }
+
+            if (!file.type.startsWith("image/")) {
+                showError(
+                    "Чек сүрөт форматында болушу керек."
+                );
+
+                removeReceipt();
+                return;
+            }
+
+            if (file.size > 8 * 1024 * 1024) {
+                showError(
+                    "Чектин көлөмү 8 MBдан чоң болбошу керек."
+                );
+
+                removeReceipt();
+                return;
+            }
+
+            const reader =
+                new FileReader();
+
+            reader.onload =
+                function (event) {
+                    previewImage.src =
+                        event.target.result;
+
+                    preview.classList.add("show");
+                };
+
+            reader.readAsDataURL(file);
+        }
+    );
+
+    function removeReceipt() {
+        receiptInput.value = "";
+        previewImage.src = "";
+        preview.classList.remove("show");
+    }
+
+    orderForm.addEventListener(
+        "submit",
+        async function (event) {
+
+            event.preventDefault();
+            hideError();
+
+            const customerName =
+                document
+                    .getElementById("customerName")
+                    .value
+                    .trim();
+
+            const phone =
+                document
+                    .getElementById("phone")
+                    .value
+                    .trim();
+
+            const address =
+                document
+                    .getElementById("address")
+                    .value
+                    .trim();
+
+            const comment =
+                document
+                    .getElementById("comment")
+                    .value
+                    .trim();
+
+            if (customerName.length < 2) {
+                showError("Атыңызды жазыңыз.");
+                return;
+            }
+
+            if (phone.replace(/\D/g, "").length < 9) {
+                showError(
+                    "Телефон номериңизди туура жазыңыз."
+                );
+                return;
+            }
+
+            if (address.length < 3) {
+                showError(
+                    "Жеткирүү дарегин жазыңыз."
+                );
+                return;
+            }
+
+            if (receiptInput.files.length === 0) {
+                showError(
+                    "Төлөмдүн чегин жүктөңүз."
+                );
+                return;
+            }
+
+            const itemName =
+                cart
+                    .map(item => {
+                        const name =
+                            currentLanguage === "ru"
+                                ? (item.nameRu || item.name || item.nameKg || "Блюдо")
+                                : (item.nameKg || item.name || item.nameRu || "Тамак");
+
+                        return name + " x" + formatQuantity(item.quantity || 0);
+                    })
+                    .join(", ");
+
+            const totalQuantity =
+                cart.reduce(
+                    (sum, item) =>
+                        sum + Math.round(Number(item.quantity || 0)),
+                    0
+                );
+
+            const formData =
+                new FormData();
+
+            formData.append(
+                "customerName",
+                customerName
+            );
+
+            formData.append(
+                "phone",
+                phone
+            );
+
+            formData.append(
+                "address",
+                address
+            );
+
+            formData.append(
+                "comment",
+                comment
+            );
+
+            formData.append(
+                "itemName",
+                itemName
+            );
+
+            formData.append(
+                "quantity",
+                String(totalQuantity)
+            );
+
+            formData.append(
+                "totalPrice",
+                String(orderTotal)
+            );
+
+            formData.append(
+                "paymentAmount",
+                paymentAmount.toFixed(2)
+            );
+
+            formData.append(
+                "restaurantId",
+                localStorage.getItem("restaurantId") || (window.RESTAURANT && window.RESTAURANT.id) || ""
+            );
+
+            formData.append(
+                "receipt",
+                receiptInput.files[0]
+            );
+
+            submitButton.disabled = true;
+            submitButton.textContent =
+                "ЖӨНӨТҮЛҮП ЖАТАТ...";
+
+            try {
+                const response =
+                    await fetch(
+                        "/orders",
+                        {
+                            method: "POST",
+                            body: formData
+                        }
+                    );
+
+                if (!response.ok) {
+                    let message =
+                        "Заказ жөнөтүлгөн жок. Серверди текшериңиз.";
+
+                    try {
+                        const errorData =
+                            await response.json();
+
+                        if (errorData.error) {
+                            message = errorData.error;
+                        }
+                    } catch (ignored) {
+                    }
+
+                    throw new Error(message);
+                }
+
+                const savedOrder =
+                    await response.json();
+
+                localStorage.removeItem("cart");
+                localStorage.removeItem("orderComment");
+
+                orderForm.style.display = "none";
+                successState.classList.add("show");
+
+                document
+                    .getElementById(
+                        "successOrderNumber"
+                    )
+                    .textContent =
+                    "№" + (savedOrder.id || 0);
+
+                window.scrollTo({
+                    top: 0,
+                    behavior: "smooth"
+                });
+
+            } catch (error) {
+                showError(
+                    error.message
+                    || "Заказ жөнөтүлгөн жок. Серверди текшериңиз."
+                );
+
+                submitButton.disabled = false;
+                submitButton.textContent =
+                    "✓ БУЙРУТМАНЫ ЖӨНӨТҮҮ";
+            }
+        }
+    );
+
+    function copyPaymentAmount() {
+        copyText(
+            paymentAmount.toFixed(2)
+        );
+    }
+
+    async function copyText(value) {
+        try {
+            await navigator.clipboard.writeText(value);
+            alert("Көчүрүлдү: " + value);
+
+        } catch (error) {
+            const input =
+                document.createElement("input");
+
+            input.value = value;
+
+            document.body.appendChild(input);
+
+            input.select();
+
+            document.execCommand("copy");
+
+            input.remove();
+
+            alert("Көчүрүлдү: " + value);
+        }
+    }
+
+    function showError(message) {
+        errorBox.textContent = message;
+        errorBox.classList.add("show");
+
+        errorBox.scrollIntoView({
+            behavior: "smooth",
+            block: "center"
+        });
+    }
+
+    function hideError() {
+        errorBox.textContent = "";
+        errorBox.classList.remove("show");
+    }
+
+    function formatMoney(value) {
+        return Number(value || 0)
+            .toLocaleString("ru-RU", {
+                maximumFractionDigits: 0
+            });
+    }
+
+    loadPage();
+    CustomerI18n.mountLangPill();
+</script>
+
+</body>
+</html>

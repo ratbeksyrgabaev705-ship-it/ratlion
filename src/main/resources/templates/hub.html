@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="ky" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RATLION — Базар-Коргон</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: Inter, system-ui, sans-serif; background: #0f172a; color: #fff; min-height: 100vh; }
+        .hub { max-width: 720px; margin: 0 auto; padding: 48px 20px; text-align: center; }
+        .hub h1 { font-size: 32px; font-weight: 800; margin-bottom: 8px; }
+        .hub p { color: #94a3b8; margin-bottom: 32px; line-height: 1.5; }
+        .hub-links { display: grid; gap: 10px; text-align: left; margin-bottom: 32px; }
+        .hub-link {
+            display: block; padding: 18px 20px;
+            background: #1e293b; border: 1px solid #334155; border-radius: 14px;
+            color: #fff; text-decoration: none; font-weight: 700; transition: border-color 0.2s, transform 0.15s;
+        }
+        .hub-link:hover { border-color: #dc2626; transform: translateY(-1px); }
+        .hub-link-name { font-size: 18px; display: block; }
+        .hub-link-tagline {
+            display: block; font-size: 13px; font-weight: 500; color: rgba(255,255,255,0.75);
+            margin-top: 6px; line-height: 1.4;
+        }
+        .hub-admin { display: grid; gap: 8px; text-align: left; margin-top: 8px; }
+        .hub-admin-title { font-size: 13px; color: #64748b; text-align: left; margin: 24px 0 12px; }
+        .hub-empty { color: #64748b; padding: 16px; background: #1e293b; border-radius: 12px; }
+    </style>
+</head>
+<body>
+<div class="hub">
+    <h1>🔥 RATLION</h1>
+    <p>Базар-Коргон шаары — ресторанды тандаңыз</p>
+
+    <div class="hub-links" th:if="${!restaurants.isEmpty()}">
+        <a th:each="r : ${restaurants}"
+           class="hub-link"
+           th:href="@{'/' + ${r.slug}}"
+           th:style="|background:linear-gradient(135deg, ${r.accentColor != null && !#strings.isEmpty(r.accentColor) ? r.accentColor : '#475569'}, #1e293b); border-color:${r.accentColor != null && !#strings.isEmpty(r.accentColor) ? r.accentColor : '#64748b'};|">
+            <span class="hub-link-name" th:text="|${r.emoji != null ? r.emoji : '🏪'} ${r.name}|">Кафе</span>
+            <span class="hub-link-tagline" th:text="${r.tagline != null && !#strings.isEmpty(r.tagline) ? r.tagline : 'Менюну көрүү →'}">Менюну көрүү →</span>
+        </a>
+    </div>
+    <div class="hub-empty" th:if="${restaurants.isEmpty()}">Кафе табылган жок</div>
+
+    <p class="hub-admin-title">Админ</p>
+    <div class="hub-admin">
+        <a class="hub-link" href="/ratlion">🔥 RATLION</a>
+        <a class="hub-link" href="/courier">🛵 Курьер</a>
+    </div>
+</div>
+</body>
+</html>

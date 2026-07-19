@@ -1,0 +1,650 @@
+<!DOCTYPE html>
+<html lang="ky">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Платформа — Менин панелим</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: Inter, Arial, sans-serif; }
+        :root {
+            --sidebar: #0f172a;
+            --sidebar-hover: #1e293b;
+            --sidebar-text: #cbd5e1;
+            --bg: #f8fafc;
+            --white: #fff;
+            --dark: #0f172a;
+            --muted: #64748b;
+            --line: #e2e8f0;
+            --green: #16a34a;
+            --red: #dc2626;
+            --gold: #c9a227;
+            --blue: #2563eb;
+        }
+        body { background: var(--bg); color: var(--dark); min-height: 100vh; }
+        button, input, select, textarea { font: inherit; }
+        button { cursor: pointer; }
+
+        .layout { display: flex; min-height: 100vh; }
+        .sidebar {
+            width: 260px; background: var(--sidebar); color: var(--sidebar-text);
+            padding: 22px 14px; position: fixed; inset: 0 auto 0 0; overflow-y: auto;
+        }
+        .brand {
+            padding: 8px 10px 22px; border-bottom: 1px solid rgba(255,255,255,.08);
+            margin-bottom: 18px;
+        }
+        .brand-title { color: #fff; font-size: 18px; font-weight: 900; }
+        .brand-sub { font-size: 11px; margin-top: 4px; opacity: .75; }
+        .nav { display: grid; gap: 6px; }
+        .nav-btn {
+            display: flex; align-items: center; gap: 10px; width: 100%;
+            padding: 12px 14px; border: none; border-radius: 12px;
+            background: transparent; color: var(--sidebar-text); text-align: left; font-weight: 600;
+        }
+        .nav-btn:hover, .nav-btn.active { background: var(--sidebar-hover); color: #fff; }
+        .nav-badge {
+            margin-left: auto; min-width: 22px; height: 22px; padding: 0 6px;
+            border-radius: 999px; background: var(--red); color: #fff;
+            font-size: 11px; font-weight: 800; display: inline-flex; align-items: center; justify-content: center;
+        }
+        .sidebar-links {
+            margin-top: 18px; padding-top: 16px; border-top: 1px solid rgba(255,255,255,.08);
+            display: grid; gap: 8px;
+        }
+        .sidebar-link {
+            color: #94a3b8; text-decoration: none; font-size: 13px; padding: 6px 10px;
+        }
+        .sidebar-link:hover { color: #fff; }
+
+        .main { margin-left: 260px; flex: 1; min-width: 0; }
+        .topbar {
+            position: sticky; top: 0; z-index: 20; background: rgba(248,250,252,.95);
+            backdrop-filter: blur(8px); border-bottom: 1px solid var(--line);
+            padding: 16px 24px; display: flex; align-items: center; justify-content: space-between; gap: 16px;
+        }
+        .topbar h1 { font-size: 22px; font-weight: 900; }
+        .topbar-actions { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+        .filter-select, .input {
+            padding: 10px 12px; border: 1px solid var(--line); border-radius: 10px; background: #fff;
+        }
+        .content { padding: 24px; }
+        .screen { display: none; }
+        .screen.active { display: block; }
+
+        .stats {
+            display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 14px; margin-bottom: 20px;
+        }
+        .stat-card {
+            background: #fff; border: 1px solid var(--line); border-radius: 16px; padding: 18px;
+        }
+        .stat-label { font-size: 12px; color: var(--muted); font-weight: 700; }
+        .stat-value { margin-top: 8px; font-size: 28px; font-weight: 900; }
+        .stat-value.gold { color: var(--gold); }
+
+        .card {
+            background: #fff; border: 1px solid var(--line); border-radius: 16px;
+            padding: 18px; margin-bottom: 16px; box-shadow: 0 2px 8px rgba(15,23,42,.04);
+        }
+        .card-title { font-size: 16px; font-weight: 900; margin-bottom: 14px; }
+
+        .restaurant-grid {
+            display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 14px;
+        }
+        .restaurant-card {
+            border: 1px solid var(--line); border-radius: 16px; padding: 16px; background: #fff;
+        }
+        .restaurant-head { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
+        .restaurant-icon {
+            width: 48px; height: 48px; border-radius: 14px; display: flex; align-items: center;
+            justify-content: center; font-size: 24px; color: #fff;
+        }
+        .restaurant-name { font-weight: 900; font-size: 16px; }
+        .restaurant-meta { font-size: 12px; color: var(--muted); margin-top: 2px; }
+        .restaurant-stats { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin: 12px 0; }
+        .mini-stat {
+            background: #f8fafc; border-radius: 10px; padding: 10px; font-size: 12px;
+        }
+        .mini-stat strong { display: block; font-size: 18px; margin-top: 4px; }
+        .card-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+        .btn {
+            padding: 10px 14px; border: none; border-radius: 10px; font-weight: 800; color: #fff;
+        }
+        .btn.small { padding: 8px 12px; font-size: 12px; }
+        .btn.gold { background: var(--gold); }
+        .btn.blue { background: var(--blue); }
+        .btn.green { background: var(--green); }
+        .btn.red { background: var(--red); }
+        .btn.ghost { background: #f1f5f9; color: var(--dark); border: 1px solid var(--line); }
+
+        .table-wrap { overflow-x: auto; }
+        table { width: 100%; border-collapse: collapse; font-size: 13px; }
+        th, td { padding: 12px 10px; border-bottom: 1px solid var(--line); text-align: left; vertical-align: top; }
+        th { font-size: 11px; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); }
+        .badge {
+            display: inline-flex; padding: 4px 10px; border-radius: 999px; font-size: 11px; font-weight: 800;
+        }
+        .badge.new { background: #fef3c7; color: #92400e; }
+        .badge.accepted { background: #dbeafe; color: #1d4ed8; }
+        .badge.cooking { background: #ffedd5; color: #c2410c; }
+        .badge.ready { background: #dcfce7; color: #166534; }
+        .badge.courier { background: #ede9fe; color: #6d28d9; }
+        .badge.delivered { background: #dcfce7; color: #166534; }
+        .badge.cancelled { background: #fee2e2; color: #991b1b; }
+        .rest-tag {
+            display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px;
+            border-radius: 999px; background: #f1f5f9; font-weight: 700; font-size: 12px;
+        }
+        .rest-dot { width: 8px; height: 8px; border-radius: 50%; }
+        .receipt-thumb {
+            width: 56px; height: 56px; object-fit: cover; border-radius: 8px; cursor: pointer;
+            border: 1px solid var(--line);
+        }
+        .empty { text-align: center; padding: 40px 20px; color: var(--muted); }
+        .form-grid { display: grid; gap: 10px; }
+        .form-grid.two { grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); }
+        .modal {
+            position: fixed; inset: 0; background: rgba(15,23,42,.55); display: none;
+            align-items: center; justify-content: center; z-index: 100; padding: 20px;
+        }
+        .modal.show { display: flex; }
+        .modal-box {
+            width: 100%; max-width: 520px; background: #fff; border-radius: 18px; padding: 20px;
+            max-height: 90vh; overflow-y: auto;
+        }
+        .modal-title { font-size: 18px; font-weight: 900; margin-bottom: 14px; }
+        .modal-actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 16px; }
+
+        @media (max-width: 900px) {
+            .sidebar { position: static; width: 100%; }
+            .main { margin-left: 0; }
+            .layout { flex-direction: column; }
+        }
+    </style>
+</head>
+<body>
+<div class="layout">
+    <aside class="sidebar">
+        <div class="brand">
+            <div class="brand-title">🚀 Менин панелим</div>
+            <div class="brand-sub">5 ресторанга чейин платформа</div>
+        </div>
+        <nav class="nav">
+            <button class="nav-btn active" data-screen="dashboard" onclick="showScreen('dashboard', this)">📊 Dashboard</button>
+            <button class="nav-btn" data-screen="restaurants" onclick="showScreen('restaurants', this)">🏪 Ресторандар <span id="restCountBadge" class="nav-badge">0</span></button>
+            <button class="nav-btn" data-screen="orders" onclick="showScreen('orders', this)">📋 Бардык заказдар <span id="newOrdersBadge" class="nav-badge">0</span></button>
+            <button class="nav-btn" data-screen="couriers" onclick="showScreen('couriers', this)">🛵 Курьерлер</button>
+            <button class="nav-btn" data-screen="reports" onclick="showScreen('reports', this)">📈 Отчёттор</button>
+        </nav>
+        <div class="sidebar-links">
+            <a class="sidebar-link" href="/owner">Менеджер панели</a>
+            <a class="sidebar-link" href="/admin">Админ панели</a>
+            <a class="sidebar-link" href="/">Кардар менюсу</a>
+        </div>
+    </aside>
+
+    <div class="main">
+        <header class="topbar">
+            <h1 id="pageTitle">Dashboard</h1>
+            <div class="topbar-actions">
+                <select id="restaurantFilter" class="filter-select" onchange="onRestaurantFilterChange()">
+                    <option value="">Бардык ресторандар</option>
+                </select>
+                <button class="btn ghost" onclick="refreshAll()">🔄 Жаңыртуу</button>
+            </div>
+        </header>
+
+        <main class="content">
+            <section id="dashboardScreen" class="screen active">
+                <div id="dashboardStats" class="stats"></div>
+                <div class="card">
+                    <div class="card-title">Акыркы заказдар</div>
+                    <div id="dashboardOrders" class="table-wrap"></div>
+                </div>
+            </section>
+
+            <section id="restaurantsScreen" class="screen">
+                <div class="card">
+                    <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;">
+                        <div>
+                            <div class="card-title" style="margin:0;">Ресторандар</div>
+                            <div style="font-size:13px;color:var(--muted);margin-top:4px;">Максимум 5 ресторан</div>
+                        </div>
+                        <button id="addRestaurantBtn" class="btn gold" onclick="openRestaurantModal()">+ Ресторан кошуу</button>
+                    </div>
+                </div>
+                <div id="restaurantsGrid" class="restaurant-grid"></div>
+            </section>
+
+            <section id="ordersScreen" class="screen">
+                <div class="card">
+                    <div class="card-title">Бардык заказдар</div>
+                    <div id="ordersTable" class="table-wrap"></div>
+                </div>
+            </section>
+
+            <section id="couriersScreen" class="screen">
+                <div class="card">
+                    <div class="card-title">Жаңы курьер кошуу</div>
+                    <div class="form-grid two">
+                        <input id="courierName" class="input" placeholder="Аты">
+                        <input id="courierChatId" class="input" placeholder="Telegram ID">
+                        <input id="courierPhone" class="input" placeholder="Телефон">
+                        <button class="btn gold" onclick="addCourier()">Курьер кошуу</button>
+                    </div>
+                </div>
+                <div id="pendingCouriers"></div>
+                <div id="activeCouriers"></div>
+            </section>
+
+            <section id="reportsScreen" class="screen">
+                <div class="card">
+                    <div class="card-title">Бүгүнкү отчёт</div>
+                    <div id="reportSummary" class="stats"></div>
+                    <button class="btn gold" onclick="loadReport()">🔄 Жаңыртуу</button>
+                </div>
+                <div id="reportOrders"></div>
+            </section>
+        </main>
+    </div>
+</div>
+
+<div id="restaurantModal" class="modal">
+    <div class="modal-box">
+        <div id="restaurantModalTitle" class="modal-title">Ресторан кошуу</div>
+        <div class="form-grid">
+            <input id="restName" class="input" placeholder="Аты (мисалы: Чайхана)">
+            <input id="restSlug" class="input" placeholder="Slug (family)">
+            <input id="restEmoji" class="input" placeholder="Emoji (🍽)">
+            <input id="restColor" class="input" placeholder="Түс (#c9a227)">
+            <input id="restPrefix" class="input" placeholder="Заказ префикси (ОД)">
+            <input id="restUrl" class="input" placeholder="Меню URL (/)">
+            <input id="restPhone" class="input" placeholder="Телефон">
+            <input id="restAddress" class="input" placeholder="Дарек">
+            <label style="font-size:13px;"><input type="checkbox" id="restActive" checked> Активдүү</label>
+        </div>
+        <div class="modal-actions">
+            <button class="btn ghost" onclick="closeRestaurantModal()">Жабуу</button>
+            <button class="btn gold" onclick="saveRestaurant()">Сактоо</button>
+        </div>
+    </div>
+</div>
+
+<div id="receiptModal" class="modal" onclick="closeReceiptModal()">
+    <div class="modal-box" onclick="event.stopPropagation()">
+        <img id="receiptModalImage" style="width:100%;border-radius:12px;" alt="Чек">
+    </div>
+</div>
+
+<script>
+    let currentScreen = 'dashboard';
+    let selectedRestaurantId = '';
+    let dashboardData = null;
+    let editingRestaurantId = null;
+    let pollTimer = null;
+
+    const titles = {
+        dashboard: 'Dashboard',
+        restaurants: 'Ресторандар',
+        orders: 'Бардык заказдар',
+        couriers: 'Курьерлер',
+        reports: 'Отчёттор'
+    };
+
+    function showScreen(name, button) {
+        currentScreen = name;
+        document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+        document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+        if (button) button.classList.add('active');
+        document.getElementById(name + 'Screen').classList.add('active');
+        document.getElementById('pageTitle').textContent = titles[name] || name;
+        refreshAll();
+    }
+
+    function onRestaurantFilterChange() {
+        selectedRestaurantId = document.getElementById('restaurantFilter').value;
+        refreshAll();
+    }
+
+    function restaurantQuery() {
+        return selectedRestaurantId ? ('?restaurantId=' + encodeURIComponent(selectedRestaurantId)) : '';
+    }
+
+    async function refreshAll() {
+        await loadDashboard();
+        if (currentScreen === 'restaurants') renderRestaurants();
+        if (currentScreen === 'orders') renderOrdersTable();
+        if (currentScreen === 'couriers') loadCouriers();
+        if (currentScreen === 'reports') loadReport();
+    }
+
+    async function loadDashboard() {
+        try {
+            const res = await fetch('/api/platform/dashboard' + restaurantQuery());
+            dashboardData = await res.json();
+            renderDashboardStats();
+            renderDashboardOrders();
+            renderRestaurantFilter();
+            document.getElementById('restCountBadge').textContent = dashboardData.restaurantCount || 0;
+            document.getElementById('newOrdersBadge').textContent = dashboardData.newOrders || 0;
+            document.getElementById('addRestaurantBtn').disabled =
+                (dashboardData.restaurantCount || 0) >= (dashboardData.maxRestaurants || 5);
+        } catch (e) {
+            console.error(e);
+        }
+    }
+
+    function renderDashboardStats() {
+        const d = dashboardData || {};
+        document.getElementById('dashboardStats').innerHTML = `
+            <div class="stat-card"><div class="stat-label">Бүгүнкү заказдар</div><div class="stat-value">${d.todayOrders || 0}</div></div>
+            <div class="stat-card"><div class="stat-label">Бүгүнкү киреше</div><div class="stat-value gold">${formatMoney(d.todayRevenue)} сом</div></div>
+            <div class="stat-card"><div class="stat-label">Жаңы заказдар</div><div class="stat-value">${d.newOrders || 0}</div></div>
+            <div class="stat-card"><div class="stat-label">Активдүү заказдар</div><div class="stat-value">${d.activeOrders || 0}</div></div>
+            <div class="stat-card"><div class="stat-label">Активдүү курьерлер</div><div class="stat-value">${d.activeCouriers || 0}</div></div>
+        `;
+    }
+
+    function renderRestaurantFilter() {
+        const select = document.getElementById('restaurantFilter');
+        const current = selectedRestaurantId;
+        const options = ['<option value="">Бардык ресторандар</option>']
+            .concat((dashboardData?.restaurants || []).map(r =>
+                `<option value="${r.id}">${escapeHtml(r.emoji || '🏪')} ${escapeHtml(r.name)}</option>`
+            ));
+        select.innerHTML = options.join('');
+        select.value = current;
+    }
+
+    function renderDashboardOrders() {
+        const orders = (dashboardData?.recentOrders || []).slice(0, 10);
+        document.getElementById('dashboardOrders').innerHTML = orders.length
+            ? buildOrdersTable(orders, true)
+            : '<div class="empty">Заказ жок</div>';
+    }
+
+    function renderRestaurants() {
+        const restaurants = dashboardData?.restaurants || [];
+        if (!restaurants.length) {
+            document.getElementById('restaurantsGrid').innerHTML = '<div class="empty">Ресторан жок</div>';
+            return;
+        }
+        document.getElementById('restaurantsGrid').innerHTML = restaurants.map(r => `
+            <article class="restaurant-card">
+                <div class="restaurant-head">
+                    <div class="restaurant-icon" style="background:${escapeHtml(r.accentColor || '#64748b')}">${r.emoji || '🏪'}</div>
+                    <div>
+                        <div class="restaurant-name">${escapeHtml(r.name)}</div>
+                        <div class="restaurant-meta">${escapeHtml(r.slug || '')} · ${r.active ? 'Активдүү' : 'Өчük'}</div>
+                    </div>
+                </div>
+                <div class="restaurant-stats">
+                    <div class="mini-stat">Жаңы<strong>${r.newOrders || 0}</strong></div>
+                    <div class="mini-stat">Активдүү<strong>${r.activeOrders || 0}</strong></div>
+                    <div class="mini-stat">Бүгүн<strong>${formatMoney(r.todayRevenue)}</strong></div>
+                    <div class="mini-stat">Префикс<strong>${escapeHtml(r.orderPrefix || '—')}</strong></div>
+                </div>
+                <div class="card-actions">
+                    ${r.customerUrl ? `<a class="btn small ghost" href="${escapeHtml(r.customerUrl)}" target="_blank">Меню</a>` : ''}
+                    ${r.slug ? `<a class="btn small ghost" href="/ratlion" target="_blank">RATLION</a>` : ''}
+                    ${r.slug ? `<a class="btn small ghost" href="/kitchen/${encodeURIComponent(r.slug)}" target="_blank">Ашкана</a>` : ''}
+                    <button class="btn small blue" onclick="filterRestaurant(${r.id})">Заказдар</button>
+                    <button class="btn small gold" onclick="openRestaurantModal(${r.id})">Түзөтүү</button>
+                </div>
+            </article>
+        `).join('');
+    }
+
+    function filterRestaurant(id) {
+        selectedRestaurantId = String(id);
+        document.getElementById('restaurantFilter').value = selectedRestaurantId;
+        showScreen('orders', document.querySelector('[data-screen="orders"]'));
+    }
+
+    async function renderOrdersTable() {
+        const container = document.getElementById('ordersTable');
+        try {
+            const res = await fetch('/orders/active' + restaurantQuery());
+            const orders = await res.json();
+            if (!orders.length) {
+                container.innerHTML = '<div class="empty">Активдүү заказ жок</div>';
+                return;
+            }
+            const restaurantMap = {};
+            (dashboardData?.restaurants || []).forEach(r => restaurantMap[r.id] = r);
+            const rows = orders.map(o => {
+                const r = restaurantMap[o.restaurantId] || {};
+                return {
+                    id: o.id,
+                    restaurantId: o.restaurantId,
+                    restaurantName: r.name || '—',
+                    restaurantEmoji: r.emoji || '🏪',
+                    restaurantColor: r.accentColor || '#64748b',
+                    displayOrderNumber: o.displayOrderNumber,
+                    customerName: o.customerName,
+                    phone: o.phone,
+                    itemName: o.itemName,
+                    totalPrice: o.totalPrice,
+                    orderStatus: o.orderStatus,
+                    receiptImagePath: o.receiptImagePath
+                };
+            });
+            container.innerHTML = buildOrdersTable(rows, false);
+        } catch (e) {
+            container.innerHTML = '<div class="empty">Жүктөлбөдү</div>';
+        }
+    }
+
+    function buildOrdersTable(orders, compact) {
+        return `
+            <table>
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Ресторан</th>
+                        <th>Кардар</th>
+                        ${compact ? '' : '<th>Тамактар</th>'}
+                        <th>Сумма</th>
+                        <th>Статус</th>
+                        <th>Чек</th>
+                        <th>Аракет</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${orders.map(o => `
+                        <tr>
+                            <td><strong>${escapeHtml(o.displayOrderNumber || ('#' + o.id))}</strong></td>
+                            <td><span class="rest-tag"><span class="rest-dot" style="background:${escapeHtml(o.restaurantColor)}"></span>${escapeHtml(o.restaurantEmoji)} ${escapeHtml(o.restaurantName)}</span></td>
+                            <td>${escapeHtml(o.customerName || '—')}<br><span style="color:var(--muted);font-size:12px;">${escapeHtml(o.phone || '')}</span></td>
+                            ${compact ? '' : `<td style="max-width:220px;">${escapeHtml(o.itemName || '—')}</td>`}
+                            <td><strong>${formatMoney(o.totalPrice)} сом</strong></td>
+                            <td>${statusBadge(o.orderStatus)}</td>
+                            <td>${o.receiptImagePath ? `<img class="receipt-thumb" src="${escapeHtml(o.receiptImagePath)}" onclick="openReceipt('${escapeHtml(o.receiptImagePath)}')" alt="">` : '—'}</td>
+                            <td>${orderActions(o)}</td>
+                        </tr>
+                    `).join('')}
+                </tbody>
+            </table>`;
+    }
+
+    function orderActions(order) {
+        if (order.orderStatus === 'NEW') {
+            return `
+                <button class="btn small green" onclick="acceptOrder(${order.id})">✅ Кабыл</button>
+                <button class="btn small red" onclick="cancelOrder(${order.id})">❌</button>`;
+        }
+        return `<span style="color:var(--muted);font-size:12px;">—</span>`;
+    }
+
+    function statusBadge(status) {
+        const map = {
+            NEW: ['new', 'Текшерүүдө'],
+            ACCEPTED: ['accepted', 'Кабыл'],
+            COOKING: ['cooking', 'Даяр'],
+            READY: ['ready', 'Даяр'],
+            GIVEN_TO_COURIER: ['courier', 'Курьерде'],
+            DELIVERED: ['delivered', 'Жетти'],
+            CANCELLED: ['cancelled', 'Четке кагылды'],
+        };
+        const item = map[status] || ['new', status || '—'];
+        return `<span class="badge ${item[0]}">${item[1]}</span>`;
+    }
+
+    async function acceptOrder(id) {
+        await fetch('/orders/' + id + '/accept', { method: 'PUT' });
+        refreshAll();
+    }
+
+    async function cancelOrder(id) {
+        if (!confirm('Заказды жокко чыгарасызбы?')) return;
+        await fetch('/orders/' + id + '/cancel', { method: 'PUT' });
+        refreshAll();
+    }
+
+    function openReceipt(path) {
+        document.getElementById('receiptModalImage').src = path;
+        document.getElementById('receiptModal').classList.add('show');
+    }
+
+    function closeReceiptModal() {
+        document.getElementById('receiptModal').classList.remove('show');
+    }
+
+    function openRestaurantModal(id) {
+        editingRestaurantId = id || null;
+        const restaurants = dashboardData?.restaurants || [];
+        const r = restaurants.find(x => Number(x.id) === Number(id)) || {};
+        document.getElementById('restaurantModalTitle').textContent = id ? 'Ресторан түзөтүү' : 'Ресторан кошуу';
+        document.getElementById('restName').value = r.name || '';
+        document.getElementById('restSlug').value = r.slug || '';
+        document.getElementById('restEmoji').value = r.emoji || '🏪';
+        document.getElementById('restColor').value = r.accentColor || '#64748b';
+        document.getElementById('restPrefix').value = r.orderPrefix || '';
+        document.getElementById('restUrl').value = r.customerUrl || '';
+        document.getElementById('restPhone').value = r.phone || '';
+        document.getElementById('restAddress').value = r.address || '';
+        document.getElementById('restActive').checked = r.active !== false;
+        document.getElementById('restaurantModal').classList.add('show');
+    }
+
+    function closeRestaurantModal() {
+        document.getElementById('restaurantModal').classList.remove('show');
+        editingRestaurantId = null;
+    }
+
+    async function saveRestaurant() {
+        const payload = {
+            name: document.getElementById('restName').value.trim(),
+            slug: document.getElementById('restSlug').value.trim(),
+            emoji: document.getElementById('restEmoji').value.trim(),
+            accentColor: document.getElementById('restColor').value.trim(),
+            orderPrefix: document.getElementById('restPrefix').value.trim(),
+            customerUrl: document.getElementById('restUrl').value.trim(),
+            phone: document.getElementById('restPhone').value.trim(),
+            address: document.getElementById('restAddress').value.trim(),
+            active: document.getElementById('restActive').checked
+        };
+        if (!payload.name) { alert('Атын жазыңыз'); return; }
+
+        const url = editingRestaurantId ? ('/api/restaurants/' + editingRestaurantId) : '/api/restaurants';
+        const method = editingRestaurantId ? 'PUT' : 'POST';
+        const res = await fetch(url, {
+            method,
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+        if (!res.ok) {
+            const err = await res.json().catch(() => ({}));
+            alert(err.error || 'Сакталган жок');
+            return;
+        }
+        closeRestaurantModal();
+        refreshAll();
+    }
+
+    async function loadCouriers() {
+        try {
+            const [pendingRes, activeRes] = await Promise.all([
+                fetch('/api/couriers/pending'),
+                fetch('/api/couriers/active')
+            ]);
+            const pending = await pendingRes.json();
+            const active = await activeRes.json();
+            document.getElementById('pendingCouriers').innerHTML = renderCourierList('Күтүүдө', pending, false);
+            document.getElementById('activeCouriers').innerHTML = renderCourierList('Активдүү', active, true);
+        } catch (e) {
+            console.error(e);
+        }
+    }
+
+    function renderCourierList(title, couriers, isActive) {
+        if (!couriers.length) return `<div class="card"><div class="empty">${title}: жок</div></div>`;
+        return `
+            <div class="card">
+                <div class="card-title">${title}</div>
+                ${couriers.map(c => `
+                    <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--line);">
+                        <div><strong>${escapeHtml(c.name)}</strong><br><span style="font-size:12px;color:var(--muted);">${escapeHtml(c.telegramChatId || '')}</span></div>
+                        <button class="btn small ${isActive ? 'red' : 'green'}" onclick="toggleCourier(${c.id}, ${!isActive})">${isActive ? 'Өчүр' : 'Активдеш'}</button>
+                    </div>
+                `).join('')}
+            </div>`;
+    }
+
+    async function addCourier() {
+        const name = document.getElementById('courierName').value.trim();
+        const telegramChatId = document.getElementById('courierChatId').value.trim();
+        const phone = document.getElementById('courierPhone').value.trim();
+        if (!name || !telegramChatId) { alert('Аты жана Telegram ID керек'); return; }
+        await fetch('/api/couriers', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ name, telegramChatId, phone, active: false })
+        });
+        document.getElementById('courierName').value = '';
+        document.getElementById('courierChatId').value = '';
+        document.getElementById('courierPhone').value = '';
+        loadCouriers();
+    }
+
+    async function toggleCourier(id, active) {
+        await fetch('/api/couriers/' + id + '/' + (active ? 'activate' : 'deactivate'), { method: 'PUT' });
+        loadCouriers();
+    }
+
+    async function loadReport() {
+        try {
+            const res = await fetch('/reports/today' + restaurantQuery());
+            const report = await res.json();
+            document.getElementById('reportSummary').innerHTML = `
+                <div class="stat-card"><div class="stat-label">Заказдар</div><div class="stat-value">${report.totalOrders || 0}</div></div>
+                <div class="stat-card"><div class="stat-label">Товарлар</div><div class="stat-value">${report.totalQuantity || 0}</div></div>
+                <div class="stat-card"><div class="stat-label">Киреше</div><div class="stat-value gold">${formatMoney(report.totalRevenue)} сом</div></div>
+                <div class="stat-card"><div class="stat-label">Орточо чек</div><div class="stat-value">${formatMoney(report.averageOrderAmount)} сом</div></div>
+            `;
+            const orders = report.orders || [];
+            document.getElementById('reportOrders').innerHTML = orders.length
+                ? orders.map(o => `
+                    <div class="card">
+                        <strong>${escapeHtml(o.displayOrderNumber || ('#' + o.id))}</strong> — ${formatMoney(o.totalPrice)} сом
+                        <div style="font-size:13px;color:var(--muted);margin-top:6px;">${escapeHtml(o.itemName || '')}</div>
+                    </div>`).join('')
+                : '<div class="empty">Бүгүн жеткирилген заказ жок</div>';
+        } catch (e) {
+            console.error(e);
+        }
+    }
+
+    function formatMoney(v) {
+        return Number(v || 0).toLocaleString('ru-RU', { maximumFractionDigits: 0 });
+    }
+
+    function escapeHtml(v) {
+        return String(v || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    }
+
+    refreshAll();
+    pollTimer = setInterval(refreshAll, 12000);
+</script>
+</body>
+</html>

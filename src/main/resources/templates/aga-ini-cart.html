@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="ky" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title th:text="${restaurantName}">Себет</title>
+    <link rel="stylesheet" href="/family-customer.css">
+    <link rel="stylesheet" th:href="${customerCss}" href="/aga-ini-customer.css">
+    <script th:inline="javascript">
+        window.RESTAURANT = {
+            id: /*[[${restaurantId}]]*/ 3,
+            slug: /*[[${restaurantSlug}]]*/ 'aga-ini',
+            name: /*[[${restaurantName}]]*/ 'АГА-ИНИ',
+            base: /*[[${restaurantBase}]]*/ '/aga-ini'
+        };
+    </script>
+    <script src="/restaurant-context.js"></script>
+    <script src="/restaurant-i18n.js"></script>
+</head>
+<body class="fam-body ai-fp-theme fp-cart-page">
+
+<header class="fp-subheader">
+    <button type="button" class="fp-back" onclick="location.href=rUrl('/')">←</button>
+    <h1 id="cartPageTitle">Себет</h1>
+    <div class="fp-lang-pill fp-lang-pill-header" id="customerLangPill">
+        <button type="button" id="customerKyBtn" class="lang-opt active" onclick="CustomerI18n.setLang('ky')">KG</button>
+        <span class="lang-sep">/</span>
+        <button type="button" id="customerRuBtn" class="lang-opt" onclick="CustomerI18n.setLang('ru')">RU</button>
+    </div>
+</header>
+
+<div class="fp-progress">
+    <div class="fp-step active">
+        <div class="fp-step-circle">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 6h15l-1.5 9h-12z"/><path d="M6 6l-1-3H2"/><circle cx="9" cy="20" r="1"/><circle cx="18" cy="20" r="1"/></svg>
+        </div>
+        <span class="fp-step-label" id="step1Label">1. Себет</span>
+    </div>
+    <div class="fp-step-line"></div>
+    <button type="button" id="stepInfoLink" class="fp-step fp-step-link hidden" onclick="goCheckout()">
+        <div class="fp-step-circle">2</div>
+        <span class="fp-step-label" id="step2Label">2. Маалымат</span>
+    </button>
+    <div id="stepInfoPlaceholder" class="fp-step">
+        <div class="fp-step-circle">2</div>
+        <span class="fp-step-label" id="step2LabelPh">2. Маалымат</span>
+    </div>
+    <div class="fp-step-line"></div>
+    <div class="fp-step">
+        <div class="fp-step-circle">3</div>
+        <span class="fp-step-label" id="step3Label">3. Төлөм</span>
+    </div>
+</div>
+
+<main id="cartMain">
+    <div id="emptyState" class="fp-empty hidden">
+        <div style="font-size:48px">🛒</div>
+        <p id="emptyCartText" style="margin-top:12px;font-weight:800">Себет бош</p>
+        <button type="button" id="emptyMenuBtn" class="fp-checkout-btn" style="margin-top:16px;width:auto;padding:12px 24px" onclick="location.href=rUrl('/')">Менюга кайтуу</button>
+    </div>
+    <div id="cartList"></div>
+    <section id="summaryBox" class="fp-form-card hidden">
+        <div class="fp-totals">
+            <div class="fp-total-row"><span id="itemsLabel">Товарлар (0)</span><span id="foodTotal">0 сом</span></div>
+            <div class="fp-total-row"><span>Жеткируу</span><span id="deliveryFee">0 сом</span></div>
+            <div class="fp-total-row grand"><span>Жалпы сумма</span><span id="grandTotal">0 сом</span></div>
+        </div>
+    </section>
+    <section id="commentBox" class="fp-form-card fp-cart-comment hidden">
+        <label id="cartCommentLabel" class="fp-cart-comment-label" for="cartComment">Тамакка комментарий</label>
+        <textarea
+                id="cartComment"
+                class="fp-cart-comment-input"
+                rows="3"
+                placeholder="Мисалы: пиязы аз, кок чөп кошпоңуз"
+        ></textarea>
+    </section>
+</main>
+
+<div id="checkoutFixed" class="fp-submit-fixed hidden">
+    <button type="button" class="fp-submit-btn" onclick="goCheckout()">
+        <span id="checkoutBtnText">Маалыматка өтүү</span>
+        <span class="fp-submit-arrow">›</span>
+    </button>
+</div>
+
+<nav class="fp-bottom-nav">
+    <a class="fp-nav-item" th:href="${restaurantBase}" href="/aga-ini">
+        <span class="fp-nav-icon">🏠</span> <span id="navHomeLabel">Башкы</span>
+    </a>
+    <a class="fp-nav-item active" href="#">
+        <span class="fp-nav-icon">🛒<span id="navBadge" class="fp-nav-badge show">0</span></span> <span id="navCartLabel">Себет</span>
+    </a>
+</nav>
+
+<script>
+    const DELIVERY = 0;
+    let cart = getStoredCart();
+
+    function formatMoney(v) { return Number(v || 0).toLocaleString('ru-RU', { maximumFractionDigits: 0 }); }
+    function escapeHtml(v) { return String(v || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+    function render() {
+        cart = getStoredCart();
+        const empty = document.getElementById('emptyState');
+        const list = document.getElementById('cartList');
+        const summary = document.getElementById('summaryBox');
+        const commentBox = document.getElementById('commentBox');
+        const fixed = document.getElementById('checkoutFixed');
+
+        if (!cart.length) {
+            empty.classList.remove('hidden');
+            list.innerHTML = '';
+            summary.classList.add('hidden');
+            commentBox.classList.add('hidden');
+            fixed.classList.add('hidden');
+            document.getElementById('navBadge').classList.remove('show');
+            document.body.classList.remove('fp-cart-checkout');
+            document.getElementById('stepInfoLink').classList.add('hidden');
+            document.getElementById('stepInfoPlaceholder').classList.remove('hidden');
+            return;
+        }
+
+        empty.classList.add('hidden');
+        summary.classList.remove('hidden');
+        commentBox.classList.remove('hidden');
+        fixed.classList.remove('hidden');
+        document.body.classList.add('fp-cart-checkout');
+        document.getElementById('stepInfoLink').classList.remove('hidden');
+        document.getElementById('stepInfoPlaceholder').classList.add('hidden');
+
+        let html = '', foodTotal = 0, qty = 0;
+        cart.forEach((item, i) => {
+            const q = Math.max(0, Math.round(Number(item.quantity || 0)));
+            const price = Number(item.price || 0);
+            const sum = price * q;
+            foodTotal += sum;
+            qty += q;
+            const img = item.image ? `<img src="${escapeHtml(item.image)}" alt="">` : `<div class="img-ph">🍔</div>`;
+            html += `<article class="fp-cart-item">${img}<div><div style="font-weight:800;font-size:15px">${escapeHtml(CustomerI18n.getItemName(item))}</div><div style="font-size:12px;color:var(--fp-muted);margin-top:4px">${q} x ${formatMoney(price)} сом</div><div style="display:flex;justify-content:space-between;align-items:center;margin-top:10px"><strong style="color:var(--fp-burgundy)">${formatMoney(sum)} сом</strong><div class="fp-mini-counter"><button type="button" onclick="changeQty(${i},-1)">−</button><span>${q}</span><button type="button" onclick="changeQty(${i},1)">+</button></div></div></div></article>`;
+        });
+
+        list.innerHTML = html;
+        document.getElementById('itemsLabel').textContent = CustomerI18n.t('itemsLabel', { count: qty });
+        document.getElementById('foodTotal').textContent = formatMoney(foodTotal) + ' сом';
+        document.getElementById('deliveryFee').textContent = formatMoney(DELIVERY) + ' сом';
+        document.getElementById('grandTotal').textContent = formatMoney(foodTotal + DELIVERY) + ' сом';
+        const nb = document.getElementById('navBadge');
+        nb.textContent = qty;
+        nb.classList.add('show');
+    }
+
+    function changeQty(i, d) {
+        cart[i].quantity = Math.max(0, cart[i].quantity + d);
+        if (cart[i].quantity <= 0) cart.splice(i, 1);
+        saveStoredCart(cart);
+        render();
+    }
+
+    function goCheckout() {
+        if (!cart.length) return;
+        saveStoredFoodComment(document.getElementById('cartComment').value.trim());
+        window.location.href = rUrl('/receipt');
+    }
+
+    function bindCartComment() {
+        const field = document.getElementById('cartComment');
+        field.value = getStoredFoodComment();
+        field.addEventListener('input', () => {
+            saveStoredFoodComment(field.value);
+        });
+    }
+
+    function applyCartLanguage() {
+        document.getElementById('cartPageTitle').textContent = CustomerI18n.t('cart');
+        document.getElementById('step1Label').textContent = CustomerI18n.t('stepCart');
+        document.getElementById('step2Label').textContent = CustomerI18n.t('stepInfo');
+        document.getElementById('step2LabelPh').textContent = CustomerI18n.t('stepInfo');
+        document.getElementById('step3Label').textContent = CustomerI18n.t('stepPay');
+        document.getElementById('emptyCartText').textContent = CustomerI18n.t('emptyCart');
+        document.getElementById('emptyMenuBtn').textContent = CustomerI18n.t('backToMenu');
+        document.getElementById('checkoutBtnText').textContent = CustomerI18n.t('toCheckout');
+        document.getElementById('navHomeLabel').textContent = CustomerI18n.t('bmHome');
+        document.getElementById('navCartLabel').textContent = CustomerI18n.t('cart');
+        const delLabel = document.querySelector('#summaryBox .fp-total-row:nth-child(2) span');
+        if (delLabel) delLabel.textContent = CustomerI18n.t('delivery');
+        const grandLabel = document.querySelector('#summaryBox .fp-total-row.grand span');
+        if (grandLabel) grandLabel.textContent = CustomerI18n.t('grandTotal');
+        document.getElementById('cartCommentLabel').textContent = CustomerI18n.t('foodComment');
+        document.getElementById('cartComment').placeholder = CustomerI18n.t('foodCommentPlaceholder');
+        render();
+    }
+
+    bindCartComment();
+    CustomerI18n.onLanguageChange(applyCartLanguage);
+    CustomerI18n.updatePillUi();
+    applyCartLanguage();
+</script>
+</body>
+</html>

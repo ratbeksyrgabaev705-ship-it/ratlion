@@ -8,19 +8,20 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="/family-customer.css">
-    <link rel="stylesheet" th:href="${customerCss}" href="/ordo-cafe-customer.css">
+    <link rel="stylesheet" th:href="${customerCss}" href="/aga-ini-customer.css">
+    <link rel="stylesheet" href="/jolchu-success.css">
     <script th:inline="javascript">
         window.RESTAURANT = {
             id: /*[[${restaurantId}]]*/ 3,
-            slug: /*[[${restaurantSlug}]]*/ 'ordo-cafe',
-            name: /*[[${restaurantName}]]*/ 'ОРДО КАФЕ',
-            base: /*[[${restaurantBase}]]*/ '/ordo-cafe'
+            slug: /*[[${restaurantSlug}]]*/ 'aga-ini',
+            name: /*[[${restaurantName}]]*/ 'АГА-ИНИ',
+            base: /*[[${restaurantBase}]]*/ '/aga-ini'
         };
     </script>
     <script src="/restaurant-context.js"></script>
     <script src="/restaurant-i18n.js"></script>
 </head>
-<body class="fam-body oc-fp-theme fp-checkout-body">
+<body class="fam-body ai-fp-theme fp-checkout-body">
 
 <div id="checkoutPage" class="fp-checkout-page">
     <header class="fp-checkout-head">
@@ -54,7 +55,7 @@
 
     <div id="emptyState" class="fp-empty">
         <p id="emptyCartText">Себет бош</p>
-        <a class="fp-checkout-btn" id="emptyMenuLink" style="display:inline-block;margin-top:12px;text-decoration:none;color:#fff" th:href="${restaurantBase}" href="/ordo-cafe">Менюга кайтуу</a>
+        <a class="fp-checkout-btn" id="emptyMenuLink" style="display:inline-block;margin-top:12px;text-decoration:none;color:#fff" th:href="${restaurantBase}" href="/aga-ini">Менюга кайтуу</a>
     </div>
 
     <div id="stepInfo" class="hidden">
@@ -129,7 +130,7 @@
                 <h2 class="fp-section-title" id="orderInfoTitle">Буйрутма тууралуу маалымат</h2>
             </div>
             <div class="fp-order-info-box">
-                <img id="orderInfoImg" src="https://images.unsplash.com/photo-1569718212165-3a8278d5f624?w=200&q=80" alt="">
+                <img id="orderInfoImg" src="https://images.unsplash.com/photo-1515003197210-e0cd71810b5f?w=200&q=80" alt="">
                 <div class="fp-order-info-text">
                     <p id="orderInfoP1">Тамактарыңыз буйрутма кабыл алынгандан кийин гана жаңыдан даярдалат.</p>
                     <p id="orderInfoP2">Орточо даярдоо убактысы — <strong>20–25 мүнөт</strong>.</p>
@@ -175,7 +176,7 @@
 <section id="successState" class="jc-success">
     <div class="jc-success-page">
         <div class="jc-header jc-anim">
-            <img class="jc-banner" src="/jolchu/header.png?v=2" alt="Жолчу — тамак жеткирүү кызматы">
+            <img class="jc-banner" src="/jolchu/header.png?v=4" alt="Жолчу — тамак жеткирүү кызматы">
         </div>
 
         <div class="jc-card jc-anim jc-anim-d1">

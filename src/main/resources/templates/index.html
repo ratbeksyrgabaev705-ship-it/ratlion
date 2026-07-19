@@ -1,0 +1,1089 @@
+<!DOCTYPE html>
+<html lang="ky" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title th:text="${restaurantName}">Ресторан</title>
+    <link rel="icon" href="/logo.png" type="image/png">
+    <link rel="stylesheet" th:href="${customerCss}" href="/default-customer.css">
+    <script th:inline="javascript">
+        window.RESTAURANT = {
+            id: /*[[${restaurantId}]]*/ null,
+            slug: /*[[${restaurantSlug}]]*/ '',
+            name: /*[[${restaurantName}]]*/ '',
+            base: /*[[${restaurantBase}]]*/ '/',
+            address: /*[[${restaurantAddress}]]*/ ''
+        };
+    </script>
+    <script src="/restaurant-context.js"></script>
+    <script src="/restaurant-i18n.js"></script>
+</head>
+
+<body>
+
+<div class="page">
+
+    <header class="hero-header">
+
+        <div class="lang-pill-gold">
+            <button
+                    id="kyButton"
+                    type="button"
+                    class="lang-opt active"
+                    onclick="changeLanguage('ky')"
+            >
+                Кыргызча
+            </button>
+            <span class="lang-sep">/</span>
+            <button
+                    id="ruButton"
+                    type="button"
+                    class="lang-opt"
+                    onclick="changeLanguage('ru')"
+            >
+                Русский
+            </button>
+        </div>
+
+        <div class="hero-row">
+
+            <div class="hero-logo">
+                <img th:if="${restaurantLogo != null && !#strings.isEmpty(restaurantLogo)}"
+                     th:src="${restaurantLogo}" th:alt="${restaurantName}" alt="">
+                <span th:unless="${restaurantLogo != null && !#strings.isEmpty(restaurantLogo)}"
+                      class="hero-logo-emoji"
+                      th:text="${restaurantEmoji != null && !#strings.isEmpty(restaurantEmoji) ? restaurantEmoji : '🍽'}">🍽</span>
+            </div>
+
+            <div class="hero-info">
+                <h1 th:text="${restaurantName}">Ресторан</h1>
+                <div class="hero-meta">
+                    <p>
+                        <svg class="meta-icon" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                            <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5a2.5 2.5 0 110-5 2.5 2.5 0 010 5z"/>
+                        </svg>
+                        <span id="locationText" th:text="${restaurantAddress != null && !restaurantAddress.isEmpty() ? restaurantAddress : 'Бишкек'}">Бишкек</span>
+                    </p>
+                    <p>
+                        <svg class="meta-icon" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                            <path d="M12 2a10 10 0 100 20 10 10 0 000-20zm1 11h5v-2h-4V7h-2v6z"/>
+                        </svg>
+                        <span id="workingHoursText">Күн сайын 09:00 – 20:00</span>
+                    </p>
+                </div>
+            </div>
+
+            <a th:href="${restaurantBase + '/cart'}" href="/cart" class="hero-cart">
+                <span class="hero-cart-icon" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M7 18c-1.1 0-1.99.9-1.99 2S5.9 22 7 22s2-.9 2-2-.9-2-2-2zM1 2v2h2l3.6 7.59-1.35 2.45c-.16.28-.25.61-.25.96 0 1.1.9 2 2 2h12v-2H7.42c-.14 0-.25-.11-.25-.25l.03-.12.9-1.63h7.45c.75 0 1.41-.41 1.75-1.03l3.58-6.49A1 1 0 0020 4H5.21l-.94-2H1zm16 16c-1.1 0-1.99.9-1.99 2s.89 2 1.99 2 2-.9 2-2-.9-2-2-2z"/>
+                    </svg>
+                </span>
+                <span class="hero-cart-text">
+                    <span id="headerCartText" class="hero-cart-label">Себет</span>
+                    <span id="headerCartAmount" class="hero-cart-sum">0 сом</span>
+                </span>
+            </a>
+
+        </div>
+
+        <div class="hero-search search-wrap">
+            <span class="search-icon">🔍</span>
+            <input
+                    id="searchInput"
+                    type="text"
+                    placeholder="Тамак издөө..."
+                    oninput="handleSearch()"
+            >
+            <button
+                    id="clearSearchButton"
+                    type="button"
+                    class="clear-search"
+                    onclick="clearSearch()"
+            >
+                ✕
+            </button>
+        </div>
+
+    </header>
+
+    <div id="categoryList" class="categories"></div>
+
+    <main class="content">
+
+        <h2 id="menuTitle" class="section-title">
+            Меню
+        </h2>
+
+        <div id="menuList" class="menu-list">
+
+            <div class="empty">
+                Меню жүктөлүп жатат...
+            </div>
+
+        </div>
+
+    </main>
+
+</div>
+
+<div id="bottomCart" class="bottom-cart">
+
+    <div class="cart-summary">
+
+        <div id="cartCount" class="cart-count">
+            Себетте 0 товар
+        </div>
+
+        <div id="cartTotal" class="cart-total">
+            0 сом
+        </div>
+
+    </div>
+
+    <a
+            id="openCartText"
+            th:href="${restaurantBase + '/cart'}"
+            href="/cart"
+            class="open-cart"
+    >
+        Себетке өтүү →
+    </a>
+
+</div>
+
+<script>
+    let allMenuItems = [];
+    let selectedCategory = 'ALL';
+
+    let currentLanguage =
+        (window.CustomerI18n ? CustomerI18n.getLang() : localStorage.getItem('customerLanguage')) || 'ky';
+
+    function formatQuantity(value) {
+        return String(Math.max(0, Math.round(Number(value || 0))));
+    }
+
+    function changeQuantity(current, delta) {
+        return Math.max(0, Math.round(Number(current || 0) + delta));
+    }
+
+    const translations = {
+        ky: {
+            workingHours: 'Күн сайын 09:00 — 20:00',
+            cart: 'Себет',
+            searchPlaceholder: 'Тамак издөө...',
+            all: 'Баары',
+            menu: 'Меню',
+            loadingMenu: 'Меню жүктөлүп жатат...',
+            add: 'Кошуу +',
+            unavailable: 'Азырынча жеткиликтүү эмес',
+            som: 'сом',
+            cartItems: 'Себетте {count} товар',
+            openCart: 'Себетке өтүү →',
+            notFoundTitle: 'Тамак табылган жок',
+            notFoundText: 'Башка сөз менен издеп көрүңүз.',
+            ingredientsMissing: 'Курамы көрсөтүлгөн эмес',
+            grams: 'г',
+            food: 'Тамак',
+            menuError: 'Менюну алуу мүмкүн болгон жок',
+            errorTitle: 'Ката чыкты'
+        },
+
+        ru: {
+            workingHours: 'Ежедневно 09:00 — 20:00',
+            cart: 'Корзина',
+            searchPlaceholder: 'Поиск блюда...',
+            all: 'Все',
+            menu: 'Меню',
+            loadingMenu: 'Меню загружается...',
+            add: 'Добавить +',
+            unavailable: 'Сейчас недоступно',
+            som: 'сом',
+            cartItems: 'В корзине: {count}',
+            openCart: 'Перейти в корзину →',
+            notFoundTitle: 'Блюдо не найдено',
+            notFoundText: 'Попробуйте ввести другое название.',
+            ingredientsMissing: 'Состав не указан',
+            grams: 'г',
+            food: 'Блюдо',
+            menuError: 'Не удалось загрузить меню',
+            errorTitle: 'Произошла ошибка'
+        }
+    };
+
+    function t(key) {
+        return translations[currentLanguage][key] || key;
+    }
+
+    function isItemAvailable(item) {
+        if (!item) {
+            return false;
+        }
+
+        return !(
+            item.available === false
+            || item.available === 0
+            || item.available === '0'
+            || String(item.available).toLowerCase() === 'false'
+        );
+    }
+
+    function changeLanguage(language) {
+        currentLanguage = language;
+
+        localStorage.setItem(
+            'customerLanguage',
+            language
+        );
+
+        if (window.CustomerI18n) {
+            CustomerI18n.updatePillUi();
+        }
+
+        applyLanguage();
+    }
+
+    function applyLanguage() {
+        document.documentElement.lang =
+            currentLanguage === 'ru' ? 'ru' : 'ky';
+
+        document.getElementById('kyButton')
+            .classList.toggle(
+                'active',
+                currentLanguage === 'ky'
+            );
+
+        document.getElementById('ruButton')
+            .classList.toggle(
+                'active',
+                currentLanguage === 'ru'
+            );
+
+        document.getElementById('workingHoursText').textContent =
+            t('workingHours');
+
+        document.getElementById('locationText').textContent =
+            window.RESTAURANT?.address || '';
+
+        document.getElementById('headerCartText').textContent =
+            t('cart');
+
+        document.getElementById('searchInput').placeholder =
+            t('searchPlaceholder');
+
+        document.getElementById('menuTitle').textContent =
+            t('menu');
+
+        document.getElementById('openCartText').textContent =
+            t('openCart');
+
+        createCategories();
+        renderMenu();
+        updateCartView();
+    }
+
+    function getCart() {
+        if (typeof getStoredCart === 'function') {
+            return getStoredCart();
+        }
+        try {
+            const savedCart = JSON.parse(
+                localStorage.getItem('cart')
+            );
+
+            return Array.isArray(savedCart)
+                ? savedCart.map(item => ({
+                    ...item,
+                    quantity: Math.max(
+                        0,
+                        Math.round(Number(item.quantity || 0))
+                    )
+                })).filter(item => item.quantity > 0)
+                : [];
+        } catch (error) {
+            return [];
+        }
+    }
+
+    function saveCart(cart) {
+        if (typeof saveStoredCart === 'function') {
+            saveStoredCart(cart);
+            updateCartView();
+            renderMenu();
+            return;
+        }
+        localStorage.setItem(
+            'cart',
+            JSON.stringify(cart)
+        );
+
+        updateCartView();
+        renderMenu();
+    }
+
+    function getMenuItemKey(item) {
+        if (
+            item.id !== null
+            && item.id !== undefined
+        ) {
+            return 'menu-' + item.id;
+        }
+
+        return (
+            item.nameKg
+            || item.name
+            || item.nameRu
+            || ''
+        );
+    }
+
+    function getLocalizedName(item) {
+        if (currentLanguage === 'ru') {
+            return (
+                item.nameRu
+                || item.name
+                || item.nameKg
+                || t('food')
+            );
+        }
+
+        return (
+            item.nameKg
+            || item.name
+            || item.nameRu
+            || t('food')
+        );
+    }
+
+    function getLocalizedDescription(item) {
+        if (currentLanguage === 'ru') {
+            return (
+                item.ingredientsRu
+                || item.descriptionRu
+                || item.ingredients
+                || item.description
+                || item.ingredientsKg
+                || item.descriptionKg
+                || t('ingredientsMissing')
+            );
+        }
+
+        return (
+            item.ingredientsKg
+            || item.descriptionKg
+            || item.ingredients
+            || item.description
+            || item.ingredientsRu
+            || item.descriptionRu
+            || t('ingredientsMissing')
+        );
+    }
+
+    function getOriginalCategory(item) {
+        return (
+            item.categoryKg
+            || item.category
+            || item.categoryRu
+            || 'Башка'
+        );
+    }
+
+    function getLocalizedCategory(item) {
+        if (currentLanguage === 'ru') {
+            return (
+                item.categoryRu
+                || item.category
+                || item.categoryKg
+                || 'Другое'
+            );
+        }
+
+        return (
+            item.categoryKg
+            || item.category
+            || item.categoryRu
+            || 'Башка'
+        );
+    }
+
+    function findCartItem(cart, item) {
+        const itemKey = getMenuItemKey(item);
+
+        return cart.find(cartItem => {
+            if (cartItem.key === itemKey) {
+                return true;
+            }
+
+            if (
+                item.id !== null
+                && item.id !== undefined
+                && Number(cartItem.itemId) === Number(item.id)
+            ) {
+                return true;
+            }
+
+            const possibleNames = [
+                item.name,
+                item.nameKg,
+                item.nameRu
+            ].filter(Boolean);
+
+            return possibleNames.includes(cartItem.name);
+        });
+    }
+
+    function findCartItemIndex(cart, item) {
+        const itemKey = getMenuItemKey(item);
+
+        return cart.findIndex(cartItem => {
+            if (cartItem.key === itemKey) {
+                return true;
+            }
+
+            if (
+                item.id !== null
+                && item.id !== undefined
+                && Number(cartItem.itemId) === Number(item.id)
+            ) {
+                return true;
+            }
+
+            const possibleNames = [
+                item.name,
+                item.nameKg,
+                item.nameRu
+            ].filter(Boolean);
+
+            return possibleNames.includes(cartItem.name);
+        });
+    }
+
+    function addToCartById(itemId) {
+        const item = allMenuItems.find(menuItem => {
+            return Number(menuItem.id) === Number(itemId);
+        });
+
+        if (!item || !isItemAvailable(item)) {
+            return;
+        }
+
+        const cart = getCart();
+        const existingItem = findCartItem(cart, item);
+
+        if (existingItem) {
+            existingItem.quantity =
+                changeQuantity(existingItem.quantity, 1);
+
+            existingItem.key = getMenuItemKey(item);
+            existingItem.itemId = item.id;
+            existingItem.name = getLocalizedName(item);
+            existingItem.nameKg =
+                item.nameKg || item.name || '';
+            existingItem.nameRu =
+                item.nameRu || item.name || '';
+            existingItem.image = item.image || '';
+            existingItem.price =
+                Number(item.price || 0);
+        } else {
+            cart.push({
+                key: getMenuItemKey(item),
+                itemId: item.id,
+                name: getLocalizedName(item),
+                nameKg: item.nameKg || item.name || '',
+                nameRu: item.nameRu || item.name || '',
+                price: Number(item.price || 0),
+                quantity: 1,
+                image: item.image || ''
+            });
+        }
+
+        saveCart(cart);
+    }
+
+    function increaseItemById(itemId) {
+        const item = allMenuItems.find(menuItem => {
+            return Number(menuItem.id) === Number(itemId);
+        });
+
+        if (!item || !isItemAvailable(item)) {
+            return;
+        }
+
+        const cart = getCart();
+        const existingItem = findCartItem(cart, item);
+
+        if (existingItem) {
+            existingItem.quantity =
+                changeQuantity(existingItem.quantity, 1);
+
+            existingItem.key = getMenuItemKey(item);
+            existingItem.itemId = item.id;
+            existingItem.name = getLocalizedName(item);
+            existingItem.nameKg =
+                item.nameKg || item.name || '';
+            existingItem.nameRu =
+                item.nameRu || item.name || '';
+        }
+
+        saveCart(cart);
+    }
+
+    function decreaseItemById(itemId) {
+        const item = allMenuItems.find(menuItem => {
+            return Number(menuItem.id) === Number(itemId);
+        });
+
+        if (!item) {
+            return;
+        }
+
+        const cart = getCart();
+        const itemIndex = findCartItemIndex(cart, item);
+
+        if (itemIndex === -1) {
+            return;
+        }
+
+        cart[itemIndex].quantity =
+            changeQuantity(cart[itemIndex].quantity, -1);
+
+        if (cart[itemIndex].quantity <= 0) {
+            cart.splice(itemIndex, 1);
+        }
+
+        saveCart(cart);
+    }
+
+    function getItemQuantity(item) {
+        const cart = getCart();
+        const cartItem = findCartItem(cart, item);
+
+        return cartItem
+            ? Number(cartItem.quantity || 0)
+            : 0;
+    }
+
+    function updateCartLanguage() {
+        const cart = getCart();
+        let changed = false;
+
+        cart.forEach(cartItem => {
+            const menuItem = allMenuItems.find(item => {
+                if (
+                    cartItem.itemId !== null
+                    && cartItem.itemId !== undefined
+                ) {
+                    return (
+                        Number(item.id)
+                        === Number(cartItem.itemId)
+                    );
+                }
+
+                const possibleNames = [
+                    item.name,
+                    item.nameKg,
+                    item.nameRu
+                ].filter(Boolean);
+
+                return possibleNames.includes(cartItem.name);
+            });
+
+            if (!menuItem) {
+                if (
+                    currentLanguage === 'ru'
+                    && cartItem.nameRu
+                ) {
+                    cartItem.name = cartItem.nameRu;
+                    changed = true;
+                }
+
+                if (
+                    currentLanguage === 'ky'
+                    && cartItem.nameKg
+                ) {
+                    cartItem.name = cartItem.nameKg;
+                    changed = true;
+                }
+
+                return;
+            }
+
+            cartItem.key = getMenuItemKey(menuItem);
+            cartItem.itemId = menuItem.id;
+            cartItem.name = getLocalizedName(menuItem);
+            cartItem.nameKg =
+                menuItem.nameKg || menuItem.name || '';
+            cartItem.nameRu =
+                menuItem.nameRu || menuItem.name || '';
+            cartItem.price =
+                Number(menuItem.price || cartItem.price || 0);
+            cartItem.image =
+                menuItem.image || cartItem.image || '';
+
+            changed = true;
+        });
+
+        if (changed) {
+            localStorage.setItem(
+                'cart',
+                JSON.stringify(cart)
+            );
+        }
+    }
+
+    function updateCartView() {
+        updateCartLanguage();
+
+        const cart = getCart();
+
+        const itemCount = cart.reduce((sum, item) => {
+            return sum + Number(item.quantity || 0);
+        }, 0);
+
+        const total = cart.reduce((sum, item) => {
+            return (
+                sum
+                + Number(item.price || 0)
+                * Number(item.quantity || 0)
+            );
+        }, 0);
+
+        document.getElementById(
+            'headerCartAmount'
+        ).textContent =
+            formatMoney(total) + ' ' + t('som');
+
+        document.getElementById(
+            'cartCount'
+        ).textContent =
+            t('cartItems').replace(
+                '{count}',
+                itemCount
+            );
+
+        document.getElementById(
+            'cartTotal'
+        ).textContent =
+            formatMoney(total) + ' ' + t('som');
+
+        const bottomCart =
+            document.getElementById('bottomCart');
+
+        if (itemCount > 0) {
+            bottomCart.classList.add('show');
+        } else {
+            bottomCart.classList.remove('show');
+        }
+    }
+
+    function createCategories() {
+        const categoryList =
+            document.getElementById('categoryList');
+
+        const categories = [];
+
+        allMenuItems.forEach(item => {
+            const originalCategory =
+                getOriginalCategory(item);
+
+            const exists = categories.some(category => {
+                return category.original === originalCategory;
+            });
+
+            if (!exists) {
+                categories.push({
+                    original: originalCategory,
+                    label: getLocalizedCategory(item)
+                });
+            }
+        });
+
+        let html = `
+            <button
+                    type="button"
+                    class="category-button ${
+                        selectedCategory === 'ALL'
+                            ? 'active'
+                            : ''
+                    }"
+                    onclick="setCategory('ALL', this)"
+            >
+                ${escapeHtml(t('all'))}
+            </button>
+        `;
+
+        categories.forEach(category => {
+            const activeClass =
+                selectedCategory === category.original
+                    ? 'active'
+                    : '';
+
+            html += `
+                <button
+                        type="button"
+                        class="category-button ${activeClass}"
+                        onclick="setCategory(
+                            '${escapeJs(category.original)}',
+                            this
+                        )"
+                >
+                    ${escapeHtml(category.label)}
+                </button>
+            `;
+        });
+
+        categoryList.innerHTML = html;
+    }
+
+    function setCategory(category, button) {
+        selectedCategory = category;
+
+        document.querySelectorAll(
+            '.category-button'
+        ).forEach(item => {
+            item.classList.remove('active');
+        });
+
+        button.classList.add('active');
+
+        renderMenu();
+    }
+
+    function handleSearch() {
+        const searchInput =
+            document.getElementById('searchInput');
+
+        const clearButton =
+            document.getElementById(
+                'clearSearchButton'
+            );
+
+        clearButton.style.display =
+            searchInput.value.trim().length > 0
+                ? 'block'
+                : 'none';
+
+        renderMenu();
+    }
+
+    function clearSearch() {
+        document.getElementById(
+            'searchInput'
+        ).value = '';
+
+        document.getElementById(
+            'clearSearchButton'
+        ).style.display = 'none';
+
+        renderMenu();
+    }
+
+    function openItemPage(itemId) {
+        window.location.href = rUrl('/item?id=' + itemId);
+    }
+
+    function renderMenu() {
+        const menuList =
+            document.getElementById('menuList');
+
+        if (allMenuItems.length === 0) {
+            menuList.innerHTML = `
+                <div class="empty">
+                    ${escapeHtml(t('loadingMenu'))}
+                </div>
+            `;
+
+            return;
+        }
+
+        const searchText =
+            document.getElementById('searchInput')
+                .value
+                .trim()
+                .toLowerCase();
+
+        const filteredItems =
+            allMenuItems.filter(item => {
+                const originalCategory =
+                    getOriginalCategory(item);
+
+                const matchesCategory =
+                    selectedCategory === 'ALL'
+                    || originalCategory === selectedCategory;
+
+                const itemText = [
+                    item.name,
+                    item.nameKg,
+                    item.nameRu,
+                    item.description,
+                    item.descriptionKg,
+                    item.descriptionRu,
+                    item.ingredients,
+                    item.ingredientsKg,
+                    item.ingredientsRu,
+                    item.category,
+                    item.categoryKg,
+                    item.categoryRu
+                ]
+                    .filter(Boolean)
+                    .join(' ')
+                    .toLowerCase();
+
+                const matchesSearch =
+                    searchText.length === 0
+                    || itemText.includes(searchText);
+
+         return (
+    matchesCategory
+    && matchesSearch
+);
+            });
+
+        if (filteredItems.length === 0) {
+            menuList.innerHTML = `
+                <div class="empty">
+
+                    <h3>
+                        ${escapeHtml(
+                            t('notFoundTitle')
+                        )}
+                    </h3>
+
+                    <p>
+                        ${escapeHtml(
+                            t('notFoundText')
+                        )}
+                    </p>
+
+                </div>
+            `;
+
+            return;
+        }
+
+        menuList.innerHTML =
+            filteredItems
+                .map(item => createFoodCard(item))
+                .join('');
+    }
+
+    function createFoodCard(item) {
+        const rawImage =
+            item.image
+            ? String(item.image).trim()
+            : "";
+
+        const image =
+            rawImage
+                ? (
+                    rawImage.startsWith("http://")
+                    || rawImage.startsWith("https://")
+                    || rawImage.startsWith("/")
+                        ? rawImage
+                        : "/" + rawImage
+                )
+                : "";
+
+        const name = getLocalizedName(item);
+        const description = getLocalizedDescription(item);
+        const weight = Number(item.weight || 0);
+        const weightHtml =
+            weight > 0
+                ? `
+                    <div class="food-weight">
+                        ${weight} ${escapeHtml(t('grams'))}
+                    </div>
+                `
+                : '';
+        const quantity = getItemQuantity(item);
+        const itemId = Number(item.id);
+        const available = isItemAvailable(item);
+
+        let actionHtml;
+
+        if (!available) {
+            actionHtml = `
+                <div class="unavailable-label">
+                    ⚠️ ${escapeHtml(t('unavailable'))}
+                </div>
+            `;
+        } else if (quantity > 0) {
+            actionHtml = `
+                <div class="counter food-actions" onclick="event.stopPropagation()">
+                    <button
+                            type="button"
+                            onclick="decreaseItemById(${itemId})"
+                    >
+                        −
+                    </button>
+
+                    <span>${formatQuantity(quantity)}</span>
+
+                    <button
+                            type="button"
+                            onclick="increaseItemById(${itemId})"
+                    >
+                        +
+                    </button>
+                </div>
+            `;
+        } else {
+            actionHtml = `
+                <button
+                        type="button"
+                        class="add-button food-actions"
+                        onclick="event.stopPropagation(); addToCartById(${itemId})"
+                >
+                    ${escapeHtml(t('add'))}
+                </button>
+            `;
+        }
+
+        return `
+            <article class="food-card ${available ? '' : 'unavailable'}" onclick="openItemPage(${itemId})">
+                ${
+                    image
+                        ? `
+                            <img
+                                    class="food-image"
+                                    src="${escapeHtml(image)}"
+                                    alt="${escapeHtml(name)}"
+                                    onerror="
+                                        this.onerror = null;
+                                        this.outerHTML =
+                                        '<div class=&quot;food-image food-image-placeholder&quot;>🍽</div>';
+                                    "
+                            >
+                        `
+                        : `
+                            <div class="food-image food-image-placeholder">
+                                🍽
+                            </div>
+                        `
+                }
+
+                <div class="food-info">
+                    <div class="food-name">
+                        ${escapeHtml(name)}
+                    </div>
+
+                    <div class="food-description">
+                        ${escapeHtml(description)}
+                    </div>
+
+                    ${weightHtml}
+
+                    <div class="food-bottom food-actions" onclick="event.stopPropagation()">
+                        <div class="price">
+                            ${formatMoney(item.price)}
+                            ${escapeHtml(t('som'))}
+                        </div>
+
+                        ${actionHtml}
+                    </div>
+                </div>
+            </article>
+        `;
+    }
+
+
+
+    function formatMoney(value) {
+        return Number(value || 0).toLocaleString(
+            'ru-RU',
+            {
+                minimumFractionDigits: 0,
+                maximumFractionDigits: 2
+            }
+        );
+    }
+
+    function escapeHtml(value) {
+        if (
+            value === null
+            || value === undefined
+        ) {
+            return '';
+        }
+
+        return String(value)
+            .replaceAll('&', '&amp;')
+            .replaceAll('<', '&lt;')
+            .replaceAll('>', '&gt;')
+            .replaceAll('"', '&quot;')
+            .replaceAll("'", '&#039;');
+    }
+
+    function escapeJs(value) {
+        if (
+            value === null
+            || value === undefined
+        ) {
+            return '';
+        }
+
+        return String(value)
+            .replaceAll('\\', '\\\\')
+            .replaceAll("'", "\\'")
+            .replaceAll('\n', ' ');
+    }
+
+    fetch('/menu?restaurantId=' + encodeURIComponent(window.restaurantId))
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(t('menuError'));
+            }
+
+            return response.json();
+        })
+        .then(data => {
+            allMenuItems =
+                Array.isArray(data)
+                    ? data
+                    : [];
+
+            const currentCart = getCart();
+            const cleanedCart = currentCart.filter(cartItem => {
+                const menuItem = allMenuItems.find(item => {
+                    return (
+                        Number(item.id) === Number(cartItem.itemId)
+                        || getMenuItemKey(item) === cartItem.key
+                    );
+                });
+
+                return Boolean(menuItem) && isItemAvailable(menuItem);
+            });
+
+            if (cleanedCart.length !== currentCart.length) {
+                localStorage.setItem(
+                    'cart',
+                    JSON.stringify(cleanedCart)
+                );
+            }
+
+            applyLanguage();
+        })
+        .catch(error => {
+            document.getElementById(
+                'menuList'
+            ).innerHTML = `
+                <div class="empty">
+
+                    <h3>
+                        ${escapeHtml(t('errorTitle'))}
+                    </h3>
+
+                    <p>
+                        ${escapeHtml(error.message)}
+                    </p>
+
+                </div>
+            `;
+        });
+
+    applyLanguage();
+</script>
+
+</body>
+</html>

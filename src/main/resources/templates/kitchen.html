@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="ky" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title th:text="${restaurantName != null ? restaurantName + ' — Ресторан панели' : 'Ресторан панели'}">Ресторан панели</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/kitchen.css">
+    <link rel="stylesheet" href="/restaurant-admin.css">
+    <link rel="stylesheet" href="/reports.css">
+    <script th:inline="javascript">
+        window.KITCHEN = {
+            id: /*[[${restaurantId}]]*/ null,
+            slug: /*[[${restaurantSlug}]]*/ null,
+            name: /*[[${restaurantName}]]*/ null,
+            emoji: /*[[${restaurantEmoji}]]*/ '🏪',
+            color: /*[[${restaurantColor}]]*/ '#16a34a',
+            logo: /*[[${restaurantLogo}]]*/ null,
+            banner: /*[[${restaurantBanner}]]*/ null,
+            notFound: /*[[${restaurantNotFound}]]*/ false,
+            requestedSlug: /*[[${requestedSlug}]]*/ null
+        };
+    </script>
+</head>
+<body class="kitchen-body adm-body">
+
+<div id="kNotFound" class="kitchen-pick" style="display:none">
+    <h1>⚠️ Ресторан табылган жок</h1>
+    <p id="kNotFoundMsg">Суралган ресторан маалымат базасында жок.</p>
+    <a class="kitchen-rest-link" href="/kitchen" style="justify-content:center;margin-top:12px">← Ресторан тандоо</a>
+</div>
+
+<div id="kPick" class="kitchen-pick" th:style="${restaurantId != null} ? 'display:none' : ''">
+    <h1>🏪 Ресторан панели</h1>
+    <p>Меню, ашкана, жөндөмөлөр — гана өз рестораныңыз</p>
+    <div id="kRestList" class="kitchen-rest-list"></div>
+</div>
+
+<div id="kLayout" class="kitchen-layout" th:style="${restaurantId != null} ? 'display:flex' : 'display:none'">
+    <aside class="kitchen-sidebar">
+        <div class="kitchen-brand">
+            <div id="kBrandIcon" class="kitchen-brand-icon">
+                <img id="kBrandLogo" class="kitchen-brand-logo" alt="" style="display:none">
+                <span id="kBrandEmoji">🏪</span>
+            </div>
+            <div>
+                <div id="kBrandName" class="kitchen-brand-title">Ресторан</div>
+                <div id="kBrandSub" class="kitchen-brand-sub">Ресторан панели</div>
+            </div>
+        </div>
+        <nav class="kitchen-nav">
+            <button type="button" class="kitchen-nav-item active" data-sec="orders" onclick="kNav('orders', this)">📋 Заказдар</button>
+            <button type="button" class="kitchen-nav-item" data-sec="menu" onclick="kNav('menu', this)">🍽️ Меню башкаруу</button>
+            <button type="button" class="kitchen-nav-item" data-sec="reports" onclick="kNav('reports', this)">📊 Отчеттор</button>
+        </nav>
+    </aside>
+
+    <main class="kitchen-main">
+        <section id="sec-orders" class="kitchen-section active">
+            <div class="kitchen-head">
+                <div><h1>Заказдар</h1><p>Жаңы → Даярдалууда → Даяр</p></div>
+                <button type="button" class="kitchen-btn kitchen-btn-outline" onclick="kRefreshOrders()">🔄 Жаңыртуу</button>
+            </div>
+            <div class="kitchen-board">
+                <div class="kitchen-col kitchen-col-new">
+                    <div class="kitchen-col-head">
+                        <span class="kitchen-col-title">📥 Жаңы заказдар</span>
+                        <span class="kitchen-col-count" id="kCountNew">0</span>
+                    </div>
+                    <div class="kitchen-col-body" id="kColNew"></div>
+                </div>
+                <div class="kitchen-col kitchen-col-cooking">
+                    <div class="kitchen-col-head">
+                        <span class="kitchen-col-title">👨‍🍳 Даярдалууда</span>
+                        <span class="kitchen-col-count" id="kCountCooking">0</span>
+                    </div>
+                    <div class="kitchen-col-body" id="kColCooking"></div>
+                </div>
+                <div class="kitchen-col kitchen-col-ready">
+                    <div class="kitchen-col-head">
+                        <span class="kitchen-col-title">✅ Даяр болду</span>
+                        <span class="kitchen-col-count" id="kCountReady">0</span>
+                    </div>
+                    <div class="kitchen-col-body" id="kColReady"></div>
+                </div>
+            </div>
+        </section>
+
+        <section id="sec-menu" class="kitchen-section">
+            <div class="kitchen-head">
+                <div><h1>Меню башкаруу</h1><p>Тамак, категория, сүрөт, баа</p></div>
+                <button type="button" class="adm-btn adm-btn-primary" onclick="kOpenMenuForm()">➕ Жаңы тамак</button>
+            </div>
+            <div class="adm-panel" style="background:#fff;border-radius:16px;padding:20px">
+                <div id="kMenuCategories" class="k-menu-categories"></div>
+                <input id="kMenuSearch" class="adm-input" type="search" placeholder="Издөө..." oninput="kFilterMenu()" style="margin-bottom:16px;width:100%;max-width:320px">
+                <div id="kMenuList" class="adm-menu-grid"></div>
+            </div>
+        </section>
+
+        <section id="sec-reports" class="kitchen-section">
+            <div class="kitchen-head"><div><h1>Отчеттор</h1><p>Гана бул ресторан — жеткирилген заказдар</p></div></div>
+            <div class="kitchen-panel">
+                <div class="kitchen-toolbar">
+                    <select id="kRepPreset" class="kitchen-select">
+                        <option value="today">Күндük отчет</option>
+                        <option value="evening">Кечки отчет</option>
+                        <option value="week">Апталык отчет</option>
+                        <option value="month">Айлык отчет</option>
+                        <option value="year">Жылдык отчет</option>
+                    </select>
+                    <button type="button" class="kitchen-btn kitchen-btn-primary" onclick="kLoadReports()">Көрсөт</button>
+                </div>
+                <div id="kRepResult"></div>
+            </div>
+        </section>
+
+    </main>
+</div>
+
+<!-- Menu modal -->
+<div id="kMenuModal" class="adm-modal-overlay" onclick="if(event.target===this)kCloseMenuModal()">
+    <div class="adm-modal">
+        <div class="adm-modal-head">
+            <h3 id="kMenuModalTitle">Жаңы тамак</h3>
+            <button type="button" class="adm-btn adm-btn-outline adm-btn-sm" onclick="kCloseMenuModal()">✕</button>
+        </div>
+        <form id="kMenuForm">
+            <div class="adm-form-grid">
+                <div class="adm-field"><label>Аты (KG) *</label><input id="kmfName" required></div>
+                <div class="adm-field"><label>Аты (RU)</label><input id="kmfNameRu"></div>
+                <div class="adm-field"><label>Категория (KG) *</label><input id="kmfCategory" required></div>
+                <div class="adm-field"><label>Категория (RU)</label><input id="kmfCategoryRu"></div>
+                <div class="adm-field full"><label>Сүрөттөмө (KG)</label><textarea id="kmfDesc"></textarea></div>
+                <div class="adm-field full"><label>Сүрөттөмө (RU)</label><textarea id="kmfDescRu"></textarea></div>
+                <div class="adm-field full"><label>Курамы</label><textarea id="kmfIngredients"></textarea></div>
+                <div class="adm-field"><label>Баасы, сом *</label><input id="kmfPrice" type="number" min="0" step="0.01" required></div>
+                <div class="adm-field full">
+                    <label>Сүрөт</label>
+                    <label class="adm-img-upload">📷 Сүрөт тандаңыз<input id="kmfImgInput" type="file" accept="image/*" style="display:none"></label>
+                    <div id="kmfImgPreview" class="adm-img-preview"><img alt=""></div>
+                </div>
+            </div>
+            <div style="display:flex;gap:10px;margin-top:20px">
+                <button type="submit" class="adm-btn adm-btn-primary" style="flex:1">💾 Сактоо</button>
+                <button type="button" class="adm-btn adm-btn-outline" onclick="kCloseMenuModal()">Жокко чыгар</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div id="kToast" class="adm-toast"></div>
+
+<script src="/reports-ui.js"></script>
+<script src="/kitchen.js"></script>
+</body>
+</html>

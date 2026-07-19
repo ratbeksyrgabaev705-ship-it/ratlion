@@ -7,20 +7,20 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="/family-customer.css">
-    <link rel="stylesheet" th:href="${customerCss}" href="/ordo-cafe-customer.css">
+    <link rel="stylesheet" th:href="${customerCss}" href="/family-customer.css">
+    <link rel="stylesheet" href="/jolchu-success.css">
     <script th:inline="javascript">
         window.RESTAURANT = {
-            id: /*[[${restaurantId}]]*/ 3,
-            slug: /*[[${restaurantSlug}]]*/ 'ordo-cafe',
-            name: /*[[${restaurantName}]]*/ 'ОРДО КАФЕ',
-            base: /*[[${restaurantBase}]]*/ '/ordo-cafe'
+            id: /*[[${restaurantId}]]*/ 2,
+            slug: /*[[${restaurantSlug}]]*/ 'family',
+            name: /*[[${restaurantName}]]*/ 'FEMILY',
+            base: /*[[${restaurantBase}]]*/ '/family'
         };
     </script>
     <script src="/restaurant-context.js"></script>
     <script src="/restaurant-i18n.js"></script>
 </head>
-<body class="fam-body oc-fp-theme fp-checkout-body">
+<body class="fam-body fp-checkout-body">
 
 <div id="checkoutPage" class="fp-checkout-page">
     <header class="fp-checkout-head">
@@ -54,7 +54,7 @@
 
     <div id="emptyState" class="fp-empty">
         <p id="emptyCartText">Себет бош</p>
-        <a class="fp-checkout-btn" id="emptyMenuLink" style="display:inline-block;margin-top:12px;text-decoration:none;color:#fff" th:href="${restaurantBase}" href="/ordo-cafe">Менюга кайтуу</a>
+        <a class="fp-checkout-btn" id="emptyMenuLink" style="display:inline-block;margin-top:12px;text-decoration:none;color:#fff" th:href="${restaurantBase}" href="/family">Менюга кайтуу</a>
     </div>
 
     <div id="stepInfo" class="hidden">
@@ -175,7 +175,7 @@
 <section id="successState" class="jc-success">
     <div class="jc-success-page">
         <div class="jc-header jc-anim">
-            <img class="jc-banner" src="/jolchu/header.png?v=2" alt="Жолчу — тамак жеткирүү кызматы">
+            <img class="jc-banner" src="/jolchu/header.png?v=4" alt="Жолчу — тамак жеткирүү кызматы">
         </div>
 
         <div class="jc-card jc-anim jc-anim-d1">

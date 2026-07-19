@@ -1,0 +1,18 @@
+POST http://localhost:8080/orders
+Content-Type: application/json
+
+{
+  "customerName": "Ратбек",
+  "phone": "+996600600828",
+  "address": "Базар-Коргон",
+  "comment": "Ачуу кылбай",
+  "itemName": "Лагман",
+  "quantity": 2,
+  "totalPrice": 360,
+  "paymentAmount": 360.01,
+  "receiptImagePath": "test-check.jpg"
+}
+
+###
+
+GET http://localhost:8080/orders

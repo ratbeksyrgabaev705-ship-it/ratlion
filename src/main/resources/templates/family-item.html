@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="ky" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title th:text="${restaurantName}">FAMILY_PARK</title>
+    <link rel="stylesheet" th:href="${customerCss}" href="/family-customer.css">
+    <script th:inline="javascript">
+        window.RESTAURANT = {
+            id: /*[[${restaurantId}]]*/ 2,
+            slug: /*[[${restaurantSlug}]]*/ 'family',
+            base: /*[[${restaurantBase}]]*/ '/r/family'
+        };
+    </script>
+    <script src="/restaurant-context.js"></script>
+</head>
+<body class="fam-body">
+<script>
+    const id = new URLSearchParams(location.search).get('id');
+    location.replace(rUrl(id ? '/?item=' + id : '/'));
+</script>
+</body>
+</html>

@@ -1,0 +1,338 @@
+/* Жолчу — order success screen (shared by all restaurants) */
+:root {
+    --jc-lime: #c5e63a;
+    --jc-lime-dark: #a6ce39;
+    --jc-lime-soft: #eef8d0;
+    --jc-notice-bg: #f0f8dc;
+}
+
+body.jc-success-active {
+    background: #f5f5f5;
+    overflow-x: hidden;
+}
+
+body.jc-success-active .fp-checkout-page,
+body.jc-success-active .fp-submit-fixed {
+    display: none !important;
+}
+
+.jc-success {
+    display: none;
+    min-height: 100vh;
+    background: #f5f5f5;
+    font-family: "Noto Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+}
+
+.jc-success.show {
+    display: block;
+}
+
+.jc-success-page {
+    max-width: 440px;
+    margin: 0 auto;
+    padding: 0 16px calc(24px + env(safe-area-inset-bottom));
+}
+
+.jc-header {
+    margin: 0 -16px 20px;
+    overflow: hidden;
+    opacity: 0;
+    transform: translateY(-12px);
+}
+
+.jc-banner {
+    width: 100%;
+    height: auto;
+    display: block;
+    object-fit: contain;
+}
+
+.jc-card {
+    background: #fff;
+    border-radius: 24px;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.08);
+    padding: 28px 18px 24px;
+    text-align: center;
+    opacity: 0;
+    transform: translateY(36px) scale(0.98);
+}
+
+.jc-phone-wrap {
+    position: relative;
+    width: 76px;
+    height: 76px;
+    margin: 0 auto 18px;
+}
+
+.jc-phone-ring {
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+    border: 2px solid var(--jc-lime);
+    opacity: 0;
+    transform: scale(0.75);
+}
+
+.jc-phone-icon {
+    width: 76px;
+    height: 76px;
+    border-radius: 50%;
+    background: var(--jc-lime);
+    border: none;
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 6px 20px rgba(197, 230, 58, 0.45);
+}
+
+.jc-phone-icon svg {
+    width: 32px;
+    height: 32px;
+}
+
+.jc-thanks {
+    font-size: 28px;
+    font-weight: 800;
+    color: #111;
+    margin: 0 0 10px;
+    letter-spacing: -0.02em;
+}
+
+.jc-payment-sent {
+    font-size: 22px;
+    font-weight: 800;
+    color: var(--jc-lime-dark);
+    margin: 0 0 10px;
+    line-height: 1.2;
+}
+
+.jc-contact {
+    font-size: 14px;
+    color: #888;
+    line-height: 1.5;
+    margin: 0 0 24px;
+    padding: 0 8px;
+}
+
+.jc-timeline {
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    gap: 0;
+    padding-top: 4px;
+}
+
+.jc-timeline-step {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    opacity: 0;
+    transform: translateY(14px);
+}
+
+.jc-timeline-step span {
+    font-size: 10px;
+    font-weight: 700;
+    color: #666;
+    line-height: 1.25;
+    max-width: 90px;
+    text-align: center;
+}
+
+.jc-timeline-step--done span {
+    color: var(--jc-lime-dark);
+}
+
+.jc-timeline-icon {
+    position: relative;
+    width: 46px;
+    height: 46px;
+    border-radius: 50%;
+    background: #f3f3f3;
+    color: #888;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.jc-timeline-step--done .jc-timeline-icon {
+    background: var(--jc-lime-soft);
+    color: var(--jc-lime-dark);
+}
+
+.jc-timeline-icon svg {
+    width: 22px;
+    height: 22px;
+}
+
+.jc-step-check {
+    position: absolute;
+    top: -3px;
+    right: -3px;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: var(--jc-lime);
+    color: #111;
+    font-size: 11px;
+    font-weight: 800;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    transform: scale(0);
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.12);
+}
+
+.jc-timeline-line {
+    flex: 0 0 24px;
+    height: 0;
+    border-top: 2px dotted #ccc;
+    margin-top: 23px;
+    opacity: 0;
+}
+
+.jc-notice {
+    display: flex;
+    gap: 12px;
+    align-items: flex-start;
+    background: var(--jc-notice-bg);
+    border-radius: 18px;
+    padding: 14px 16px;
+    margin-top: 16px;
+    opacity: 0;
+    transform: translateY(24px);
+}
+
+.jc-notice-icon {
+    flex-shrink: 0;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: var(--jc-lime);
+    color: #111;
+    font-size: 16px;
+    font-weight: 800;
+    font-style: italic;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.jc-notice-body strong {
+    display: block;
+    font-size: 14px;
+    font-weight: 800;
+    color: #111;
+    margin-bottom: 4px;
+}
+
+.jc-notice-body p {
+    margin: 0;
+    font-size: 13px;
+    line-height: 1.45;
+    color: #555;
+}
+
+.jc-home-btn {
+    display: block;
+    width: 100%;
+    margin-top: 18px;
+    padding: 17px 16px;
+    border-radius: 18px;
+    background: var(--jc-lime);
+    color: #111;
+    font-size: 16px;
+    font-weight: 800;
+    text-align: center;
+    text-decoration: none;
+    box-shadow: 0 6px 20px rgba(197, 230, 58, 0.4);
+    opacity: 0;
+    transform: translateY(24px);
+}
+
+.jc-home-btn:active {
+    transform: translateY(1px);
+}
+
+.jc-anim.jc-play {
+    animation-fill-mode: forwards;
+}
+
+.jc-header.jc-play,
+.jc-header.jc-play .jc-banner {
+    animation: jcSlideDown 0.6s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+.jc-anim-d1.jc-play {
+    animation: jcCardIn 0.65s cubic-bezier(0.22, 1, 0.36, 1) 0.15s forwards;
+}
+
+.jc-anim-d2.jc-play {
+    animation: jcSlideUp 0.5s cubic-bezier(0.22, 1, 0.36, 1) 0.45s forwards;
+}
+
+.jc-anim-d25.jc-play {
+    animation: jcFadeIn 0.4s ease 0.55s forwards;
+}
+
+.jc-anim-d3.jc-play {
+    animation: jcSlideUp 0.5s cubic-bezier(0.22, 1, 0.36, 1) 0.6s forwards;
+}
+
+.jc-anim-d35.jc-play {
+    animation: jcFadeIn 0.4s ease 0.72s forwards;
+}
+
+.jc-anim-d4.jc-play {
+    animation: jcSlideUp 0.5s cubic-bezier(0.22, 1, 0.36, 1) 0.78s forwards;
+}
+
+.jc-anim-d5.jc-play {
+    animation: jcSlideUp 0.55s cubic-bezier(0.22, 1, 0.36, 1) 0.9s forwards;
+}
+
+.jc-anim-d6.jc-play {
+    animation: jcSlideUp 0.55s cubic-bezier(0.22, 1, 0.36, 1) 1.05s forwards;
+}
+
+.jc-success.show .jc-phone-ring {
+    animation: jcRingPulse 1.8s ease-out 0.5s 2;
+}
+
+.jc-success.show .jc-step-check {
+    animation: jcCheckPop 0.45s cubic-bezier(0.34, 1.56, 0.64, 1) 0.7s forwards;
+}
+
+@keyframes jcSlideDown {
+    from { opacity: 0; transform: translateY(-12px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes jcCardIn {
+    from { opacity: 0; transform: translateY(36px) scale(0.98); }
+    to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@keyframes jcSlideUp {
+    from { opacity: 0; transform: translateY(24px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes jcFadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+@keyframes jcRingPulse {
+    0% { opacity: 0.85; transform: scale(0.8); }
+    100% { opacity: 0; transform: scale(1.4); }
+}
+
+@keyframes jcCheckPop {
+    from { opacity: 0; transform: scale(0); }
+    to { opacity: 1; transform: scale(1); }
+}

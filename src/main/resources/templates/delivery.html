@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="ky">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RATLION — жеткирүү кызматы</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/delivery.css">
+    <link rel="stylesheet" href="/reports.css">
+</head>
+<body class="delivery-body">
+
+<div class="delivery-layout">
+    <aside class="delivery-sidebar">
+        <div class="delivery-brand">
+            <div class="delivery-brand-icon">🔥</div>
+            <div>
+                <div class="delivery-brand-title">RATLION</div>
+                <div class="delivery-brand-sub">Жеткирүү кызматы</div>
+            </div>
+        </div>
+        <nav class="delivery-nav">
+            <button type="button" class="delivery-nav-item active" data-sec="dashboard" onclick="dNav('dashboard', this)">🏠 Башкы бет</button>
+            <button type="button" class="delivery-nav-item" data-sec="new-orders" onclick="dNav('new-orders', this)">📥 Жаңы заказдар <span id="dBadgeNew" class="delivery-nav-badge">0</span></button>
+            <button type="button" class="delivery-nav-item" data-sec="restaurants" onclick="dNav('restaurants', this)">🏪 Ресторандар</button>
+            <button type="button" class="delivery-nav-item" data-sec="reports" onclick="dNav('reports', this)">📊 Отчеттор</button>
+            <button type="button" class="delivery-nav-item" data-sec="history" onclick="dNav('history', this)">📜 Заказ тарыхы</button>
+            <button type="button" class="delivery-nav-item" data-sec="couriers" onclick="dNav('couriers', this)">🛵 Курьерлер</button>
+            <button type="button" class="delivery-nav-item" data-sec="settings" onclick="dNav('settings', this)">⚙️ Орнотуулар</button>
+        </nav>
+    </aside>
+
+    <main class="delivery-main">
+
+        <section id="sec-dashboard" class="delivery-section active">
+            <div class="delivery-head"><h1>Башкы бет</h1><p>Жалпы маалымат</p></div>
+            <div class="delivery-cards delivery-cards-wide">
+                <div class="delivery-card"><label>Бүгүнкү заказдар</label><strong id="dStatTodayOrders">0</strong></div>
+                <div class="delivery-card"><label>Бүгүнкү киреше</label><strong id="dStatTodayRev">0</strong></div>
+                <div class="delivery-card"><label>Текшериле турган заказдар</label><strong id="dStatPending">0</strong></div>
+                <div class="delivery-card"><label>Жеткирилген заказдар</label><strong id="dStatDelivered">0</strong></div>
+                <div class="delivery-card"><label>Четке кагылган заказдар</label><strong id="dStatCancelled">0</strong></div>
+                <div class="delivery-card"><label>Ресторандардын саны</label><strong id="dStatRest">0</strong></div>
+                <div class="delivery-card"><label>Айлык киреше</label><strong id="dStatMonthRev">0</strong></div>
+                <div class="delivery-card"><label>Эң көп саткан ресторан</label><strong id="dStatTopRest" class="delivery-card-text">—</strong></div>
+                <div class="delivery-card"><label>Эң көп сатылган тамак</label><strong id="dStatTopFood" class="delivery-card-text">—</strong></div>
+            </div>
+        </section>
+
+        <section id="sec-new-orders" class="delivery-section">
+            <div class="delivery-head"><h1>Жаңы заказдар</h1><p>Текшерүүгө күтүлгөн — кабыл алуу же четке кагуу</p></div>
+            <div id="dNewList" class="delivery-panel"></div>
+        </section>
+
+        <section id="sec-restaurants" class="delivery-section">
+            <div class="delivery-head"><h1>Ресторандар</h1><p>Ресторан тизмеси — маалымат үчүн баскыла</p></div>
+            <div id="dRestGrid" class="delivery-rest-grid"></div>
+        </section>
+
+        <section id="sec-reports" class="delivery-section">
+            <div class="delivery-head"><h1>Отчеттор</h1><p>Ресторан тандап — күндük, кечки, айлык же жылдык отчет</p></div>
+            <div class="delivery-panel">
+                <div class="delivery-toolbar">
+                    <select id="dRepRest" class="delivery-select"></select>
+                    <select id="dRepPreset" class="delivery-select">
+                        <option value="today">Күндük отчет — бүгүн</option>
+                        <option value="yesterday">Күндük отчет — кечээ</option>
+                        <option value="evening">Кечки отчет</option>
+                        <option value="week">Апталык отчет</option>
+                        <option value="month">Айлык отчет</option>
+                        <option value="lastmonth">Өткөн ай</option>
+                        <option value="year">Жылдык отчет</option>
+                        <option value="custom">Башка мезгил</option>
+                    </select>
+                    <input id="dRepFrom" class="delivery-input" type="date">
+                    <input id="dRepTo" class="delivery-input" type="date">
+                    <button type="button" class="delivery-btn delivery-btn-primary" onclick="dLoadReport()">Көрсөт</button>
+                </div>
+                <div id="dRepHistoryNav" class="delivery-toolbar" style="margin-top:12px"></div>
+                <div id="dRepResult"></div>
+            </div>
+        </section>
+
+        <section id="sec-history" class="delivery-section">
+            <div class="delivery-head"><h1>Заказ тарыхы</h1><p>Аяктаган жана жеткирилген заказдар · сапты басып толук маалыматты көрүңүз</p></div>
+            <div class="delivery-panel">
+                <div class="delivery-toolbar">
+                    <select id="dHistRest" class="delivery-select"><option value="">Бардык ресторандар</option></select>
+                    <input id="dHistFrom" class="delivery-input" type="date">
+                    <input id="dHistTo" class="delivery-input" type="date">
+                    <button type="button" class="delivery-btn delivery-btn-primary" onclick="dLoadHistory()">Издөө</button>
+                </div>
+                <table class="delivery-table">
+                    <thead><tr>
+                        <th>Заказ №</th>
+                        <th>Ресторан</th>
+                        <th>Кардар</th>
+                        <th>Телефон</th>
+                        <th>Тамак</th>
+                        <th>Сумма</th>
+                        <th>Жеткирилди</th>
+                        <th>Оператор</th>
+                        <th>Төлөмдүн чеги</th>
+                    </tr></thead>
+                    <tbody id="dHistBody"><tr><td colspan="9">...</td></tbody>
+                </table>
+            </div>
+        </section>
+
+        <section id="sec-couriers" class="delivery-section">
+            <div class="delivery-head"><h1>Курьерлер</h1><p>Аты + телефон → катта</p></div>
+            <div class="delivery-panel" style="margin-bottom:16px">
+                <label class="delivery-label">Курьер каттоо</label>
+                <div class="delivery-toolbar" style="margin-top:8px;flex-wrap:wrap">
+                    <input id="dCourierName" class="delivery-input" type="text" placeholder="Аты (мисалы: Азамат)">
+                    <input id="dCourierPhone" class="delivery-input" type="tel" placeholder="Телефон (0990123456)" inputmode="tel">
+                    <button type="button" class="delivery-btn delivery-btn-green" onclick="dAddCourier()">Каттоо</button>
+                </div>
+                <p style="font-size:13px;color:var(--d-muted);margin-top:12px;line-height:1.6">
+                    Курьер өзү да <strong>/courier</strong> сайтына кирип, аты + телефон менен аккаунт ача алат.
+                </p>
+            </div>
+            <div class="delivery-panel" style="margin-bottom:16px">
+                <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:12px">
+                    <label class="delivery-label" style="margin:0">📡 Курьерлердин кыймылы</label>
+                    <span id="dCourierActivityUpdated" style="font-size:12px;color:var(--d-muted)">—</span>
+                </div>
+                <div id="dCourierActivity">Жүктөлүүдө...</div>
+            </div>
+            <div class="delivery-panel">
+                <label class="delivery-label">Катталган курьерлер</label>
+                <div id="dCourierList" style="margin-top:12px">Жүктөлүүдө...</div>
+            </div>
+        </section>
+
+        <section id="sec-settings" class="delivery-section">
+            <div class="delivery-head"><h1>Орнотуулар</h1><p>RATLION жалпы орнотуулары</p></div>
+            <div class="delivery-panel">
+                <label class="delivery-label">Оператордун аты</label>
+                <div class="delivery-toolbar" style="margin-top:8px">
+                    <input id="dOperator" class="delivery-input" type="text" placeholder="Оператор">
+                    <button type="button" class="delivery-btn delivery-btn-primary" onclick="dSaveOperator()">Сактоо</button>
+                </div>
+            </div>
+        </section>
+
+    </main>
+</div>
+
+<!-- Заказ модалы -->
+<div id="dModal" class="delivery-modal-overlay" onclick="if(event.target===this)dCloseModal()">
+    <div class="delivery-modal">
+        <div class="delivery-modal-head">
+            <h3 id="dModalTitle">Заказ</h3>
+            <button type="button" class="delivery-btn delivery-btn-outline delivery-btn-sm" onclick="dCloseModal()" title="Жабуу">✕</button>
+        </div>
+        <div id="dModalBody"></div>
+        <div id="dModalActions" style="display:none;gap:10px;margin-top:20px">
+            <button type="button" class="delivery-btn delivery-btn-green" style="flex:1" onclick="dAccept()">✅ Кабыл алуу</button>
+            <button type="button" class="delivery-btn delivery-btn-primary" style="flex:1" onclick="dReject()">❌ Четке кагуу</button>
+        </div>
+    </div>
+</div>
+
+<!-- Ресторан маалыматы -->
+<div id="dRestModal" class="delivery-modal-overlay" onclick="if(event.target===this)dCloseRestModal()">
+    <div class="delivery-modal">
+        <div class="delivery-modal-head">
+            <h3 id="dRestModalTitle">Ресторан маалыматы</h3>
+            <button type="button" class="delivery-btn delivery-btn-outline delivery-btn-sm" onclick="dCloseRestModal()" title="Жабуу">✕</button>
+        </div>
+        <div id="dRestModalBody"></div>
+    </div>
+</div>
+
+<script src="/reports-ui.js"></script>
+<script src="/delivery.js"></script>
+</body>
+</html>

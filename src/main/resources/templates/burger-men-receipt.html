@@ -3,29 +3,30 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title th:text="${restaurantName}">Буйрутма</title>
+    <title th:text="${restaurantName}">Заказ</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="/family-customer.css">
-    <link rel="stylesheet" th:href="${customerCss}" href="/ordo-cafe-customer.css">
+    <link rel="stylesheet" th:href="${customerCss}" href="/burger-men-customer.css">
+    <link rel="stylesheet" href="/jolchu-success.css">
     <script th:inline="javascript">
         window.RESTAURANT = {
             id: /*[[${restaurantId}]]*/ 3,
-            slug: /*[[${restaurantSlug}]]*/ 'ordo-cafe',
-            name: /*[[${restaurantName}]]*/ 'ОРДО КАФЕ',
-            base: /*[[${restaurantBase}]]*/ '/ordo-cafe'
+            slug: /*[[${restaurantSlug}]]*/ 'burger-men',
+            name: /*[[${restaurantName}]]*/ 'BURGERMAN',
+            base: /*[[${restaurantBase}]]*/ '/burger-men'
         };
     </script>
     <script src="/restaurant-context.js"></script>
     <script src="/restaurant-i18n.js"></script>
 </head>
-<body class="fam-body oc-fp-theme fp-checkout-body">
+<body class="fam-body bm-fp-theme fp-checkout-body">
 
 <div id="checkoutPage" class="fp-checkout-page">
     <header class="fp-checkout-head">
         <button type="button" id="backBtn" class="fp-checkout-back hidden" onclick="goBackStep()" aria-label="Артка">←</button>
-        <h1 id="checkoutTitle">Буйрутманы оформилоо</h1>
+        <h1 id="checkoutTitle">Заказды оформилоо</h1>
         <div class="fp-lang-pill fp-lang-pill-header" id="customerLangPill">
             <button type="button" id="customerKyBtn" class="lang-opt active" onclick="CustomerI18n.setLang('ky')">KG</button>
             <span class="lang-sep">/</span>
@@ -54,7 +55,7 @@
 
     <div id="emptyState" class="fp-empty">
         <p id="emptyCartText">Себет бош</p>
-        <a class="fp-checkout-btn" id="emptyMenuLink" style="display:inline-block;margin-top:12px;text-decoration:none;color:#fff" th:href="${restaurantBase}" href="/ordo-cafe">Менюга кайтуу</a>
+        <a class="fp-checkout-btn" id="emptyMenuLink" style="display:inline-block;margin-top:12px;text-decoration:none;color:#fff" th:href="${restaurantBase}" href="/burger-men">Менюга кайтуу</a>
     </div>
 
     <div id="stepInfo" class="hidden">
@@ -95,7 +96,7 @@
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
                 </div>
                 <div class="fp-field-body">
-                    <div class="fp-field-label" id="commentLabel">Багыт / Комментарий</div>
+                    <div class="fp-field-label" id="commentLabel">Ориентировка / Комментарий</div>
                     <textarea id="comment" rows="2" placeholder="Мисалы: кызыл дарбаза"></textarea>
                 </div>
             </div>
@@ -103,7 +104,7 @@
 
         <section class="fp-section-card">
             <div class="fp-order-card-head">
-                <h2 class="fp-section-title" id="orderListTitle">Буйрутма тизмеси</h2>
+                <h2 class="fp-section-title" id="orderListTitle">Заказ тизмеси</h2>
                 <a id="editCartLink" class="fp-edit-link" href="#">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 013 3L7 19l-4 1 1-4 12.5-12.5z"/></svg>
                     <span id="editLinkText">Түзөтүү</span>
@@ -126,14 +127,14 @@
                 <div class="fp-section-icon-round">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
                 </div>
-                <h2 class="fp-section-title" id="orderInfoTitle">Буйрутма тууралуу маалымат</h2>
+                <h2 class="fp-section-title" id="orderInfoTitle">Заказ тууралуу маалымат</h2>
             </div>
             <div class="fp-order-info-box">
-                <img id="orderInfoImg" src="https://images.unsplash.com/photo-1569718212165-3a8278d5f624?w=200&q=80" alt="">
+                <img id="orderInfoImg" src="https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=200&q=80" alt="">
                 <div class="fp-order-info-text">
-                    <p id="orderInfoP1">Тамактарыңыз буйрутма кабыл алынгандан кийин гана жаңыдан даярдалат.</p>
+                    <p id="orderInfoP1">Тамактарыңыз заказ кабыл алынгandan кийин гана жаңыдан даярдалат.</p>
                     <p id="orderInfoP2">Орточо даярдоо убактысы — <strong>20–25 мүнөт</strong>.</p>
-                    <p id="orderInfoP3">Сизге ар дайым жаңы, даамдуу жана жаңыдан даярдалган тамактарды жеткиребиз!</p>
+                    <p id="orderInfoP3">Сизге ар дайым жаңы, даамдуу жана жаңыдан гана даярдалган тамактарды жеткиребиз!</p>
                 </div>
             </div>
         </section>
@@ -232,7 +233,7 @@
             <div class="jc-notice-icon">i</div>
             <div class="jc-notice-body">
                 <strong id="jolchuNoticeTitle">Эскертүү</strong>
-                <p id="jolchuNoticeText">Оператор сиз менен жакын арада байланышып, буйрутманы ырастайт жана жеткирүү убактысын айтып берет.</p>
+                <p id="jolchuNoticeText">Оператор сиз менен жакын арада байланышып, заказды ырастайт жана жеткирүү убактысын айтып берет.</p>
             </div>
         </div>
 
@@ -246,7 +247,7 @@
         <span class="fp-submit-arrow">›</span>
     </button>
     <button id="submitButton" type="button" class="fp-submit-btn hidden" onclick="submitOrder()">
-        <span id="submitButtonText">Буйрутманы жөнөтүү</span>
+        <span id="submitButtonText">Заказды жөнөтүү</span>
         <span class="fp-submit-arrow">›</span>
     </button>
 </div>
@@ -482,7 +483,7 @@
         const phone = document.getElementById('phone').value.trim();
         const address = document.getElementById('address').value.trim();
         const comment = document.getElementById('comment').value.trim();
-        const foodComment = getStoredFoodComment();
+        const foodComment = typeof getStoredFoodComment === 'function' ? getStoredFoodComment() : '';
         const receiptInput = document.getElementById('receipt');
         const btn = document.getElementById('submitButton');
 
@@ -517,7 +518,7 @@
             if (!res.ok) throw new Error(CustomerI18n.t('errSubmit'));
             const saved = await res.json();
             localStorage.removeItem(cartStorageKey());
-            clearStoredOrderComments();
+            if (typeof clearStoredOrderComments === 'function') clearStoredOrderComments();
             ['name', 'phone', 'address'].forEach(f => localStorage.removeItem(checkoutInfoKey(f)));
             showJolchuSuccess();
         } catch (e) {
