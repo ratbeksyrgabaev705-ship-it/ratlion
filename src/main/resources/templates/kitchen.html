@@ -22,7 +22,7 @@
         };
     </script>
 </head>
-<body class="kitchen-body adm-body">
+<body class="kitchen-body">
 
 <div id="kNotFound" class="kitchen-pick" style="display:none">
     <h1>⚠️ Ресторан табылган жок</h1>
@@ -59,7 +59,18 @@
         <section id="sec-orders" class="kitchen-section active">
             <div class="kitchen-head">
                 <div><h1>Заказдар</h1><p>Жаңы → Даярдалууда → Даяр</p></div>
-                <button type="button" class="kitchen-btn kitchen-btn-outline" onclick="kRefreshOrders()">🔄 Жаңыртуу</button>
+                <div class="kitchen-head-actions">
+                    <button type="button" id="kPushBtn" class="kitchen-btn kitchen-btn-outline kitchen-push-btn">🔔 Эскертүүнү күйгүзүү</button>
+                    <button type="button" class="kitchen-btn kitchen-btn-outline" onclick="kRefreshOrders()">🔄 Жаңыртуу</button>
+                </div>
+            </div>
+            <div class="kitchen-push-bar">
+                <span id="kPushStatus" class="kitchen-push-status">Жаңы заказ келгенде билесиз</span>
+                <div class="kitchen-telegram-row">
+                    <label for="kTelegramChatId">Telegram чат ID:</label>
+                    <input id="kTelegramChatId" class="kitchen-input kitchen-input-sm" type="text" placeholder="-1001234567890">
+                    <button type="button" class="kitchen-btn kitchen-btn-outline kitchen-btn-sm" onclick="kSaveTelegram()">Сактоо</button>
+                </div>
             </div>
             <div class="kitchen-board">
                 <div class="kitchen-col kitchen-col-new">
@@ -91,9 +102,9 @@
                 <div><h1>Меню башкаруу</h1><p>Тамак, категория, сүрөт, баа</p></div>
                 <button type="button" class="adm-btn adm-btn-primary" onclick="kOpenMenuForm()">➕ Жаңы тамак</button>
             </div>
-            <div class="adm-panel" style="background:#fff;border-radius:16px;padding:20px">
+            <div class="adm-panel kitchen-menu-panel">
                 <div id="kMenuCategories" class="k-menu-categories"></div>
-                <input id="kMenuSearch" class="adm-input" type="search" placeholder="Издөө..." oninput="kFilterMenu()" style="margin-bottom:16px;width:100%;max-width:320px">
+                <input id="kMenuSearch" class="adm-input kitchen-menu-search" type="search" placeholder="Издөө..." oninput="kFilterMenu()">
                 <div id="kMenuList" class="adm-menu-grid"></div>
             </div>
         </section>

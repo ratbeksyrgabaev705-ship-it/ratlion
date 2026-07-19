@@ -46,6 +46,9 @@ public class Restaurant {
     /** Убактылуу токтотуу */
     private Boolean ordersPaused = false;
 
+    /** Telegram чат ID — жаңы заказ келгенде билдирүү */
+    private String telegramChatId;
+
     public Restaurant() {
     }
 
@@ -176,5 +179,13 @@ public class Restaurant {
 
     public void setOrdersPaused(Boolean ordersPaused) {
         this.ordersPaused = ordersPaused;
+    }
+
+    public String getTelegramChatId() {
+        return telegramChatId;
+    }
+
+    public void setTelegramChatId(String telegramChatId) {
+        this.telegramChatId = telegramChatId;
     }
 }

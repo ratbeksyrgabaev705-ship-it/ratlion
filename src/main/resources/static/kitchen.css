@@ -1,11 +1,12 @@
 :root {
-    --k-bg: #0f1419;
+    --k-bg: #0c1017;
+    --k-main: #111827;
     --k-sidebar: #1a2332;
     --k-card: #ffffff;
     --k-accent: #16a34a;
     --k-accent-dark: #15803d;
-    --k-muted: #64748b;
-    --k-line: #e2e8f0;
+    --k-muted: #94a3b8;
+    --k-line: #334155;
     --k-orange: #ea580c;
     --k-blue: #2563eb;
     --k-purple: #7c3aed;
@@ -17,7 +18,7 @@
 body.kitchen-body {
     font-family: Inter, system-ui, sans-serif;
     background: var(--k-bg);
-    color: #0f172a;
+    color: #e2e8f0;
     min-height: 100vh;
 }
 
@@ -85,6 +86,8 @@ body.kitchen-body {
 .kitchen-main {
     flex: 1; margin-left: var(--k-sidebar-w);
     padding: 20px 24px 32px; min-width: 0;
+    background: var(--k-main);
+    min-height: 100vh;
 }
 
 .kitchen-section { display: none; }
@@ -103,6 +106,47 @@ body.kitchen-body {
 .kitchen-head h1 { color: #fff; font-size: 24px; font-weight: 800; }
 .kitchen-head p { color: #94a3b8; font-size: 13px; margin-top: 4px; }
 
+.kitchen-head-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+
+.kitchen-push-bar {
+    background: rgba(255,255,255,0.04);
+    border: 1px solid #334155;
+    border-radius: 12px;
+    padding: 12px 16px;
+    margin-bottom: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.kitchen-push-status { color: #94a3b8; font-size: 13px; }
+
+.kitchen-push-btn.kitchen-push-on {
+    border-color: var(--k-accent);
+    color: #4ade80;
+    background: rgba(22,163,74,0.12);
+}
+
+.kitchen-telegram-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+    font-size: 12px;
+    color: #94a3b8;
+}
+
+.kitchen-input {
+    padding: 8px 12px;
+    border-radius: 8px;
+    border: 1px solid #475569;
+    background: #1a2332;
+    color: #e2e8f0;
+    font-size: 13px;
+}
+
+.kitchen-input-sm { width: 180px; max-width: 100%; }
+
 .kitchen-btn {
     padding: 10px 16px; border-radius: 10px; font-size: 13px; font-weight: 700;
     border: none; cursor: pointer; display: inline-flex; align-items: center; gap: 6px;
@@ -120,7 +164,7 @@ body.kitchen-body {
 }
 
 .kitchen-col {
-    background: rgba(255,255,255,0.04);
+    background: rgba(255,255,255,0.06);
     border: 1px solid #334155;
     border-radius: 16px;
     padding: 14px;
@@ -210,9 +254,15 @@ body.kitchen-body {
 
 .kitchen-empty { text-align: center; padding: 32px; color: #64748b; font-size: 13px; }
 
+.kitchen-col-body .kitchen-empty { color: #94a3b8; }
+
+.kitchen-btn-outline:hover { border-color: var(--k-accent); color: #fff; background: rgba(22,163,74,0.08); }
+.kitchen-btn-outline:focus-visible { outline: 2px solid var(--k-accent); outline-offset: 2px; }
+
 .kitchen-toolbar { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 16px; }
-.kitchen-input, .kitchen-select {
-    padding: 10px 12px; border: 1px solid var(--k-line); border-radius: 10px; font-size: 13px;
+.kitchen-select {
+    padding: 10px 12px; border: 1px solid #475569; border-radius: 10px; font-size: 13px;
+    background: #1a2332; color: #e2e8f0;
 }
 
 .kitchen-customer-link { font-size: 12px; color: #64748b; padding: 12px; text-decoration: none; display: block; }
@@ -231,6 +281,87 @@ body.kitchen-body {
 .k-settings-form { display: grid; gap: 12px; max-width: 480px; }
 .k-settings-form label { font-size: 12px; font-weight: 700; color: var(--k-muted); display: flex; flex-direction: column; gap: 6px; }
 .k-settings-form .kitchen-input { width: 100%; }
+
+/* Меню бөлümү — dark theme (adm-* override) */
+.kitchen-body .kitchen-menu-panel {
+    background: rgba(255,255,255,0.05);
+    border: 1px solid #334155;
+    border-radius: 16px;
+    padding: 20px;
+    box-shadow: none;
+}
+
+.kitchen-body .kitchen-menu-search {
+    margin-bottom: 16px;
+    width: 100%;
+    max-width: 320px;
+    padding: 10px 12px;
+    border-radius: 10px;
+    border: 1px solid #475569;
+    background: #1a2332;
+    color: #e2e8f0;
+}
+
+.kitchen-body .adm-menu-item {
+    background: #1a2332;
+    border-color: #334155;
+    color: #e2e8f0;
+}
+
+.kitchen-body .adm-menu-item strong { color: #f8fafc; }
+.kitchen-body .adm-menu-ph { background: #0f172a; color: #64748b; }
+
+.kitchen-body .adm-btn-primary {
+    background: var(--k-accent);
+    color: #fff;
+    border: none;
+    padding: 10px 16px;
+    border-radius: 10px;
+    font-weight: 700;
+}
+.kitchen-body .adm-btn-primary:hover { background: var(--k-accent-dark); }
+
+.kitchen-body .adm-btn-outline {
+    background: transparent;
+    border: 1px solid #475569;
+    color: #e2e8f0;
+    padding: 8px 12px;
+    border-radius: 10px;
+    font-weight: 600;
+}
+.kitchen-body .adm-btn-outline:hover { border-color: var(--k-accent); color: #fff; }
+
+.kitchen-body .adm-btn-danger {
+    background: rgba(220,38,38,0.15);
+    color: #fca5a5;
+    border: 1px solid rgba(220,38,38,0.3);
+}
+
+.kitchen-body .adm-empty { color: #64748b; }
+
+.kitchen-body .adm-modal { background: #1a2332; color: #e2e8f0; border: 1px solid #334155; }
+.kitchen-body .adm-modal-head h3 { color: #f8fafc; }
+.kitchen-body .adm-field label { color: #94a3b8; }
+.kitchen-body .adm-field input,
+.kitchen-body .adm-field textarea {
+    background: #0f172a;
+    border: 1px solid #475569;
+    color: #e2e8f0;
+    border-radius: 10px;
+    padding: 10px 12px;
+    width: 100%;
+}
+.kitchen-body .adm-img-upload {
+    background: rgba(22,163,74,0.1);
+    border-color: #334155;
+    color: #94a3b8;
+}
+
+.kitchen-body .adm-toast {
+    background: #1a2332;
+    color: #f8fafc;
+    border: 1px solid #334155;
+}
 
 @media (max-width: 1100px) {
     .kitchen-board { grid-template-columns: 1fr; }

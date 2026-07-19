@@ -119,6 +119,11 @@ public class RestaurantController {
         if (updatedRestaurant.getOrdersPaused() != null) {
             restaurant.setOrdersPaused(updatedRestaurant.getOrdersPaused());
         }
+        if (updatedRestaurant.getTelegramChatId() != null) {
+            restaurant.setTelegramChatId(updatedRestaurant.getTelegramChatId().isBlank()
+                    ? null
+                    : updatedRestaurant.getTelegramChatId().trim());
+        }
 
         if (updatedRestaurant.getSlug() != null && !updatedRestaurant.getSlug().isBlank()) {
             String slug = slugify(updatedRestaurant.getSlug());

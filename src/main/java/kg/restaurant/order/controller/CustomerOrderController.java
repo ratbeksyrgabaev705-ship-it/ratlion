@@ -1,6 +1,7 @@
 package kg.restaurant.order.controller;
 
 import kg.restaurant.order.model.CustomerOrder;
+import kg.restaurant.order.model.Courier;
 import kg.restaurant.order.model.Restaurant;
 import kg.restaurant.order.repository.CourierNotificationRepository;
 import kg.restaurant.order.repository.CourierRepository;
@@ -475,6 +476,7 @@ public class CustomerOrderController {
                 .orElse("Ресторан");
     }
 
+    /** Кардар заказ бергенде — гана менеджерге (чек текшерүү) */
     private void notifyNewOrder(CustomerOrder order) {
         Double amount = order.getPaymentAmount() != null
                 ? order.getPaymentAmount()
@@ -487,23 +489,60 @@ public class CustomerOrderController {
                         + "📞 " + safe(order.getPhone()) + "\n"
                         + "📍 " + safe(order.getAddress()) + "\n"
                         + "🍽 " + safe(order.getItemName()) + "\n"
+                        + (order.getFoodComment() != null && !order.getFoodComment().isBlank()
+                        ? "💬 " + safe(order.getFoodComment()) + "\n"
+                        : "")
                         + "💰 " + formatAmount(amount) + " сом\n\n"
-                        + "⚠️ Чекти текшериңиз → /ratlion"
+                        + "👉 Чекти текшериңиз: /ratlion\n"
+                        + "✅ Кабыл алсаңыз — ресторанга билдирилет"
         );
     }
 
+    /** Менеджер кабыл алганда — ресторанга (Telegram + ашкана панели) */
     private void notifyOrderAccepted(CustomerOrder order) {
-        String adminPath = adminPathFor(order);
-        telegramService.sendToManager(
-                "✅ ЗАКАЗ КАБЫЛ АЛЫНДЫ\n\n"
-                        + "🏷 " + order.getDisplayOrderNumber() + "\n"
-                        + "👤 " + safe(order.getCustomerName()) + "\n"
-                        + "📞 " + safe(order.getPhone()) + "\n"
-                        + "📍 " + safe(order.getAddress()) + "\n"
-                        + "🍽 " + safe(order.getItemName()) + "\n"
-                        + "💰 " + formatAmount(order.getTotalPrice()) + " сом\n\n"
-                        + "🏪 Ресторан панели → " + adminPath
-        );
+        String kitchenPath = adminPathFor(order);
+        String restName = restaurantLabel(order);
+
+        if (order.getRestaurantId() != null) {
+            restaurantRepository.findById(order.getRestaurantId())
+                    .ifPresent(restaurant -> {
+                        String chatId = restaurant.getTelegramChatId();
+                        String text = "🆕 ЖАҢЫ ЗАКАЗ — " + restName + "\n\n"
+                                + "🏷 " + order.getDisplayOrderNumber() + "\n"
+                                + "👤 " + safe(order.getCustomerName()) + "\n"
+                                + "📞 " + safe(order.getPhone()) + "\n"
+                                + "🍽 " + safe(order.getItemName()) + "\n"
+                                + (order.getFoodComment() != null && !order.getFoodComment().isBlank()
+                                ? "💬 " + safe(order.getFoodComment()) + "\n"
+                                : "")
+                                + "💰 " + formatAmount(order.getTotalPrice()) + " сом\n\n"
+                                + "👉 Ашкана панели: " + kitchenPath;
+                        if (chatId != null && !chatId.isBlank()) {
+                            telegramService.sendToChat(chatId, text);
+                        }
+                    });
+        }
+        notifyCouriersWaiting(order);
+    }
+
+    /** Курьерлерге: заказ кабыл алынды, ресторан даярдаганда сунуш келет */
+    private void notifyCouriersWaiting(CustomerOrder order) {
+        String rest = restaurantLabel(order);
+        String num = order.getDisplayOrderNumber() != null
+                ? order.getDisplayOrderNumber()
+                : "#" + order.getId();
+        String text = "📦 " + rest + " — заказ кабыл алынды\n\n"
+                + "🏷 " + num + "\n"
+                + "⏳ Ресторан «Даярдоону баштоо» басса — сунуш келет\n"
+                + "→ /courier";
+        courierRepository.findByActiveTrueOrderByNameAsc().stream()
+                .filter(this::courierHasTelegram)
+                .forEach(c -> telegramService.sendToCourier(c.getTelegramChatId(), text));
+    }
+
+    private boolean courierHasTelegram(Courier courier) {
+        String id = courier.getTelegramChatId();
+        return id != null && !id.isBlank() && !id.startsWith("phone:");
     }
 
     private String adminPathFor(CustomerOrder order) {

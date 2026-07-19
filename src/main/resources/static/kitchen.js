@@ -13,6 +13,9 @@
     let prevOrderStatus = {};
     let pendingFly = null;
     let knownOrderIds = new Set();
+    let ordersBootstrapped = false;
+    let notifiedOrderIds = new Set();
+    let pushEnabled = localStorage.getItem('kitchenPush') !== 'false';
 
     function q(id) { return document.getElementById(id); }
     function rid() { return scopeId ? '?restaurantId=' + encodeURIComponent(scopeId) : ''; }
@@ -104,12 +107,118 @@
         applyBrand();
         showApp();
         bindMenuForm();
+        bindPushControls();
         loadRestaurant().then(() => {
             refreshOrders();
         });
         pollTimer = setInterval(refreshOrders, 8000);
         window.addEventListener('hashchange', handleHash);
         handleHash();
+    }
+
+    function bindPushControls() {
+        const btn = q('kPushBtn');
+        if (btn) btn.addEventListener('click', requestPushPermission);
+        updatePushUi();
+    }
+
+    function updatePushUi() {
+        const btn = q('kPushBtn');
+        const status = q('kPushStatus');
+        if (!btn || !status) return;
+        if (!('Notification' in window)) {
+            btn.style.display = 'none';
+            status.textContent = 'Браузер push колдобойт';
+            return;
+        }
+        if (Notification.permission === 'granted' && pushEnabled) {
+            btn.textContent = '🔔 Эскертүү күйгүзүлгөн';
+            btn.classList.add('kitchen-push-on');
+            status.textContent = 'Жаңы заказ келсе үн + эскертүү';
+        } else if (Notification.permission === 'denied') {
+            btn.textContent = '🔕 Уруксат жок';
+            btn.classList.remove('kitchen-push-on');
+            status.textContent = 'Браузер жөндөмдөрүнөн уруксат бериңиз';
+        } else {
+            btn.textContent = '🔔 Эскертүүнү күйгүзүү';
+            btn.classList.remove('kitchen-push-on');
+            status.textContent = 'Жаңы заказ келгенде билесиз';
+        }
+    }
+
+    async function requestPushPermission() {
+        if (!('Notification' in window)) {
+            toast('Браузер push колдобойт');
+            return;
+        }
+        if (Notification.permission === 'granted') {
+            pushEnabled = true;
+            localStorage.setItem('kitchenPush', 'true');
+            updatePushUi();
+            toast('Эскертүү күйгүзүлдү');
+            return;
+        }
+        if (Notification.permission === 'denied') {
+            toast('Браузер жөндөмдөрүнөн уруксат бериңиз');
+            return;
+        }
+        const perm = await Notification.requestPermission();
+        pushEnabled = perm === 'granted';
+        localStorage.setItem('kitchenPush', pushEnabled ? 'true' : 'false');
+        updatePushUi();
+        if (pushEnabled) {
+            unlockAudio();
+            toast('Эскертүү күйгүзүлдү!');
+        }
+    }
+
+    let audioCtx = null;
+    function unlockAudio() {
+        try {
+            if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+        } catch (e) { /* ignore */ }
+    }
+
+    function playNewOrderSound() {
+        try {
+            unlockAudio();
+            const ctx = audioCtx || new (window.AudioContext || window.webkitAudioContext)();
+            audioCtx = ctx;
+            [880, 1100, 880].forEach((freq, i) => {
+                const osc = ctx.createOscillator();
+                const gain = ctx.createGain();
+                osc.connect(gain);
+                gain.connect(ctx.destination);
+                osc.frequency.value = freq;
+                gain.gain.setValueAtTime(0.18, ctx.currentTime + i * 0.18);
+                gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + i * 0.18 + 0.22);
+                osc.start(ctx.currentTime + i * 0.18);
+                osc.stop(ctx.currentTime + i * 0.18 + 0.28);
+            });
+        } catch (e) { /* audio blocked */ }
+    }
+
+    function showOrderPush(order) {
+        if (!pushEnabled || !('Notification' in window) || Notification.permission !== 'granted') return;
+        const num = order.displayOrderNumber || '#' + order.id;
+        const body = (order.customerName || 'Кардар') + ' · ' + money(order.totalPrice) + ' сом';
+        try {
+            const n = new Notification('🆕 Жаңы заказ — ' + scopeName, {
+                body: num + ' — ' + body,
+                tag: 'order-' + order.id,
+                renotify: true
+            });
+            n.onclick = () => { window.focus(); n.close(); };
+        } catch (e) { /* ignore */ }
+    }
+
+    function notifyNewOrders(incoming) {
+        if (!incoming.length) return;
+        playNewOrderSound();
+        incoming.forEach(o => showOrderPush(o));
+        const first = incoming[0];
+        toast('🆕 Жаңы заказ: ' + (first.displayOrderNumber || '#' + first.id));
     }
 
     function applyBrand() {
@@ -181,7 +290,17 @@
         if (!scopeId) return;
         try {
             const res = await fetch('/orders/cafe' + rid());
-            allOrders = await res.json();
+            const fresh = await res.json();
+            const incoming = fresh.filter(o =>
+                o.orderStatus === 'ACCEPTED' && !notifiedOrderIds.has(o.id)
+            );
+            if (ordersBootstrapped && incoming.length) {
+                notifyNewOrders(incoming);
+            }
+            incoming.forEach(o => notifiedOrderIds.add(o.id));
+            fresh.forEach(o => knownOrderIds.add(o.id));
+            if (!ordersBootstrapped) ordersBootstrapped = true;
+            allOrders = fresh;
             renderOrderSections();
         } catch (e) { /* silent */ }
     }
@@ -266,7 +385,7 @@
         return `<article class="kitchen-order-card${enterCls}" data-order-id="${o.id}">
             <div class="kitchen-order-num">${esc(o.displayOrderNumber || '#' + o.id)}</div>
             <div class="kitchen-order-meta">👤 ${esc(o.customerName)}</div>
-            ${o.comment ? `<div class="kitchen-order-meta">💬 ${esc(o.comment)}</div>` : ''}
+            ${o.foodComment ? `<div class="kitchen-order-meta">🍽 ${esc(o.foodComment)}</div>` : ''}
             <div class="kitchen-order-items">${esc(o.itemName)}</div>
             <div class="kitchen-order-time">🕐 ${fmtTime(o.createdAt)} · ${money(o.totalPrice)} сом</div>
             ${waitNote}
@@ -518,9 +637,28 @@
                 scopeName = restaurantData.name || scopeName;
                 scopeSlug = restaurantData.slug || scopeSlug;
                 applyBrand();
+                const tgInput = q('kTelegramChatId');
+                if (tgInput) tgInput.value = restaurantData.telegramChatId || '';
             }
         } catch (e) { /* silent */ }
     }
+
+    window.kSaveTelegram = async function () {
+        if (!scopeId || !restaurantData) return;
+        const chatId = (q('kTelegramChatId')?.value || '').trim();
+        try {
+            const res = await fetch('/api/restaurants/' + scopeId, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ ...restaurantData, telegramChatId: chatId })
+            });
+            if (!res.ok) throw new Error('save failed');
+            restaurantData = await res.json();
+            toast(chatId ? 'Telegram сакталды' : 'Telegram өчүрүлдү');
+        } catch (e) {
+            toast('Сактоо ишке ашкан жок');
+        }
+    };
 
     init();
 })();

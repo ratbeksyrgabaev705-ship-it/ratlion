@@ -200,6 +200,53 @@ public class CourierController {
         return ResponseEntity.ok(courierRepository.save(courier));
     }
 
+    /** Курьердин Telegram chat ID — билдирүүлөр үчүн */
+    @PutMapping("/{id}/telegram")
+    public ResponseEntity<?> updateTelegram(
+            @PathVariable Long id,
+            @RequestBody Map<String, String> body
+    ) {
+        Courier courier = courierRepository.findById(id).orElse(null);
+        if (courier == null) {
+            return ResponseEntity.notFound().build();
+        }
+
+        String chatId = body.get("telegramChatId");
+        if (chatId == null) {
+            return ResponseEntity.badRequest().body(Map.of("error", "telegramChatId талап кылынат"));
+        }
+        chatId = chatId.trim();
+
+        if (chatId.isBlank()) {
+            String phone = PhoneUtils.normalize(courier.getPhone());
+            courier.setTelegramChatId(phone.isBlank() ? null : "phone:" + phone);
+        } else {
+            if (courierRepository.existsByTelegramChatId(chatId)
+                    && !chatId.equals(courier.getTelegramChatId())) {
+                return ResponseEntity.badRequest().body(Map.of(
+                        "error", "Бул Telegram ID башка курьerde колдонулуп жатат"
+                ));
+            }
+            courier.setTelegramChatId(chatId);
+        }
+
+        Courier saved = courierRepository.save(courier);
+        if (chatId != null && !chatId.isBlank() && !chatId.startsWith("phone:")) {
+            telegramService.sendToCourier(
+                    chatId,
+                    "✅ RATLION — Telegram байlandi!\n\n"
+                            + "👤 " + safeName(saved.getName()) + "\n"
+                            + "🛵 Жаңы заказ сунуштары бул жерге келет.\n"
+                            + "→ /courier"
+            );
+        }
+        return ResponseEntity.ok(saved);
+    }
+
+    private String safeName(String name) {
+        return name == null || name.isBlank() ? "Курьер" : name.trim();
+    }
+
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> delete(@PathVariable Long id) {
         if (!courierRepository.existsById(id)) {

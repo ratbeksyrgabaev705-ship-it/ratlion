@@ -10,6 +10,18 @@
 
     function q(id) { return document.getElementById(id); }
     function money(v) { return Number(v || 0).toLocaleString('ky-KG', { maximumFractionDigits: 0 }); }
+    function toast(msg) {
+        let el = q('dToast');
+        if (!el) {
+            el = document.createElement('div');
+            el.id = 'dToast';
+            el.className = 'delivery-toast';
+            document.body.appendChild(el);
+        }
+        el.textContent = msg;
+        el.classList.add('show');
+        setTimeout(function () { el.classList.remove('show'); }, 3500);
+    }
     function esc(v) {
         return String(v || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
     }
@@ -123,8 +135,9 @@
     async function init() {
         q('dOperator').value = operatorName;
         await loadRestaurants();
+        PushNotify.bindButton(q('dPushBtn'), q('dPushStatus'));
         dNav('dashboard', document.querySelector('[data-sec="dashboard"]'));
-        setInterval(refreshDashboard, 10000);
+        setInterval(refreshDashboard, 8000);
         window.addEventListener('hashchange', handleHash);
     }
 
@@ -174,6 +187,19 @@
             newOrders = await newRes.json();
             const all = await allRes.json();
             const today = await todayRep.json();
+
+            const incoming = PushNotify.checkNew('admin-new', newOrders, function (o) { return o.id; }, {
+                sound: 'urgent',
+                title: function (o) { return '🔔 Жаңы заказ — ' + restName(o.restaurantId); },
+                body: function (o) {
+                    return '#' + o.id + ' · ' + (o.customerName || '') + ' · ' + money(o.totalPrice) + ' сом';
+                },
+                tag: function (o) { return 'new-order-' + o.id; },
+                onNotify: function (items) {
+                    const o = items[0];
+                    if (o) toast('🔔 Жаңы заказ: #' + o.id + ' — чекти текшериңиз');
+                }
+            });
 
             const todayDelivered = all.filter(o => o.orderStatus === 'DELIVERED' && (o.deliveredAt || o.createdAt || '').slice(0, 10) === todayStr());
             const pending = all.filter(o => o.orderStatus === 'NEW');
@@ -401,15 +427,27 @@
                 box.innerHTML = '<div class="delivery-empty">Азырынча курьер жок</div>';
                 return;
             }
-            box.innerHTML = phoneCouriers.map(c =>
-                `<div style="display:flex;justify-content:space-between;align-items:center;padding:12px 0;border-bottom:1px solid #f1f5f9;gap:12px">
-                    <div>
-                        <strong style="font-size:15px">${esc(c.name)}</strong>
-                        <div style="font-size:13px;color:var(--d-muted);margin-top:3px">📞 ${esc(c.phone)}</div>
+            box.innerHTML = phoneCouriers.map(c => {
+                const tg = (c.telegramChatId && !String(c.telegramChatId).startsWith('phone:'))
+                    ? c.telegramChatId : '';
+                const tgBadge = tg
+                    ? '<span style="font-size:11px;color:#15803d">📱 Telegram ✓</span>'
+                    : '<span style="font-size:11px;color:#b45309">📱 Telegram жок</span>';
+                return `<div style="padding:12px 0;border-bottom:1px solid #f1f5f9;gap:12px">
+                    <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap">
+                        <div>
+                            <strong style="font-size:15px">${esc(c.name)}</strong>
+                            <div style="font-size:13px;color:var(--d-muted);margin-top:3px">📞 ${esc(c.phone)}</div>
+                            <div style="margin-top:4px">${tgBadge}</div>
+                        </div>
+                        <span style="font-size:12px;font-weight:700;color:#15803d;background:#dcfce7;padding:4px 10px;border-radius:999px;flex-shrink:0">Катталган</span>
                     </div>
-                    <span style="font-size:12px;font-weight:700;color:#15803d;background:#dcfce7;padding:4px 10px;border-radius:999px">Катталган</span>
-                </div>`
-            ).join('');
+                    <div class="delivery-toolbar" style="margin-top:10px;flex-wrap:wrap">
+                        <input id="dCourierTg${c.id}" class="delivery-input" type="text" placeholder="Telegram chat ID" value="${esc(tg)}" style="max-width:200px">
+                        <button type="button" class="delivery-btn delivery-btn-outline delivery-btn-sm" onclick="dSaveCourierTelegram(${c.id})">Telegram сактоо</button>
+                    </div>
+                </div>`;
+            }).join('');
         } catch (e) {
             box.innerHTML = '<div class="delivery-empty">Жүктөлбөдү</div>';
         }
@@ -437,6 +475,24 @@
         alert('✅ ' + saved.name + ' катталды');
         loadCouriers();
         loadCourierActivity();
+    };
+
+    window.dSaveCourierTelegram = async function (id) {
+        const input = q('dCourierTg' + id);
+        if (!input) return;
+        const chatId = input.value.trim();
+        const res = await fetch('/api/couriers/' + id + '/telegram', {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ telegramChatId: chatId })
+        });
+        const data = await res.json().catch(function () { return {}; });
+        if (!res.ok) {
+            alert(data.error || 'Сактоо ишке ашкан жок');
+            return;
+        }
+        toast('Telegram сакталды: ' + (data.name || 'курьер'));
+        loadCouriers();
     };
 
     function courierActivityBadgeClass(status) {

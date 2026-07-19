@@ -43,6 +43,21 @@
         }
         .c-profile-menu-name { font-size: 16px; font-weight: 800; }
         .c-profile-menu-phone { font-size: 13px; color: var(--muted); margin: 4px 0 12px; }
+        .c-profile-tg {
+            margin-bottom: 12px; padding-top: 4px; border-top: 1px solid var(--line);
+        }
+        .c-profile-tg label { display: block; font-size: 11px; color: var(--muted); margin-bottom: 6px; font-weight: 600; }
+        .c-profile-tg input {
+            width: 100%; padding: 9px 10px; border-radius: 10px; border: 1px solid var(--line);
+            background: var(--bg); color: var(--text); font-size: 13px; font-family: inherit;
+        }
+        .c-profile-tg-row { display: flex; gap: 6px; margin-top: 8px; }
+        .c-profile-tg-row button {
+            flex: 1; padding: 9px; border-radius: 10px; border: 1px solid var(--line);
+            background: var(--green); color: #fff; font-weight: 700; cursor: pointer; font-family: inherit; font-size: 12px;
+        }
+        .c-profile-tg-status { font-size: 11px; margin-top: 6px; color: var(--muted); line-height: 1.4; }
+        .c-profile-tg-status.ok { color: var(--green); }
         .c-profile-menu button {
             width: 100%; padding: 10px; border-radius: 10px; border: 1px solid var(--line);
             background: transparent; color: #fca5a5; font-weight: 700; cursor: pointer; font-family: inherit;
@@ -173,6 +188,7 @@
             <h1>Курьер панели</h1>
             <p id="headerSub">RATLION</p>
         </div>
+        <button type="button" class="c-icon-btn c-hidden" id="pushBtn" title="Эскертүү">📣</button>
         <button type="button" class="c-icon-btn c-hidden" id="bellBtn" onclick="toggleNotifications()" title="Билдирүүлөр">
             🔔<span class="c-notify-badge c-hidden" id="bellBadge">0</span>
         </button>
@@ -181,6 +197,14 @@
     <div class="c-profile-menu c-hidden" id="profileMenu">
         <div class="c-profile-menu-name" id="profileName">—</div>
         <div class="c-profile-menu-phone" id="profilePhone">—</div>
+        <div class="c-profile-tg">
+            <label>Telegram chat ID</label>
+            <input id="courierTelegramId" type="text" placeholder="123456789">
+            <div class="c-profile-tg-row">
+                <button type="button" onclick="courierSaveTelegram()">💾 Сактоо</button>
+            </div>
+            <div id="courierTelegramStatus" class="c-profile-tg-status">userinfobot → Id ал</div>
+        </div>
         <button type="button" onclick="courierLogout()">Чыгуу</button>
     </div>
 </header>
@@ -255,6 +279,7 @@
 </div>
 <div id="toastBox" class="c-hidden"></div>
 
+<script src="/push-notify.js"></script>
 <script>
     let currentCourier = null;
     let currentTab = 'active';
@@ -479,6 +504,7 @@
         document.getElementById('refreshFab').classList.add('c-hidden');
         document.getElementById('avatarBtn').classList.add('c-hidden');
         document.getElementById('bellBtn').classList.add('c-hidden');
+        document.getElementById('pushBtn').classList.add('c-hidden');
         document.getElementById('headerSub').textContent = 'RATLION';
     }
 
@@ -549,14 +575,59 @@
         document.getElementById('refreshFab').classList.remove('c-hidden');
         document.getElementById('avatarBtn').classList.remove('c-hidden');
         document.getElementById('bellBtn').classList.remove('c-hidden');
+        document.getElementById('pushBtn').classList.remove('c-hidden');
         const avatarName = courier.name || 'К';
         document.getElementById('avatarBtn').textContent = avatarName.charAt(0).toUpperCase();
         document.getElementById('profileName').textContent = courier.name || 'Курьер';
         document.getElementById('profilePhone').textContent = '📞 ' + (courier.phone || '—');
         document.getElementById('headerSub').textContent = courier.name || 'RATLION';
+        PushNotify.bindButton(document.getElementById('pushBtn'), null, function () {
+            showToast('Эскертүү күйгүзүлдү — жаңы заказ келсе билесиз');
+        });
+        updateCourierTelegramUi(courier);
         showInAppHint();
         refreshAll();
     }
+
+    function updateCourierTelegramUi(courier) {
+        const input = document.getElementById('courierTelegramId');
+        const status = document.getElementById('courierTelegramStatus');
+        if (!input || !status) return;
+        const tg = courier && courier.telegramChatId;
+        const linked = tg && !String(tg).startsWith('phone:');
+        input.value = linked ? tg : '';
+        if (linked) {
+            status.textContent = '✅ Telegram байlandi';
+            status.classList.add('ok');
+        } else {
+            status.textContent = 'userinfobot → Start → Id ал → сакта';
+            status.classList.remove('ok');
+        }
+    }
+
+    async function courierSaveTelegram() {
+        if (!currentCourier) return;
+        const chatId = (document.getElementById('courierTelegramId').value || '').trim();
+        try {
+            const res = await fetch('/api/couriers/' + currentCourier.id + '/telegram', {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ telegramChatId: chatId })
+            });
+            const data = await res.json().catch(function () { return {}; });
+            if (!res.ok) {
+                alert(data.error || 'Сактоо ишке ашкан жок');
+                return;
+            }
+            currentCourier = data;
+            saveSession(data);
+            updateCourierTelegramUi(data);
+            showToast(chatId ? 'Telegram сакталды — тест билдирүү жиберилди' : 'Telegram өчүрүлдү');
+        } catch (e) {
+            alert('Сактоо ишке ашкан жок');
+        }
+    }
+    window.courierSaveTelegram = courierSaveTelegram;
 
     async function courierLogin() {
         const name = document.getElementById('loginName').value.trim();
@@ -625,6 +696,19 @@
             document.getElementById('badgeActive').textContent = '(' + count + ')';
             updateStats(count, offers, active);
 
+            PushNotify.checkNew('courier-offers-' + cid, offers, function (o) { return o.id; }, {
+                sound: 'urgent',
+                vibrate: true,
+                title: '🛵 Жаңы заказ сунушу',
+                body: function (o) {
+                    return (o.displayOrderNumber || '#' + o.id) + ' · ' + money(o.totalPrice) + ' сом';
+                },
+                tag: function (o) { return 'offer-' + o.id; },
+                onNotify: function (items) {
+                    showToast('🛵 Жаңы заказ сунушу: ' + (items[0].displayOrderNumber || items[0].id));
+                }
+            });
+
             let html = '';
             if (offers.length) html += offers.map(o => offerCard(o)).join('');
             if (active.length) html += active.map(o => orderCard(o, 'active')).join('');
@@ -668,9 +752,23 @@
             } else {
                 badge.classList.add('c-hidden');
             }
-            if (list.length > lastNotifyCount && lastNotifyCount > 0 && list[0]) {
-                showToast(list[0].message);
-            }
+
+            const newUnread = list.filter(function (n) { return !n.readFlag; });
+
+            PushNotify.checkNew('courier-notify-' + currentCourier.id, newUnread, function (n) { return n.id; }, {
+                sound: 'order',
+                vibrate: true,
+                title: function (n) {
+                    if (n.type === 'READY') return '✅ Заказ даяр!';
+                    if (n.type === 'OFFER') return '🛵 Жаңы заказ';
+                    return '🔔 Билдирүү';
+                },
+                body: function (n) {
+                    return (n.message || '').replace(/\n/g, ' · ').slice(0, 120);
+                },
+                tag: function (n) { return 'cn-' + n.id; }
+            });
+
             lastNotifyCount = list.length;
         } catch (e) { /* ignore */ }
     }

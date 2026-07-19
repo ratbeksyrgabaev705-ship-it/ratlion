@@ -28,6 +28,10 @@
             <button type="button" class="delivery-nav-item" data-sec="couriers" onclick="dNav('couriers', this)">🛵 Курьерлер</button>
             <button type="button" class="delivery-nav-item" data-sec="settings" onclick="dNav('settings', this)">⚙️ Орнотуулар</button>
         </nav>
+        <div class="delivery-push-box">
+            <button type="button" id="dPushBtn" class="delivery-btn delivery-btn-outline delivery-push-btn">🔔 Эскертүүнү күйгүз</button>
+            <span id="dPushStatus" class="delivery-push-status">Жаңы заказ → Telegram + сайт</span>
+        </div>
     </aside>
 
     <main class="delivery-main">
@@ -174,6 +178,7 @@
 </div>
 
 <script src="/reports-ui.js"></script>
+<script src="/push-notify.js"></script>
 <script src="/delivery.js"></script>
 </body>
 </html>
