@@ -81,6 +81,17 @@ public class CourierOfferRotationService {
         orderRepository.save(order);
     }
 
+    /** Курьер линиядан чыкканда — учурдагы сунуштарды башка онлайн курьerge өткөр */
+    @Transactional
+    public void courierWentOffline(Long courierId) {
+        List<CustomerOrder> orders = orderRepository
+                .findByOrderStatusAndCourierIdIsNullAndActiveOfferCourierId("COOKING", courierId);
+        for (CustomerOrder order : orders) {
+            notificationService.dismissOfferForCourier(order.getId(), courierId);
+            rotateToNext(order.getId());
+        }
+    }
+
     @Scheduled(fixedRate = 3000)
     @Transactional
     public void processExpiredOffers() {
@@ -107,9 +118,9 @@ public class CourierOfferRotationService {
         notificationService.sendOfferToCourier(order, courier, OFFER_SECONDS);
     }
 
-    /** Бош курьерлер алга — ресторандагы тарыхы барлар жакынкы */
+    /** Бош курьерлер алга — линияда турган, ресторандагы тарыхы барлар жакынкы */
     private List<Courier> buildCourierPool(CustomerOrder order) {
-        List<Courier> couriers = courierRepository.findByActiveTrueOrderByNameAsc().stream()
+        List<Courier> couriers = courierRepository.findByActiveTrueAndOnlineTrueOrderByNameAsc().stream()
                 .filter(c -> c.getPhone() != null && !c.getPhone().isBlank())
                 .toList();
         if (couriers.isEmpty()) {

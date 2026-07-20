@@ -72,7 +72,8 @@ public class CourierActivityService {
         long pendingOffers = notificationRepository.countByCourierIdAndTypeAndReadFlagFalse(courierId, "OFFER");
 
         String activityStatus = resolveStatus(activeOrders, pendingOffers);
-        String activityLabel = resolveLabel(activityStatus, activeOrders, pendingOffers);
+        String activityLabel = resolveLabel(activityStatus, activeOrders, pendingOffers,
+                Boolean.TRUE.equals(courier.getOnline()));
 
         List<Map<String, Object>> orderSummaries = activeOrders.stream()
                 .map(this::toOrderSummary)
@@ -90,6 +91,7 @@ public class CourierActivityService {
         row.put("courierId", courierId);
         row.put("name", courier.getName());
         row.put("phone", courier.getPhone());
+        row.put("online", Boolean.TRUE.equals(courier.getOnline()));
         row.put("activityStatus", activityStatus);
         row.put("activityLabel", activityLabel);
         row.put("todayDelivered", todayDelivered);
@@ -117,7 +119,10 @@ public class CourierActivityService {
         return "FREE";
     }
 
-    private String resolveLabel(String status, List<CustomerOrder> activeOrders, long pendingOffers) {
+    private String resolveLabel(String status, List<CustomerOrder> activeOrders, long pendingOffers, boolean online) {
+        if (!online && activeOrders.isEmpty() && pendingOffers == 0) {
+            return "Линияда эмес";
+        }
         return switch (status) {
             case "DELIVERING" -> "Жеткирүүдө";
             case "PICKUP" -> "Алууга даяр";

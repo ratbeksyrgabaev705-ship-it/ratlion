@@ -469,7 +469,7 @@
                         <div>
                             <strong style="font-size:15px">${esc(c.name)}</strong>
                             <div style="font-size:13px;color:var(--d-muted);margin-top:3px">📞 ${esc(c.phone)}${c.nickname ? ' · @' + esc(c.nickname) : ''}</div>
-                            <div style="margin-top:4px">${tgBadge}</div>
+                            <div style="margin-top:4px">${tgBadge} · ${c.online ? '<span style="font-size:11px;color:#15803d">🟢 Линияда</span>' : '<span style="font-size:11px;color:#94a3b8">⚫ Линияда эмес</span>'}</div>
                         </div>
                         <span style="font-size:12px;font-weight:700;color:#15803d;background:#dcfce7;padding:4px 10px;border-radius:999px;flex-shrink:0">Катталган</span>
                     </div>
@@ -592,7 +592,7 @@
             <div class="courier-act-head">
                 <div>
                     <div class="courier-act-name">${esc(c.name)}</div>
-                    <div class="courier-act-meta">📞 ${esc(c.phone)} · Бүгүн: ${c.todayDelivered || 0} жеткирүү</div>
+                    <div class="courier-act-meta">📞 ${esc(c.phone)} · ${c.online ? '🟢 Линияда' : '⚫ Линияда эмес'} · Бүгүн: ${c.todayDelivered || 0} жеткирүү</div>
                 </div>
                 <span class="courier-act-badge ${courierActivityBadgeClass(c.activityStatus)}">${esc(c.activityLabel)}</span>
             </div>

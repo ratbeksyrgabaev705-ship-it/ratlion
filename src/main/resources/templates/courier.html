@@ -160,6 +160,22 @@
         .c-error { color: #f87171; font-size: 13px; margin-top: 8px; }
         .c-login-note { font-size: 12px; color: var(--muted); margin-top: 12px; line-height: 1.5; }
 
+        .c-online-bar {
+            background: var(--surface); border: 1px solid var(--line); border-radius: 16px;
+            padding: 14px 16px; margin-bottom: 14px;
+        }
+        .c-online-status { font-size: 13px; font-weight: 700; margin-bottom: 10px; line-height: 1.5; }
+        .c-online-status.on { color: #4ade80; }
+        .c-online-status.off { color: var(--muted); }
+        .c-online-actions { display: flex; gap: 10px; flex-wrap: wrap; }
+        .c-btn-online {
+            flex: 1; min-width: 140px; padding: 12px 14px; border-radius: 12px; border: none;
+            font-size: 14px; font-weight: 800; cursor: pointer;
+        }
+        .c-btn-go-online { background: #16a34a; color: #fff; }
+        .c-btn-go-offline { background: #dc2626; color: #fff; }
+        .c-btn-online:disabled { opacity: 0.45; cursor: not-allowed; }
+
         .c-empty { text-align: center; padding: 48px 16px; color: var(--muted); font-size: 14px; line-height: 1.6; }
         .c-tg-hint { background: #422006; color: #fcd34d; border-radius: 12px; padding: 12px 14px; font-size: 12px; line-height: 1.5; margin-bottom: 12px; font-weight: 600; border: 1px solid #78350f; }
         .c-hidden { display: none !important; }
@@ -228,6 +244,14 @@
     <section id="appBox" class="c-hidden">
         <div id="inAppHint" class="c-tg-hint c-hidden"></div>
         <div id="alertBox" class="c-hidden"></div>
+
+        <div class="c-online-bar" id="onlineBar">
+            <div class="c-online-status off" id="onlineStatus">🔴 Линияда эмес — жаңы заказ келбейт</div>
+            <div class="c-online-actions">
+                <button type="button" class="c-btn-online c-btn-go-online" id="btnGoOnline" onclick="setCourierOnline(true)">🟢 Линияга чыктым</button>
+                <button type="button" class="c-btn-online c-btn-go-offline c-hidden" id="btnGoOffline" onclick="setCourierOnline(false)">🔴 Линиядан чыктым</button>
+            </div>
+        </div>
 
         <div class="c-stats">
             <div class="c-stat">
@@ -580,9 +604,60 @@
             showToast('Эскертүү күйгүзүлдү — жаңы заказ келсе билесиз');
         });
         updateCourierTelegramUi(courier);
+        updateOnlineUi(courier);
         showInAppHint();
         refreshAll();
     }
+
+    function updateOnlineUi(courier) {
+        const online = courier && courier.online === true;
+        const status = document.getElementById('onlineStatus');
+        const btnOn = document.getElementById('btnGoOnline');
+        const btnOff = document.getElementById('btnGoOffline');
+        if (!status || !btnOn || !btnOff) return;
+        if (online) {
+            status.textContent = '🟢 Линиядасыз — жаңы заказдар келет';
+            status.className = 'c-online-status on';
+            btnOn.classList.add('c-hidden');
+            btnOff.classList.remove('c-hidden');
+        } else {
+            status.textContent = '🔴 Линияда эмес — жаңы заказ келбейт';
+            status.className = 'c-online-status off';
+            btnOn.classList.remove('c-hidden');
+            btnOff.classList.add('c-hidden');
+        }
+    }
+
+    async function setCourierOnline(online) {
+        if (!currentCourier) return;
+        const btnOn = document.getElementById('btnGoOnline');
+        const btnOff = document.getElementById('btnGoOffline');
+        if (btnOn) btnOn.disabled = true;
+        if (btnOff) btnOff.disabled = true;
+        try {
+            const res = await fetch('/api/couriers/' + currentCourier.id + '/online', {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ online: online })
+            });
+            const data = await res.json().catch(function () { return {}; });
+            if (!res.ok) {
+                alert(data.error || 'Ишке ашкан жок');
+                return;
+            }
+            currentCourier = data;
+            saveSession(data);
+            updateOnlineUi(data);
+            showToast(online ? '🟢 Линияга чыктыңыз — заказдар келет' : '🔴 Линиядан чыктыңыз — жаңы заказ токтоду');
+            refreshAll();
+        } catch (e) {
+            alert('Ишке ашкан жок');
+        } finally {
+            if (btnOn) btnOn.disabled = false;
+            if (btnOff) btnOff.disabled = false;
+        }
+    }
+    window.setCourierOnline = setCourierOnline;
 
     function updateCourierTelegramUi(courier) {
         const input = document.getElementById('courierTelegramId');
@@ -653,7 +728,16 @@
         }
     }
 
-    function courierLogout() {
+    async function courierLogout() {
+        if (currentCourier && currentCourier.online) {
+            try {
+                await fetch('/api/couriers/' + currentCourier.id + '/online', {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ online: false })
+                });
+            } catch (e) { /* ignore */ }
+        }
         clearSession();
         document.getElementById('profileMenu').classList.add('c-hidden');
         document.getElementById('loginNickname').value = '';
@@ -677,37 +761,44 @@
     async function refreshActive() {
         if (!currentCourier) return;
         const cid = currentCourier.id;
+        const isOnline = currentCourier.online === true;
         try {
             await loadHistoryCache();
             const [activeRes, poolRes, offersRes] = await Promise.all([
                 fetch('/orders/courier?courierId=' + cid),
                 fetch('/orders/courier/available'),
-                fetch('/orders/courier/offers?courierId=' + cid)
+                isOnline ? fetch('/orders/courier/offers?courierId=' + cid) : Promise.resolve({ json: function () { return []; } })
             ]);
             const active = await activeRes.json();
-            const pool = await poolRes.json();
-            const offers = await offersRes.json();
+            const pool = isOnline ? await poolRes.json() : [];
+            const offers = isOnline ? await offersRes.json() : [];
             const count = offers.length + active.length;
             document.getElementById('badgeActive').textContent = '(' + count + ')';
             updateStats(count, offers, active);
 
-            PushNotify.checkNew('courier-offers-' + cid, offers, function (o) { return o.id; }, {
-                sound: 'urgent',
-                vibrate: true,
-                title: '🛵 Жаңы заказ сунушу',
-                body: function (o) {
-                    return (o.displayOrderNumber || '#' + o.id) + ' · ' + money(o.totalPrice) + ' сом';
-                },
-                tag: function (o) { return 'offer-' + o.id; },
-                onNotify: function (items) {
-                    showToast('🛵 Жаңы заказ сунушу: ' + (items[0].displayOrderNumber || items[0].id));
-                }
-            });
+            if (isOnline) {
+                PushNotify.checkNew('courier-offers-' + cid, offers, function (o) { return o.id; }, {
+                    sound: 'urgent',
+                    vibrate: true,
+                    title: '🛵 Жаңы заказ сунушу',
+                    body: function (o) {
+                        return (o.displayOrderNumber || '#' + o.id) + ' · ' + money(o.totalPrice) + ' сом';
+                    },
+                    tag: function (o) { return 'offer-' + o.id; },
+                    onNotify: function (items) {
+                        showToast('🛵 Жаңы заказ сунушу: ' + (items[0].displayOrderNumber || items[0].id));
+                    }
+                });
+            }
 
             let html = '';
-            if (offers.length) html += offers.map(o => offerCard(o)).join('');
-            if (active.length) html += active.map(o => orderCard(o, 'active')).join('');
-            if (pool.length) html += pool.map(o => orderCard(o, 'pool')).join('');
+            if (!isOnline && !active.length) {
+                html = '<div class="c-empty">🔴 Линияда эмессиз<br><small>«Линияга чыктым» bas — заказдар келет</small></div>';
+            } else {
+                if (offers.length) html += offers.map(o => offerCard(o)).join('');
+                if (active.length) html += active.map(o => orderCard(o, 'active')).join('');
+                if (isOnline && pool.length) html += pool.map(o => orderCard(o, 'pool')).join('');
+            }
 
             document.getElementById('activeBox').innerHTML = html
                 || '<div class="c-empty">📭 Заказ жок<br><small>Сунуш келсе бул жерде көрүнөт (20 сек)</small></div>';

@@ -125,15 +125,18 @@ public class CustomerOrderController {
         return repo.findByOrderStatusAndCourierIdIsNullOrderByCourierAtAsc("GIVEN_TO_COURIER");
     }
 
-    /** Жаңы суроолор — ашкана даярдоону баштаган, курьер кабыл алган жок */
+    /** Жаңы суроолор — ашкана даярдоону баштаган, курьер кабыл алган жок (линияда болсо гана) */
     @GetMapping("/courier/offers")
     public List<CustomerOrder> getCourierOffers(@RequestParam(required = false) Long courierId) {
         if (courierId == null) {
             return List.of();
         }
-        return repo.findByOrderStatusAndCourierIdIsNullOrderByCookingStartedAtDesc("COOKING").stream()
-                .filter(o -> courierId.equals(o.getActiveOfferCourierId()))
-                .toList();
+        return courierRepository.findById(courierId)
+                .filter(c -> Boolean.TRUE.equals(c.getOnline()))
+                .map(c -> repo.findByOrderStatusAndCourierIdIsNullOrderByCookingStartedAtDesc("COOKING").stream()
+                        .filter(o -> courierId.equals(o.getActiveOfferCourierId()))
+                        .toList())
+                .orElse(List.of());
     }
 
     /** Курьердин жеткирген тарыхы */

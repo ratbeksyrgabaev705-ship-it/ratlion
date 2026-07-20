@@ -175,6 +175,11 @@ public interface CustomerOrderRepository
             LocalDateTime expiresBefore
     );
 
+    List<CustomerOrder> findByOrderStatusAndCourierIdIsNullAndActiveOfferCourierId(
+            String orderStatus,
+            Long activeOfferCourierId
+    );
+
     long countByCourierIdAndOrderStatusIn(Long courierId, List<String> statuses);
 
     boolean existsByCourierIdAndRestaurantIdAndOrderStatus(

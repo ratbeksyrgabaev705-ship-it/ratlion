@@ -3,6 +3,7 @@ package kg.restaurant.order.controller;
 import kg.restaurant.order.model.Courier;
 import kg.restaurant.order.repository.CourierRepository;
 import kg.restaurant.order.service.CourierActivityService;
+import kg.restaurant.order.service.CourierOfferRotationService;
 import kg.restaurant.order.service.TelegramService;
 import kg.restaurant.order.util.PhoneUtils;
 import org.springframework.http.ResponseEntity;
@@ -19,17 +20,20 @@ public class CourierController {
 
     private final CourierRepository courierRepository;
     private final CourierActivityService courierActivityService;
+    private final CourierOfferRotationService offerRotationService;
     private final TelegramService telegramService;
     private final PasswordEncoder passwordEncoder;
 
     public CourierController(
             CourierRepository courierRepository,
             CourierActivityService courierActivityService,
+            CourierOfferRotationService offerRotationService,
             TelegramService telegramService,
             PasswordEncoder passwordEncoder
     ) {
         this.courierRepository = courierRepository;
         this.courierActivityService = courierActivityService;
+        this.offerRotationService = offerRotationService;
         this.telegramService = telegramService;
         this.passwordEncoder = passwordEncoder;
     }
@@ -209,6 +213,34 @@ public class CourierController {
         }
 
         courier.setActive(false);
+        courier.setOnline(false);
+        offerRotationService.courierWentOffline(id);
+        return ResponseEntity.ok(courierRepository.save(courier));
+    }
+
+    /** Курьер линияга чыгуу / линиядан чыгуу */
+    @PutMapping("/{id}/online")
+    public ResponseEntity<?> setOnline(
+            @PathVariable Long id,
+            @RequestBody Map<String, Boolean> body
+    ) {
+        Courier courier = courierRepository.findById(id).orElse(null);
+        if (courier == null) {
+            return ResponseEntity.notFound().build();
+        }
+        if (!Boolean.TRUE.equals(courier.getActive())) {
+            return ResponseEntity.status(403).body(Map.of("error", "Аккаунт активде эмес"));
+        }
+
+        Boolean online = body.get("online");
+        if (online == null) {
+            return ResponseEntity.badRequest().body(Map.of("error", "online талап кылынат"));
+        }
+
+        if (!online) {
+            offerRotationService.courierWentOffline(id);
+        }
+        courier.setOnline(online);
         return ResponseEntity.ok(courierRepository.save(courier));
     }
 

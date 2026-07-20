@@ -36,6 +36,9 @@ public class Courier {
 
     private Boolean active = false;
 
+    /** Линияда — жаңы заказ сунуштарын алат */
+    private Boolean online = false;
+
     @Column(nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
@@ -49,6 +52,9 @@ public class Courier {
         }
         if (active == null) {
             active = false;
+        }
+        if (online == null) {
+            online = false;
         }
     }
 
@@ -106,6 +112,14 @@ public class Courier {
 
     public void setActive(Boolean active) {
         this.active = active;
+    }
+
+    public Boolean getOnline() {
+        return online;
+    }
+
+    public void setOnline(Boolean online) {
+        this.online = online;
     }
 
     public LocalDateTime getCreatedAt() {

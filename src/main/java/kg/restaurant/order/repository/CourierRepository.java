@@ -10,6 +10,8 @@ public interface CourierRepository extends JpaRepository<Courier, Long> {
 
     List<Courier> findByActiveTrueOrderByNameAsc();
 
+    List<Courier> findByActiveTrueAndOnlineTrueOrderByNameAsc();
+
     List<Courier> findByActiveFalseOrderByCreatedAtDesc();
 
     Optional<Courier> findByTelegramChatId(String telegramChatId);
