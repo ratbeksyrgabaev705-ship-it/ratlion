@@ -692,7 +692,14 @@
             currentCourier = data;
             saveSession(data);
             updateCourierTelegramUi(data);
-            showToast(chatId ? 'Telegram сакталды — тест билдирүү жиберилди' : 'Telegram өчүрүлдү');
+            if (data.telegramSent === false) {
+                alert('⚠️ ID сакталды, бирок Telegram\'га жиберилбedi!\n\n' + (data.telegramError || '')
+                    + '\n\nRATLION ботун ачып /start bas.');
+            } else if (chatId) {
+                showToast('Telegram сакталды — тест билдирүү жиберилди');
+            } else {
+                showToast('Telegram өчүрүлдү');
+            }
         } catch (e) {
             alert('Сактоо ишке ашкан жок');
         }

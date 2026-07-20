@@ -40,14 +40,19 @@ public class TelegramService {
     }
 
     public void sendToChat(String targetChatId, String text) {
+        sendToChatWithResult(targetChatId, text);
+    }
+
+    /** Telegram жиберүү натыйжасы — админ панелине ката көрсөтүү үчүн */
+    public TelegramSendResult sendToChatWithResult(String targetChatId, String text) {
         if (botToken == null || botToken.isBlank()) {
             log.warn("Telegram иштебейт: bot token бош");
-            return;
+            return TelegramSendResult.fail("Telegram бот орнотулган эмес (TELEGRAM_BOT_TOKEN)");
         }
 
         if (targetChatId == null || targetChatId.isBlank()) {
             log.warn("Telegram иштебейт: chat id бош");
-            return;
+            return TelegramSendResult.fail("Telegram chat ID бош");
         }
 
         try {
@@ -68,10 +73,38 @@ public class TelegramService {
 
             if (response != null && response.contains("\"ok\":false")) {
                 log.error("Telegram API катасы: {}", response);
+                return TelegramSendResult.fail(humanizeTelegramError(response));
             }
+
+            return TelegramSendResult.ok();
 
         } catch (Exception e) {
             log.error("Telegram катасы: {}", e.getMessage());
+            return TelegramSendResult.fail("Telegram байланыш катасы: " + e.getMessage());
+        }
+    }
+
+    private String humanizeTelegramError(String apiResponse) {
+        String lower = apiResponse.toLowerCase();
+        if (lower.contains("bot was blocked")) {
+            return "Курьер ботту блокtogon — Telegram'да ботту ачыңыз";
+        }
+        if (lower.contains("chat not found") || lower.contains("user not found")) {
+            return "Telegram ID туура эмес — userinfobot же боттон /start аркылуу ID алгыла";
+        }
+        if (lower.contains("can't initiate conversation") || lower.contains("bot is not a member")) {
+            return "Курьер RATLION ботун ачып /start басishi кerek — андан кийин эскертүү келет";
+        }
+        return "Telegram жиберилбedi — ID туурабы жана ботко /start basылганбы текшериңиз";
+    }
+
+    public record TelegramSendResult(boolean ok, String error) {
+        static TelegramSendResult ok() {
+            return new TelegramSendResult(true, null);
+        }
+
+        static TelegramSendResult fail(String error) {
+            return new TelegramSendResult(false, error);
         }
     }
 

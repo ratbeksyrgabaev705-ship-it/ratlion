@@ -476,6 +476,10 @@
                     <div class="delivery-toolbar" style="margin-top:10px;flex-wrap:wrap">
                         <input id="dCourierTg${c.id}" class="delivery-input" type="text" placeholder="Telegram chat ID" value="${esc(tg)}" style="max-width:200px">
                         <button type="button" class="delivery-btn delivery-btn-outline delivery-btn-sm" onclick="dSaveCourierTelegram(${c.id})">Telegram сактоо</button>
+                        <button type="button" class="delivery-btn delivery-btn-outline delivery-btn-sm" onclick="dTestCourierTelegram(${c.id})">Тест</button>
+                    </div>
+                    <div style="font-size:12px;color:var(--d-muted);margin-top:6px;line-height:1.5">
+                        Алга курьер RATLION ботун ачып <strong>/start</strong> басishi кerek — андан кийин ID сактаңыз
                     </div>
                 </div>`;
             }).join('');
@@ -530,8 +534,30 @@
             alert(data.error || 'Сактоо ишке ашкан жок');
             return;
         }
-        toast('Telegram сакталды: ' + (data.name || 'курьер'));
+        if (data.telegramSent === false) {
+            alert('⚠️ ID сакталды, бирок Telegram\'га жиберилбedi!\n\n' + (data.telegramError || '')
+                + '\n\nКурьер RATLION ботун ачып /start басsin, андан кийин «Тест» bas.');
+        } else if (data.telegramSent === true) {
+            alert('✅ Telegram сакталды — тест билдирүү курьerge келди');
+        } else {
+            toast('Telegram сакталды: ' + (data.name || 'курьер'));
+        }
         loadCouriers();
+    };
+
+    window.dTestCourierTelegram = async function (id) {
+        const res = await fetch('/api/couriers/' + id + '/telegram/test', { method: 'POST' });
+        const data = await res.json().catch(function () { return {}; });
+        if (!res.ok) {
+            alert(data.error || 'Тест ишке ашкан жок');
+            return;
+        }
+        if (data.telegramSent) {
+            alert('✅ Тест билдирүү жиберилди — Telegram\'ды текшериңиз');
+        } else {
+            alert('❌ Telegram\'га жиберилбedi\n\n' + (data.telegramError || '')
+                + '\n\nКурьер ботко /start басishi кerek.');
+        }
     };
 
     function courierActivityBadgeClass(status) {

@@ -275,16 +275,60 @@ public class CourierController {
         }
 
         Courier saved = courierRepository.save(courier);
+
+        Map<String, Object> result = new java.util.LinkedHashMap<>();
+        result.put("id", saved.getId());
+        result.put("name", saved.getName());
+        result.put("phone", saved.getPhone());
+        result.put("nickname", saved.getNickname());
+        result.put("telegramChatId", saved.getTelegramChatId());
+        result.put("active", saved.getActive());
+        result.put("online", saved.getOnline());
+        result.put("createdAt", saved.getCreatedAt());
+
         if (chatId != null && !chatId.isBlank() && !chatId.startsWith("phone:")) {
-            telegramService.sendToCourier(
+            var sendResult = telegramService.sendToChatWithResult(
                     chatId,
                     "✅ RATLION — Telegram байlandi!\n\n"
                             + "👤 " + safeName(saved.getName()) + "\n"
                             + "🛵 Жаңы заказ сунуштары бул жерге келет.\n"
                             + "→ /courier"
             );
+            result.put("telegramSent", sendResult.ok());
+            if (!sendResult.ok()) {
+                result.put("telegramError", sendResult.error());
+            }
         }
-        return ResponseEntity.ok(saved);
+
+        return ResponseEntity.ok(result);
+    }
+
+    /** Telegram тест билдирүү — ID туурабы текшерүү */
+    @PostMapping("/{id}/telegram/test")
+    public ResponseEntity<?> testTelegram(@PathVariable Long id) {
+        Courier courier = courierRepository.findById(id).orElse(null);
+        if (courier == null) {
+            return ResponseEntity.notFound().build();
+        }
+        String chatId = courier.getTelegramChatId();
+        if (chatId == null || chatId.isBlank() || chatId.startsWith("phone:")) {
+            return ResponseEntity.badRequest().body(Map.of(
+                    "error", "Telegram ID жок — алга ID сактаңыз"
+            ));
+        }
+        var sendResult = telegramService.sendToChatWithResult(
+                chatId,
+                "🧪 RATLION тест\n\n"
+                        + "👤 " + safeName(courier.getName()) + "\n"
+                        + "Эскертүүлөр бул аккаунтка келет ✅"
+        );
+        if (sendResult.ok()) {
+            return ResponseEntity.ok(Map.of("telegramSent", true, "message", "Тест билдирүү жиберилди"));
+        }
+        return ResponseEntity.ok(Map.of(
+                "telegramSent", false,
+                "telegramError", sendResult.error()
+        ));
     }
 
     private String safeName(String name) {
