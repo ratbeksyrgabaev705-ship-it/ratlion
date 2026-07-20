@@ -95,7 +95,6 @@ public class RestaurantController {
             return ResponseEntity.notFound().build();
         }
 
-        String oldName = restaurant.getName();
         restaurant.setName(updatedRestaurant.getName());
         restaurant.setEmoji(updatedRestaurant.getEmoji());
         restaurant.setAccentColor(updatedRestaurant.getAccentColor());
@@ -137,13 +136,66 @@ public class RestaurantController {
         }
 
         Restaurant saved = restaurantRepository.save(restaurant);
-        telegramService.sendMessage(
-                "✏️ Ресторан маалыматы өзгөртүлдү!\n"
-                        + "ID: " + saved.getId() + "\n"
-                        + "Эски аты: " + oldName + "\n"
-                        + "Жаңы аты: " + saved.getName()
+
+        java.util.Map<String, Object> result = new java.util.LinkedHashMap<>();
+        result.put("id", saved.getId());
+        result.put("name", saved.getName());
+        result.put("slug", saved.getSlug());
+        result.put("emoji", saved.getEmoji());
+        result.put("accentColor", saved.getAccentColor());
+        result.put("orderPrefix", saved.getOrderPrefix());
+        result.put("active", saved.getActive());
+        result.put("customerUrl", saved.getCustomerUrl());
+        result.put("phone", saved.getPhone());
+        result.put("address", saved.getAddress());
+        result.put("tagline", saved.getTagline());
+        result.put("logoUrl", saved.getLogoUrl());
+        result.put("bannerUrl", saved.getBannerUrl());
+        result.put("acceptingOrders", saved.getAcceptingOrders());
+        result.put("ordersPaused", saved.getOrdersPaused());
+        result.put("telegramChatId", saved.getTelegramChatId());
+
+        String tgChatId = saved.getTelegramChatId();
+        if (tgChatId != null && !tgChatId.isBlank()) {
+            var sendResult = telegramService.sendToChatWithResult(
+                    tgChatId,
+                    "✅ RATLION — " + saved.getName() + " Telegram байlandi!\n\n"
+                            + "🆕 Кабыл алынган заказдар бул группага келет."
+            );
+            result.put("telegramSent", sendResult.ok());
+            if (!sendResult.ok()) {
+                result.put("telegramError", sendResult.error());
+            }
+        }
+
+        return ResponseEntity.ok(result);
+    }
+
+    /** Telegram тест — ресторан группасына билдирүү жиберүү */
+    @PostMapping("/{id}/telegram/test")
+    public ResponseEntity<?> testTelegram(@PathVariable Long id) {
+        Restaurant restaurant = restaurantRepository.findById(id).orElse(null);
+        if (restaurant == null) {
+            return ResponseEntity.notFound().build();
+        }
+        String chatId = restaurant.getTelegramChatId();
+        if (chatId == null || chatId.isBlank()) {
+            return ResponseEntity.badRequest().body(java.util.Map.of(
+                    "error", "Telegram ID жок — алга сактаңыз"
+            ));
+        }
+        var sendResult = telegramService.sendToChatWithResult(
+                chatId,
+                "🧪 RATLION тест — " + restaurant.getName() + "\n\n"
+                        + "Эскертүүлөр бул группага келет ✅"
         );
-        return ResponseEntity.ok(saved);
+        if (sendResult.ok()) {
+            return ResponseEntity.ok(java.util.Map.of("telegramSent", true));
+        }
+        return ResponseEntity.ok(java.util.Map.of(
+                "telegramSent", false,
+                "telegramError", sendResult.error()
+        ));
     }
 
     @DeleteMapping("/{id}")

@@ -664,11 +664,38 @@
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ ...restaurantData, telegramChatId: chatId })
             });
+            const data = await res.json().catch(function () { return {}; });
             if (!res.ok) throw new Error('save failed');
-            restaurantData = await res.json();
-            toast(chatId ? 'Telegram сакталды' : 'Telegram өчүрүлдү');
+            restaurantData = data;
+            if (data.telegramSent === false) {
+                alert('⚠️ ID сакталды, бирок Telegram\'га жиберилбedi!\n\n' + (data.telegramError || '')
+                    + '\n\nGetIDs Botтон ЖАНЫ ID ал (supergroup -100...)');
+            } else if (data.telegramSent === true) {
+                alert('✅ Telegram сакталды — тест билдирүү группага келди');
+            } else {
+                toast(chatId ? 'Telegram сакталды' : 'Telegram өчүрүлдү');
+            }
         } catch (e) {
             toast('Сактоо ишке ашкан жок');
+        }
+    };
+
+    window.kTestTelegram = async function () {
+        if (!scopeId) return;
+        try {
+            const res = await fetch('/api/restaurants/' + scopeId + '/telegram/test', { method: 'POST' });
+            const data = await res.json().catch(function () { return {}; });
+            if (!res.ok) {
+                alert(data.error || 'Тест ишке ашкан жок');
+                return;
+            }
+            if (data.telegramSent) {
+                alert('✅ Тест билдирүү группага жиберилди');
+            } else {
+                alert('❌ Telegram\'га жиберилбedi\n\n' + (data.telegramError || ''));
+            }
+        } catch (e) {
+            alert('Тест ишке ашкан жок');
         }
     };
 
