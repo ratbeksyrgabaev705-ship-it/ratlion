@@ -7,7 +7,7 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Profile;
 
 @Configuration
-@Profile("prod")
+@Profile({"prod", "postgres"})
 @ConditionalOnProperty(name = "DATABASE_URL")
 public class PostgresJpaConfig {
 

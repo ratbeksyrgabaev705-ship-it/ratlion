@@ -5,7 +5,9 @@ import com.zaxxer.hikari.HikariDataSource;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.autoconfigure.AutoConfigureBefore;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.boot.jdbc.autoconfigure.DataSourceAutoConfiguration;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Primary;
@@ -19,7 +21,8 @@ import java.nio.charset.StandardCharsets;
  * Render.com: DATABASE_URL бар болсо PostgreSQL — маалымат deploy'дан кийин сакталат.
  */
 @Configuration
-@Profile("prod")
+@Profile({"prod", "postgres"})
+@AutoConfigureBefore(DataSourceAutoConfiguration.class)
 @ConditionalOnProperty(name = "DATABASE_URL")
 public class ProductionDatabaseConfig {
 
@@ -36,8 +39,9 @@ public class ProductionDatabaseConfig {
         config.setUsername(parsed.username());
         config.setPassword(parsed.password());
         config.setMaximumPoolSize(5);
-        config.setConnectionTimeout(30_000);
-        config.setInitializationFailTimeout(60_000);
+        config.setConnectionTimeout(20_000);
+        // Pool башталсын; байланыш биринчи суроо учуруnda текшерилет (deploy health check өтөт)
+        config.setInitializationFailTimeout(-1);
         return new HikariDataSource(config);
     }
 
@@ -50,7 +54,7 @@ public class ProductionDatabaseConfig {
             String url = raw.trim();
 
             if (url.startsWith("jdbc:postgresql://") || url.startsWith("jdbc:postgres://")) {
-                return new ParsedUrl(ensureSsl(url), "", "", "", 5432, "");
+                return fromJdbcUrl(url);
             }
 
             String normalized = url;
@@ -112,6 +116,37 @@ public class ProductionDatabaseConfig {
 
             String jdbcUrl = "jdbc:postgresql://" + host + ":" + port + "/" + database + "?sslmode=require";
             return new ParsedUrl(jdbcUrl, username, password, host, port, database);
+        }
+
+        private static ParsedUrl fromJdbcUrl(String jdbc) {
+            String withoutPrefix = jdbc.replaceFirst("^jdbc:postgres(ql)?://", "");
+            int at = withoutPrefix.lastIndexOf('@');
+            if (at < 0) {
+                return new ParsedUrl(ensureSsl(jdbc), "", "", "", 5432, "");
+            }
+            String userInfo = withoutPrefix.substring(0, at);
+            String rest = withoutPrefix.substring(at + 1);
+            String username = "";
+            String password = "";
+            int colon = userInfo.indexOf(':');
+            if (colon >= 0) {
+                username = decode(userInfo.substring(0, colon));
+                password = decode(userInfo.substring(colon + 1));
+            } else {
+                username = decode(userInfo);
+            }
+            int slash = rest.indexOf('/');
+            String hostPort = slash >= 0 ? rest.substring(0, slash) : rest;
+            String database = slash >= 0 ? rest.substring(slash + 1).replaceFirst("\\?.*", "") : "";
+            String host = hostPort;
+            int port = 5432;
+            int portColon = hostPort.lastIndexOf(':');
+            if (portColon > 0) {
+                host = hostPort.substring(0, portColon);
+                port = Integer.parseInt(hostPort.substring(portColon + 1));
+            }
+            String base = "jdbc:postgresql://" + host + ":" + port + "/" + database;
+            return new ParsedUrl(ensureSsl(base), username, password, host, port, database);
         }
 
         private static String decode(String value) {
