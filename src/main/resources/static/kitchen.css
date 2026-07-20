@@ -228,14 +228,31 @@ body.kitchen-body {
     100% { transform: scale(1); }
 }
 
-.kitchen-order-num { font-size: 18px; font-weight: 800; color: var(--k-accent-dark); }
+.kitchen-order-num { font-size: 20px; font-weight: 800; color: var(--k-accent-dark); margin-bottom: 4px; }
 .kitchen-order-meta { font-size: 12px; color: #64748b; margin: 6px 0; }
-.kitchen-order-items {
-    font-size: 14px;
+.kitchen-order-items-list {
+    list-style: none;
+    padding: 0;
+    margin: 10px 0 12px;
+}
+.kitchen-order-items-list li {
+    position: relative;
+    padding-left: 18px;
+    font-size: 16px;
     font-weight: 700;
-    line-height: 1.5;
-    margin: 8px 0;
+    line-height: 1.55;
     color: #0f172a;
+    margin-bottom: 6px;
+}
+.kitchen-order-items-list li::before {
+    content: "•";
+    position: absolute;
+    left: 0;
+    top: 0;
+    color: var(--k-accent-dark);
+    font-size: 20px;
+    line-height: 1.35;
+    font-weight: 900;
 }
 .kitchen-order-time { font-size: 11px; color: #64748b; margin-bottom: 10px; }
 

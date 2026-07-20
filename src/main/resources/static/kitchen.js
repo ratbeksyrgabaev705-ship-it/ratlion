@@ -23,6 +23,18 @@
     function esc(v) {
         return String(v || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
     }
+    function formatOrderItems(itemName) {
+        if (!itemName || !String(itemName).trim()) {
+            return '<ul class="kitchen-order-items-list"><li>—</li></ul>';
+        }
+        const parts = String(itemName).split(',').map(s => s.trim()).filter(Boolean);
+        if (!parts.length) {
+            return '<ul class="kitchen-order-items-list"><li>—</li></ul>';
+        }
+        return '<ul class="kitchen-order-items-list">' +
+            parts.map(part => `<li>${esc(part)}</li>`).join('') +
+            '</ul>';
+    }
     function fmtTime(iso) {
         if (!iso) return '—';
         return new Date(iso).toLocaleTimeString('ky-KG', { hour: '2-digit', minute: '2-digit' });
@@ -386,7 +398,7 @@
             <div class="kitchen-order-num">${esc(o.displayOrderNumber || '#' + o.id)}</div>
             <div class="kitchen-order-meta">👤 ${esc(o.customerName)}</div>
             ${o.foodComment ? `<div class="kitchen-order-meta">🍽 ${esc(o.foodComment)}</div>` : ''}
-            <div class="kitchen-order-items">${esc(o.itemName)}</div>
+            ${formatOrderItems(o.itemName)}
             <div class="kitchen-order-time">🕐 ${fmtTime(o.createdAt)} · ${money(o.totalPrice)} сом</div>
             ${waitNote}
             ${btn}
