@@ -1,4 +1,4 @@
-/* Жолчу — order success screen (shared by all restaurants) */
+/* ДААМЖОЛ — order success screen (shared by all restaurants) */
 :root {
     --jc-lime: #c5e63a;
     --jc-lime-dark: #a6ce39;
@@ -34,16 +34,20 @@ body.jc-success-active .fp-submit-fixed {
 }
 
 .jc-header {
-    margin: 0 -16px 20px;
+    margin: 0 0 20px;
+    padding-top: 12px;
+    text-align: center;
     overflow: hidden;
     opacity: 0;
     transform: translateY(-12px);
 }
 
 .jc-banner {
-    width: 100%;
+    width: auto;
+    max-width: min(300px, 78vw);
     height: auto;
     display: block;
+    margin: 0 auto;
     object-fit: contain;
 }
 
