@@ -61,8 +61,16 @@
         if (!iso) return '';
         return `<div><label>${esc(label)}</label><span>${fmtTime(iso)}</span></div>`;
     }
+    function restPrefix(restaurantId) {
+        const r = restaurantMap[restaurantId];
+        return (r && r.orderPrefix) ? r.orderPrefix : 'OD';
+    }
+    function formatOrderNumber(order) {
+        if (order.displayOrderNumber) return order.displayOrderNumber;
+        return restPrefix(order.restaurantId) + order.id;
+    }
     function renderOrderDetail(order) {
-        const num = order.displayOrderNumber || ('#' + order.id);
+        const num = formatOrderNumber(order);
         return `
             <div class="delivery-detail-grid">
                 <div class="delivery-detail-row">
@@ -192,12 +200,12 @@
                 sound: 'urgent',
                 title: function (o) { return '🔔 Жаңы заказ — ' + restName(o.restaurantId); },
                 body: function (o) {
-                    return '#' + o.id + ' · ' + (o.customerName || '') + ' · ' + money(o.totalPrice) + ' сом';
+                    return formatOrderNumber(o) + ' · ' + (o.customerName || '') + ' · ' + money(o.totalPrice) + ' сом';
                 },
                 tag: function (o) { return 'new-order-' + o.id; },
                 onNotify: function (items) {
                     const o = items[0];
-                    if (o) toast('🔔 Жаңы заказ: #' + o.id + ' — чекти текшериңиз');
+                    if (o) toast('🔔 Жаңы заказ: ' + formatOrderNumber(o) + ' — чекти текшериңиз');
                 }
             });
 
@@ -251,7 +259,7 @@
             </tr></thead><tbody>${newOrders.map(o => `
                 <tr class="delivery-order-row" onclick="dOpenOrder(${o.id})">
                     <td>${esc(restName(o.restaurantId))}</td>
-                    <td><strong>#${o.id}</strong></td>
+                    <td><strong>${esc(formatOrderNumber(o))}</strong></td>
                     <td>${esc(o.customerName)}</td>
                     <td>${esc(o.phone)}</td>
                     <td>${money(o.totalPrice)} сом</td>
@@ -381,7 +389,7 @@
         const res = await fetch('/orders/' + id);
         if (!res.ok) return;
         currentOrder = await res.json();
-        const num = currentOrder.displayOrderNumber || ('#' + currentOrder.id);
+        const num = formatOrderNumber(currentOrder);
         q('dModalTitle').textContent = 'Заказ ' + num;
         q('dModalBody').innerHTML = renderOrderDetail(currentOrder);
         const actions = q('dModalActions');

@@ -362,22 +362,10 @@ public class CustomerOrderController {
             return ResponseEntity.badRequest().build();
         }
 
-        Long restaurantId = order.getRestaurantId();
-        long count = restaurantId != null
-                ? repo.countByRestaurantIdAndDisplayOrderNumberIsNotNull(restaurantId)
-                : repo.countByDisplayOrderNumberIsNotNull();
-
-        String prefix = "ОД";
-        if (restaurantId != null) {
-            Restaurant restaurant = restaurantRepository.findById(restaurantId).orElse(null);
-            if (restaurant != null && restaurant.getOrderPrefix() != null && !restaurant.getOrderPrefix().isBlank()) {
-                prefix = restaurant.getOrderPrefix().trim();
-            }
+        if (order.getDisplayOrderNumber() == null || order.getDisplayOrderNumber().isBlank()) {
+            assignDisplayOrderNumber(order);
         }
 
-        String orderNumber = prefix + (count + 1);
-
-        order.setDisplayOrderNumber(orderNumber);
         order.setOrderStatus("ACCEPTED");
         order.setPaymentStatus("PAID");
         order.setAcceptedAt(LocalDateTime.now(BISHKEK));
@@ -475,11 +463,26 @@ public class CustomerOrderController {
     private void prepareNewOrder(CustomerOrder order) {
         order.setOrderStatus("NEW");
         order.setPaymentStatus("WAITING_PAYMENT");
-        order.setDisplayOrderNumber(null);
         order.setCourierId(null);
-        if (order.getRestaurantId() == null) {
-            return;
+        assignDisplayOrderNumber(order);
+    }
+
+    /** AI1, FM1, OD1 — ар бир ресторандын өз номери */
+    private void assignDisplayOrderNumber(CustomerOrder order) {
+        Long restaurantId = order.getRestaurantId();
+        long count = restaurantId != null
+                ? repo.countByRestaurantIdAndDisplayOrderNumberIsNotNull(restaurantId)
+                : repo.countByDisplayOrderNumberIsNotNull();
+
+        String prefix = "OD";
+        if (restaurantId != null) {
+            Restaurant restaurant = restaurantRepository.findById(restaurantId).orElse(null);
+            if (restaurant != null && restaurant.getOrderPrefix() != null && !restaurant.getOrderPrefix().isBlank()) {
+                prefix = restaurant.getOrderPrefix().trim();
+            }
         }
+
+        order.setDisplayOrderNumber(prefix + (count + 1));
     }
 
     private String restaurantLabel(CustomerOrder order) {
