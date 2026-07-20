@@ -51,28 +51,32 @@ public class RestaurantDataInitializer implements CommandLineRunner {
 
     @Override
     public void run(String... args) {
-        seedRestaurants();
-        migrateFemiliToFamily();
-        ensureRestaurantsActive();
-        ensureFamilyRestaurant();
-        ensureBurgerMenRestaurant();
-        ensureOrdoCafeRestaurant();
-        ensureZhorolorRestaurant();
-        ensureAgaIniRestaurant();
-        migrateLegacyRestaurantSlugs();
-        deactivateLegacyRestaurantSlugs();
-        syncAllCityAddresses();
-        syncCustomerUrls();
-        backfillRestaurantIds();
-        seedFamilyMenuIfEmpty();
-        seedOrdoCafeMenuIfEmpty();
-        seedAgaIniMenuIfEmpty();
-        seedBurgerMenMenuIfEmpty();
-        seedZhorolorMenuIfEmpty();
-        ensureFamilyPizzas();
-        syncFamilyMenuImages();
-        syncFamilyMenuDetails();
-        ensureDefaultCourier();
+        try {
+            seedRestaurants();
+            migrateFemiliToFamily();
+            ensureRestaurantsActive();
+            ensureFamilyRestaurant();
+            ensureBurgerMenRestaurant();
+            ensureOrdoCafeRestaurant();
+            ensureZhorolorRestaurant();
+            ensureAgaIniRestaurant();
+            migrateLegacyRestaurantSlugs();
+            deactivateLegacyRestaurantSlugs();
+            syncAllCityAddresses();
+            syncCustomerUrls();
+            backfillRestaurantIds();
+            seedFamilyMenuIfEmpty();
+            seedOrdoCafeMenuIfEmpty();
+            seedAgaIniMenuIfEmpty();
+            seedBurgerMenMenuIfEmpty();
+            seedZhorolorMenuIfEmpty();
+            ensureFamilyPizzas();
+            syncFamilyMenuImages();
+            syncFamilyMenuDetails();
+            ensureDefaultCourier();
+        } catch (Exception e) {
+            log.error("DB init failed — app will still start: {}", e.getMessage(), e);
+        }
     }
 
     /** Тест курьери — телефон менен /courier панелине кирет */
