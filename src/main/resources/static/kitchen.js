@@ -8,6 +8,7 @@
     let menuItems = [];
     let editingMenuId = null;
     let menuImageFile = null;
+    let menuSaving = false;
     let activeCategory = '';
     let pollTimer = null;
     let prevOrderStatus = {};
@@ -570,6 +571,7 @@
     }
 
     async function saveMenuItem() {
+        if (menuSaving) return;
         const payload = {
             nameKg: q('kmfName').value.trim(),
             nameRu: q('kmfNameRu').value.trim() || q('kmfName').value.trim(),
@@ -587,6 +589,9 @@
             toast('Минималдуу талааларды толтуруңуз');
             return;
         }
+        menuSaving = true;
+        const submitBtn = q('kMenuForm')?.querySelector('button[type="submit"]');
+        if (submitBtn) submitBtn.disabled = true;
         try {
             if (editingMenuId && !menuImageFile) {
                 const item = menuItems.find(m => m.id === editingMenuId);
@@ -614,6 +619,9 @@
             loadMenu();
         } catch (e) {
             toast('Сактоо ишке ашкан жок');
+        } finally {
+            menuSaving = false;
+            if (submitBtn) submitBtn.disabled = false;
         }
     }
 

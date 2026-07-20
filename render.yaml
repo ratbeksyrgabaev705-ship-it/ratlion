@@ -1,13 +1,29 @@
-# Render Blueprint — RATLION (PostgreSQL жок, акысыз tier үчүн)
+# Render Blueprint — RATLION (PostgreSQL + туруktuu диск)
+databases:
+  - name: ratlion-db
+    plan: free
+    databaseName: ratlion
+    user: ratlion
+
 services:
   - type: web
     name: ratlion
     runtime: docker
-    plan: free
+    plan: starter
     healthCheckPath: /health
+    disk:
+      name: ratlion-data
+      mountPath: /app/data
+      sizeGB: 1
     envVars:
       - key: SPRING_PROFILES_ACTIVE
         value: prod
+      - key: USE_POSTGRES
+        value: "true"
+      - key: DATABASE_URL
+        fromDatabase:
+          name: ratlion-db
+          property: connectionString
       - key: COURIER_DEFAULT_PHONE
         value: "0990912913"
       - key: COURIER_DEFAULT_NAME

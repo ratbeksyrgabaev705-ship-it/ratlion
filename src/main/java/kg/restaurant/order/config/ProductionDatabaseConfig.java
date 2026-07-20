@@ -5,7 +5,7 @@ import com.zaxxer.hikari.HikariDataSource;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnExpression;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Primary;
@@ -16,12 +16,14 @@ import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
 
 /**
- * Render PostgreSQL — USE_POSTGRES=true жана DATABASE_URL коюлганда гана иштейт.
- * Азырынча H2 (/app/data) колдонулат, deploy туруktuu иштейт.
+ * Render PostgreSQL — DATABASE_URL бар болсо иштейт (deploy кийин маалымат сакталат).
  */
 @Configuration
 @Profile("prod")
-@ConditionalOnProperty(name = "USE_POSTGRES", havingValue = "true")
+@ConditionalOnExpression(
+        "'${USE_POSTGRES:false}' == 'true' "
+                + "or ('${DATABASE_URL:}' != null and !'${DATABASE_URL:}'.isEmpty())"
+)
 public class ProductionDatabaseConfig {
 
     private static final Logger log = LoggerFactory.getLogger(ProductionDatabaseConfig.class);
