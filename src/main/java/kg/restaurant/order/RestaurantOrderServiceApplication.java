@@ -9,12 +9,7 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 public class RestaurantOrderServiceApplication {
 
     public static void main(String[] args) {
-        SpringApplication app = new SpringApplication(RestaurantOrderServiceApplication.class);
-        String databaseUrl = System.getenv("DATABASE_URL");
-        if (databaseUrl != null && !databaseUrl.isBlank()) {
-            app.setAdditionalProfiles("postgres");
-        }
-        app.run(args);
+        SpringApplication.run(RestaurantOrderServiceApplication.class, args);
     }
 
 }

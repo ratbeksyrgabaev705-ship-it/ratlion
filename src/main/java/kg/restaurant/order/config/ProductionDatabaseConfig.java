@@ -5,9 +5,7 @@ import com.zaxxer.hikari.HikariDataSource;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.boot.autoconfigure.AutoConfigureBefore;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
-import org.springframework.boot.jdbc.autoconfigure.DataSourceAutoConfiguration;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Primary;
@@ -18,12 +16,12 @@ import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
 
 /**
- * Render.com: DATABASE_URL бар болсо PostgreSQL — маалымат deploy'дан кийин сакталат.
+ * Render PostgreSQL — USE_POSTGRES=true жана DATABASE_URL коюлганда гана иштейт.
+ * Азырынча H2 (/app/data) колдонулат, deploy туруktuu иштейт.
  */
 @Configuration
-@Profile({"prod", "postgres"})
-@AutoConfigureBefore(DataSourceAutoConfiguration.class)
-@ConditionalOnProperty(name = "DATABASE_URL")
+@Profile("prod")
+@ConditionalOnProperty(name = "USE_POSTGRES", havingValue = "true")
 public class ProductionDatabaseConfig {
 
     private static final Logger log = LoggerFactory.getLogger(ProductionDatabaseConfig.class);
@@ -40,7 +38,6 @@ public class ProductionDatabaseConfig {
         config.setPassword(parsed.password());
         config.setMaximumPoolSize(5);
         config.setConnectionTimeout(20_000);
-        // Pool башталсын; байланыш биринчи суроо учуруnda текшерилет (deploy health check өтөт)
         config.setInitializationFailTimeout(-1);
         return new HikariDataSource(config);
     }
