@@ -400,9 +400,32 @@
 
     window.dAccept = async function () {
         if (!currentOrder) return;
-        const res = await fetch('/orders/' + currentOrder.id + '/accept?operator=' + encodeURIComponent(operatorName), { method: 'PUT' });
-        if (res.ok) { dCloseModal(); refreshDashboard(); loadNewOrders(); }
-        else alert('Кабыл алуу ишке ашкан жок');
+        const btn = q('dModalActions')?.querySelector('.delivery-btn-green');
+        if (btn?.disabled) return;
+        if (btn) btn.disabled = true;
+        try {
+            const res = await fetch('/orders/' + currentOrder.id + '/accept?operator=' + encodeURIComponent(operatorName), { method: 'PUT' });
+            if (res.ok) {
+                dCloseModal();
+                refreshDashboard();
+                loadNewOrders();
+                return;
+            }
+            let msg = 'Кабыл алуу ишке ашкан жок';
+            if (res.status === 404) msg = 'Заказ табылган жок (бетти жаңыртыңыз)';
+            else if (res.status === 400) msg = 'Бул заказ мурунтан кабыл алынган же жараксыз';
+            else {
+                try {
+                    const body = await res.json();
+                    if (body?.error) msg = body.error;
+                } catch (e) { /* ignore */ }
+            }
+            alert(msg);
+        } catch (e) {
+            alert('Тармак катасы — кайра аракет кылыңыз');
+        } finally {
+            if (btn) btn.disabled = false;
+        }
     };
 
     window.dReject = async function () {

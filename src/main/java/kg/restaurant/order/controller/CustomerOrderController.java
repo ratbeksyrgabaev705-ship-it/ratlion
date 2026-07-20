@@ -11,6 +11,8 @@ import kg.restaurant.order.service.CourierNotificationService;
 import kg.restaurant.order.service.CourierOfferRotationService;
 import kg.restaurant.order.service.ReceiptStorageService;
 import kg.restaurant.order.service.TelegramService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -26,6 +28,8 @@ import java.util.Map;
 @RequestMapping("/orders")
 @CrossOrigin("*")
 public class CustomerOrderController {
+
+    private static final Logger log = LoggerFactory.getLogger(CustomerOrderController.class);
 
     private static final ZoneId BISHKEK = ZoneId.of("Asia/Bishkek");
 
@@ -354,16 +358,23 @@ public class CustomerOrderController {
         }
 
         if (!"NEW".equals(order.getOrderStatus())) {
+            log.warn("Accept rejected for order {} — status is {}", id, order.getOrderStatus());
             return ResponseEntity.badRequest().build();
         }
 
-        long count = repo.countByRestaurantIdAndDisplayOrderNumberIsNotNull(
-                order.getRestaurantId()
-        );
-        Restaurant restaurant = restaurantRepository.findById(order.getRestaurantId()).orElse(null);
-        String prefix = restaurant != null && restaurant.getOrderPrefix() != null
-                ? restaurant.getOrderPrefix()
-                : "ОД";
+        Long restaurantId = order.getRestaurantId();
+        long count = restaurantId != null
+                ? repo.countByRestaurantIdAndDisplayOrderNumberIsNotNull(restaurantId)
+                : repo.countByDisplayOrderNumberIsNotNull();
+
+        String prefix = "ОД";
+        if (restaurantId != null) {
+            Restaurant restaurant = restaurantRepository.findById(restaurantId).orElse(null);
+            if (restaurant != null && restaurant.getOrderPrefix() != null && !restaurant.getOrderPrefix().isBlank()) {
+                prefix = restaurant.getOrderPrefix().trim();
+            }
+        }
+
         String orderNumber = prefix + " " + (count + 1);
 
         order.setDisplayOrderNumber(orderNumber);
@@ -375,7 +386,11 @@ public class CustomerOrderController {
         }
 
         CustomerOrder saved = repo.save(order);
-        notifyOrderAccepted(saved);
+        try {
+            notifyOrderAccepted(saved);
+        } catch (Exception e) {
+            log.error("Accept ok for order {}, notify failed: {}", id, e.getMessage(), e);
+        }
         return ResponseEntity.ok(saved);
     }
 
