@@ -16,6 +16,7 @@ import org.springframework.boot.CommandLineRunner;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
+import java.util.Map;
 
 @Component
 public class RestaurantDataInitializer implements CommandLineRunner {
@@ -62,7 +63,8 @@ public class RestaurantDataInitializer implements CommandLineRunner {
             ensureAgaIniRestaurant();
             migrateLegacyRestaurantSlugs();
             deactivateLegacyRestaurantSlugs();
-            syncAllCityAddresses();
+            syncOrderPrefixes();
+        syncAllCityAddresses();
             syncCustomerUrls();
             backfillRestaurantIds();
             seedFamilyMenuIfEmpty();
@@ -133,7 +135,7 @@ public class RestaurantDataInitializer implements CommandLineRunner {
         Restaurant family = restaurantRepository.findBySlug("family").orElse(null);
         if (family == null) {
             family = buildRestaurant(
-                    "FEMILY", "family", "F", "#5C1A1A", "FP",
+                    "FEMILY", "family", "F", "#5C1A1A", "FM",
                     "Даамдуу тамактар жана жагымдуу атмосфера сизди күтөт."
             );
             restaurantRepository.save(family);
@@ -157,7 +159,7 @@ public class RestaurantDataInitializer implements CommandLineRunner {
         Restaurant ordo = restaurantRepository.findBySlug("ordo-cafe").orElse(null);
         if (ordo == null) {
             ordo = buildRestaurant(
-                    "ОРДО КАФЕ", "ordo-cafe", "🍽", "#c9a227", "OC",
+                    "ОРДО КАФЕ", "ordo-cafe", "🍽", "#c9a227", "OD",
                     "Лагман, плов, самса"
             );
             ordo.setLogoUrl("/restaurant/ordo-cafe/logo.png");
@@ -185,7 +187,7 @@ public class RestaurantDataInitializer implements CommandLineRunner {
                 old.setName("ОРДО");
                 old.setTagline("Лагман, плов, самса");
                 old.setCustomerUrl("/ordo-cafe");
-                old.setOrderPrefix("OC");
+                old.setOrderPrefix("OD");
                 restaurantRepository.save(old);
                 log.info("Migrated bazar-korgon slug to ordo-cafe");
             } else {
@@ -198,7 +200,7 @@ public class RestaurantDataInitializer implements CommandLineRunner {
                 old.setSlug("ordo-cafe");
                 old.setName("ОРДО");
                 old.setCustomerUrl("/ordo-cafe");
-                old.setOrderPrefix("OC");
+                old.setOrderPrefix("OD");
                 restaurantRepository.save(old);
                 log.info("Migrated chaikhana slug to ordo-cafe");
             } else {
@@ -206,6 +208,26 @@ public class RestaurantDataInitializer implements CommandLineRunner {
                 restaurantRepository.save(old);
             }
         });
+    }
+
+    /** Заказ номери префикстери: AI1, OD1, FM1, BM1, JS1 */
+    private void syncOrderPrefixes() {
+        Map<String, String> prefixes = Map.of(
+                "aga-ini", "AI",
+                "ordo-cafe", "OD",
+                "family", "FM",
+                "burger-men", "BM",
+                "zhorolor", "JS"
+        );
+        for (Map.Entry<String, String> entry : prefixes.entrySet()) {
+            restaurantRepository.findBySlug(entry.getKey()).ifPresent(restaurant -> {
+                if (!entry.getValue().equals(restaurant.getOrderPrefix())) {
+                    restaurant.setOrderPrefix(entry.getValue());
+                    restaurantRepository.save(restaurant);
+                    log.info("Order prefix for {} -> {}", entry.getKey(), entry.getValue());
+                }
+            });
+        }
     }
 
     private void syncAllCityAddresses() {
@@ -249,7 +271,7 @@ public class RestaurantDataInitializer implements CommandLineRunner {
     private void ensureZhorolorRestaurant() {
         Restaurant zs = restaurantRepository.findBySlug("zhorolor").orElse(null);
         if (zs == null) {
-            zs = buildRestaurant("ЖОРОЛОР САМСАСЫ", "zhorolor", "🥟", "#2D6A4F", "ZS", "Самса жана выпечка");
+            zs = buildRestaurant("ЖОРОЛОР САМСАСЫ", "zhorolor", "🥟", "#2D6A4F", "JS", "Самса жана выпечка");
             zs.setAddress("Базар-Коргон шаары");
             zs.setBannerUrl("/restaurant/zhorolor/banner.jpg");
             zs.setLogoUrl("/restaurant/zhorolor/logo.png");
@@ -839,7 +861,7 @@ public class RestaurantDataInitializer implements CommandLineRunner {
             old.setSlug("family");
             old.setEmoji("F");
             old.setAccentColor("#5C1A1A");
-            old.setOrderPrefix("FP");
+            old.setOrderPrefix("FM");
             old.setTagline("Даамдуу тамактар — үй-бүлөңүз үчүн");
             old.setCustomerUrl("/family");
             restaurantRepository.save(old);
@@ -854,10 +876,10 @@ public class RestaurantDataInitializer implements CommandLineRunner {
 
         List<Restaurant> defaults = List.of(
                 buildRestaurant("АГА-ИНИ", "aga-ini", "AI", "#FF5A00", "AI", "Суши · Пицца · Крылышки · Шаурма · Бургер"),
-                buildRestaurant("ОРДО КАФЕ", "ordo-cafe", "🍽", "#c9a227", "OC", "Лагман, плов, самса"),
-                buildRestaurant("FEMILY", "family", "F", "#5C1A1A", "FP", "Даамдуу тамактар"),
+                buildRestaurant("ОРДО КАФЕ", "ordo-cafe", "🍽", "#c9a227", "OD", "Лагман, плов, самса"),
+                buildRestaurant("FEMILY", "family", "F", "#5C1A1A", "FM", "Даамдуу тамактар"),
                 buildRestaurant("BURGERMAN", "burger-men", "🍔", "#E31837", "BM", "Бургер · Картошка · Комбо · Соус"),
-                buildRestaurant("ЖОРОЛОР САМСАСЫ", "zhorolor", "🥟", "#2D6A4F", "ZS", "Самса жана выпечка")
+                buildRestaurant("ЖОРОЛОР САМСАСЫ", "zhorolor", "🥟", "#2D6A4F", "JS", "Самса жана выпечка")
         );
 
         restaurantRepository.saveAll(defaults);

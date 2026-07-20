@@ -375,7 +375,7 @@ public class CustomerOrderController {
             }
         }
 
-        String orderNumber = prefix + " " + (count + 1);
+        String orderNumber = prefix + (count + 1);
 
         order.setDisplayOrderNumber(orderNumber);
         order.setOrderStatus("ACCEPTED");
