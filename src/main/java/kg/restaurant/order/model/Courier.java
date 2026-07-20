@@ -1,5 +1,6 @@
 package kg.restaurant.order.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
@@ -26,6 +27,12 @@ public class Courier {
 
     @Column(unique = true)
     private String phone;
+
+    @Column(unique = true)
+    private String nickname;
+
+    @JsonIgnore
+    private String passwordHash;
 
     private Boolean active = false;
 
@@ -75,6 +82,22 @@ public class Courier {
 
     public void setPhone(String phone) {
         this.phone = phone;
+    }
+
+    public String getNickname() {
+        return nickname;
+    }
+
+    public void setNickname(String nickname) {
+        this.nickname = nickname;
+    }
+
+    public String getPasswordHash() {
+        return passwordHash;
+    }
+
+    public void setPasswordHash(String passwordHash) {
+        this.passwordHash = passwordHash;
     }
 
     public Boolean getActive() {

@@ -468,7 +468,7 @@
                     <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap">
                         <div>
                             <strong style="font-size:15px">${esc(c.name)}</strong>
-                            <div style="font-size:13px;color:var(--d-muted);margin-top:3px">📞 ${esc(c.phone)}</div>
+                            <div style="font-size:13px;color:var(--d-muted);margin-top:3px">📞 ${esc(c.phone)}${c.nickname ? ' · @' + esc(c.nickname) : ''}</div>
                             <div style="margin-top:4px">${tgBadge}</div>
                         </div>
                         <span style="font-size:12px;font-weight:700;color:#15803d;background:#dcfce7;padding:4px 10px;border-radius:999px;flex-shrink:0">Катталган</span>
@@ -487,23 +487,31 @@
     window.dAddCourier = async function () {
         const name = q('dCourierName').value.trim();
         const phone = q('dCourierPhone').value.trim();
-        if (!name || !phone) {
-            alert('Аты жана телефонду жазыңыз');
+        const nickname = q('dCourierNickname').value.trim();
+        const password = q('dCourierPassword').value;
+        if (!name || !phone || !nickname || !password) {
+            alert('Аты, телефон, ник жана парольду жазыңыз');
+            return;
+        }
+        if (password.length < 4) {
+            alert('Пароль кеминде 4 символ болушу керек');
             return;
         }
         const res = await fetch('/api/couriers/register-phone', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ name, phone })
+            body: JSON.stringify({ name, phone, nickname, password })
         });
+        const data = await res.json().catch(function () { return {}; });
         if (!res.ok) {
-            alert('Катталбай калды — бул телефон бар болушу мүмкүн');
+            alert(data.error || 'Катталбай калды');
             return;
         }
-        const saved = await res.json();
         q('dCourierName').value = '';
         q('dCourierPhone').value = '';
-        alert('✅ ' + saved.name + ' катталды');
+        q('dCourierNickname').value = '';
+        q('dCourierPassword').value = '';
+        alert('✅ ' + data.name + ' (@' + (data.nickname || nickname) + ') катталды');
         loadCouriers();
         loadCourierActivity();
     };

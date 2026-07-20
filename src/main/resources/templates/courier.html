@@ -212,14 +212,14 @@
 <main class="c-wrap">
     <section id="loginBox" class="c-login">
         <h2 style="font-size:15px;font-weight:800;margin-bottom:12px">🛵 Курьер</h2>
-        <p class="c-login-note">Атыңыз жана телефонуңду жаз — аккаунт ачылат.</p>
+        <p class="c-login-note">RATLION менеджери берген ник жана пароль менен кириңиз.</p>
         <div class="c-field" style="margin-top:14px">
-            <label>Атыңыз</label>
-            <input id="loginName" class="c-input" type="text" placeholder="Мисалы: Ратбек">
+            <label>Ник</label>
+            <input id="loginNickname" class="c-input" type="text" placeholder="Мисалы: azamat" autocapitalize="off" autocomplete="username">
         </div>
         <div class="c-field">
-            <label>Телефон</label>
-            <input id="loginPhone" class="c-input" type="tel" placeholder="0990912913" inputmode="tel">
+            <label>Пароль</label>
+            <input id="loginPassword" class="c-input" type="password" placeholder="••••••" autocomplete="current-password">
         </div>
         <button type="button" class="c-btn c-btn-primary" onclick="courierLogin()">Кирүү</button>
         <p id="loginError" class="c-error c-hidden"></p>
@@ -508,7 +508,7 @@
         document.getElementById('headerSub').textContent = 'RATLION';
     }
 
-    const SESSION_KEY = 'courierSessionV1';
+    const SESSION_KEY = 'courierSessionV2';
 
     function saveSession(courier) {
         localStorage.setItem('courierId', String(courier.id));
@@ -516,6 +516,7 @@
         localStorage.setItem('courierName', courier.name || '');
         localStorage.setItem(SESSION_KEY, JSON.stringify({
             id: courier.id,
+            nickname: courier.nickname || '',
             phone: courier.phone,
             name: courier.name,
             savedAt: Date.now()
@@ -527,20 +528,20 @@
         localStorage.removeItem('courierPhone');
         localStorage.removeItem('courierName');
         localStorage.removeItem(SESSION_KEY);
+        localStorage.removeItem('courierSessionV1');
     }
 
-    async function loginWithPhone(phone, name) {
+    async function loginWithCredentials(nickname, password) {
         const res = await fetch('/api/couriers/login', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ phone: phone, name: name || undefined })
+            body: JSON.stringify({ nickname: nickname, password: password })
         });
-        if (res.status === 404) {
-            const err = await res.json().catch(() => ({}));
-            return { ok: false, needName: true, message: err.message || 'Атыңызды жазыңыз' };
+        const data = await res.json().catch(function () { return {}; });
+        if (!res.ok) {
+            return { ok: false, message: data.error || 'Кирүү ишке ашкан жок' };
         }
-        if (!res.ok) return { ok: false, needName: false, message: 'Кирүү ишке ашкан жок' };
-        return { ok: true, courier: await res.json() };
+        return { ok: true, courier: data };
     }
 
     async function restoreSession() {
@@ -556,14 +557,7 @@
                     showApp(await res.json());
                     return;
                 }
-            } catch (e) { /* fallback login */ }
-            if (session.phone) {
-                const result = await loginWithPhone(session.phone, session.name);
-                if (result.ok) {
-                    showApp(result.courier);
-                    return;
-                }
-            }
+            } catch (e) { /* session expired */ }
         }
     }
 
@@ -579,7 +573,8 @@
         const avatarName = courier.name || 'К';
         document.getElementById('avatarBtn').textContent = avatarName.charAt(0).toUpperCase();
         document.getElementById('profileName').textContent = courier.name || 'Курьер';
-        document.getElementById('profilePhone').textContent = '📞 ' + (courier.phone || '—');
+        document.getElementById('profilePhone').textContent = '📞 ' + (courier.phone || '—')
+            + (courier.nickname ? ' · @' + courier.nickname : '');
         document.getElementById('headerSub').textContent = courier.name || 'RATLION';
         PushNotify.bindButton(document.getElementById('pushBtn'), null, function () {
             showToast('Эскертүү күйгүзүлдү — жаңы заказ келсе билесиз');
@@ -630,22 +625,22 @@
     window.courierSaveTelegram = courierSaveTelegram;
 
     async function courierLogin() {
-        const name = document.getElementById('loginName').value.trim();
-        const phone = document.getElementById('loginPhone').value.trim();
+        const nickname = document.getElementById('loginNickname').value.trim();
+        const password = document.getElementById('loginPassword').value;
         const errEl = document.getElementById('loginError');
         errEl.classList.add('c-hidden');
-        if (!name) {
-            errEl.textContent = 'Атыңызды жазыңыз';
+        if (!nickname) {
+            errEl.textContent = 'Никти жазыңыз';
             errEl.classList.remove('c-hidden');
             return;
         }
-        if (!phone) {
-            errEl.textContent = 'Телефонду жазыңыз';
+        if (!password) {
+            errEl.textContent = 'Парольду жазыңыз';
             errEl.classList.remove('c-hidden');
             return;
         }
         try {
-            const result = await loginWithPhone(phone, name);
+            const result = await loginWithCredentials(nickname, password);
             if (result.ok) {
                 showApp(result.courier);
                 return;
@@ -661,8 +656,8 @@
     function courierLogout() {
         clearSession();
         document.getElementById('profileMenu').classList.add('c-hidden');
-        document.getElementById('loginName').value = '';
-        document.getElementById('loginPhone').value = '';
+        document.getElementById('loginNickname').value = '';
+        document.getElementById('loginPassword').value = '';
         showLogin();
     }
 

@@ -6,6 +6,7 @@ import kg.restaurant.order.service.CourierActivityService;
 import kg.restaurant.order.service.TelegramService;
 import kg.restaurant.order.util.PhoneUtils;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -19,15 +20,18 @@ public class CourierController {
     private final CourierRepository courierRepository;
     private final CourierActivityService courierActivityService;
     private final TelegramService telegramService;
+    private final PasswordEncoder passwordEncoder;
 
     public CourierController(
             CourierRepository courierRepository,
             CourierActivityService courierActivityService,
-            TelegramService telegramService
+            TelegramService telegramService,
+            PasswordEncoder passwordEncoder
     ) {
         this.courierRepository = courierRepository;
         this.courierActivityService = courierActivityService;
         this.telegramService = telegramService;
+        this.passwordEncoder = passwordEncoder;
     }
 
     @GetMapping
@@ -69,68 +73,76 @@ public class CourierController {
                 .orElseGet(() -> ResponseEntity.notFound().build());
     }
 
-    /** Телефон менен кирүү — аккаунт бар болсо аты талап кылынбайт */
+    /** Ник + пароль менен кирүү — аккаунт RATLION админден ачылат */
     @PostMapping("/login")
-    public ResponseEntity<?> loginByPhone(@RequestBody Map<String, String> body) {
-        String phone = PhoneUtils.normalize(body.get("phone"));
-        String name = body.get("name");
-        if (phone.isBlank()) {
-            return ResponseEntity.badRequest().body(Map.of("error", "Телефон талап кылынат"));
+    public ResponseEntity<?> login(@RequestBody Map<String, String> body) {
+        String nickname = normalizeNickname(body.get("nickname"));
+        String password = body.get("password");
+        if (nickname.isBlank() || password == null || password.isBlank()) {
+            return ResponseEntity.badRequest().body(Map.of("error", "Ник жана пароль талап кылынат"));
         }
 
-        var existing = courierRepository.findByPhone(phone);
-        if (existing.isPresent()) {
-            Courier courier = existing.get();
-            if (name != null && !name.isBlank()) {
-                courier.setName(name.trim());
-            }
-            if (!Boolean.TRUE.equals(courier.getActive())) {
-                courier.setActive(true);
-            }
-            return ResponseEntity.ok(courierRepository.save(courier));
+        var courierOpt = courierRepository.findByNicknameIgnoreCase(nickname);
+        if (courierOpt.isEmpty()) {
+            return ResponseEntity.status(401).body(Map.of("error", "Ник же пароль туура эмес"));
         }
 
-        if (name == null || name.isBlank()) {
-            return ResponseEntity.status(404).body(Map.of(
-                    "error", "NOT_FOUND",
-                    "message", "Жаңы курьер — атыңызды жазыңыз"
+        Courier courier = courierOpt.get();
+        if (courier.getPasswordHash() == null || !passwordEncoder.matches(password, courier.getPasswordHash())) {
+            return ResponseEntity.status(401).body(Map.of("error", "Ник же пароль туура эмес"));
+        }
+        if (!Boolean.TRUE.equals(courier.getActive())) {
+            return ResponseEntity.status(403).body(Map.of(
+                    "error", "Аккаунт активде эмес — менеджерге кайрылыңыз"
             ));
         }
 
-        Courier courier = new Courier();
-        courier.setName(name.trim());
-        courier.setPhone(phone);
-        courier.setTelegramChatId("phone:" + phone);
-        courier.setActive(true);
-        return ResponseEntity.ok(courierRepository.save(courier));
+        return ResponseEntity.ok(courier);
     }
 
-    /** Телефон менен катталуу (Telegram жок тест үчүн) */
+    /** RATLION админ: курьер аккаунту (аты, телефон, ник, пароль) */
     @PostMapping("/register-phone")
-    public ResponseEntity<Courier> registerByPhone(@RequestBody Map<String, String> body) {
+    public ResponseEntity<?> registerByPhone(@RequestBody Map<String, String> body) {
         String phone = PhoneUtils.normalize(body.get("phone"));
         String name = body.get("name");
-        if (phone.isBlank()) {
-            return ResponseEntity.badRequest().build();
+        String nickname = normalizeNickname(body.get("nickname"));
+        String password = body.get("password");
+        if (phone.isBlank() || name == null || name.isBlank()) {
+            return ResponseEntity.badRequest().body(Map.of("error", "Аты жана телефон талап кылынат"));
         }
+        if (nickname.isBlank() || password == null || password.isBlank()) {
+            return ResponseEntity.badRequest().body(Map.of("error", "Ник жана пароль талап кылынат"));
+        }
+        if (password.length() < 4) {
+            return ResponseEntity.badRequest().body(Map.of("error", "Пароль кеминде 4 символ"));
+        }
+
+        var nicknameTaken = courierRepository.findByNicknameIgnoreCase(nickname);
 
         return courierRepository.findByPhone(phone)
                 .map(existing -> {
-                    if (name != null && !name.isBlank()) {
-                        existing.setName(name.trim());
+                    if (nicknameTaken.isPresent() && !nicknameTaken.get().getId().equals(existing.getId())) {
+                        return ResponseEntity.badRequest().body(Map.of("error", "Бул ник эле колдонулуп жатат"));
                     }
+                    existing.setName(name.trim());
+                    existing.setNickname(nickname);
+                    existing.setPasswordHash(passwordEncoder.encode(password));
                     if (!Boolean.TRUE.equals(existing.getActive())) {
                         existing.setActive(true);
                     }
-                    return ResponseEntity.ok(courierRepository.save(existing));
+                    Courier saved = courierRepository.save(existing);
+                    notifyCourierActivated(saved);
+                    return ResponseEntity.ok(saved);
                 })
                 .orElseGet(() -> {
-                    if (name == null || name.isBlank()) {
-                        return ResponseEntity.badRequest().build();
+                    if (nicknameTaken.isPresent()) {
+                        return ResponseEntity.badRequest().body(Map.of("error", "Бул ник эле колдонулуп жатат"));
                     }
                     Courier courier = new Courier();
                     courier.setName(name.trim());
                     courier.setPhone(phone);
+                    courier.setNickname(nickname);
+                    courier.setPasswordHash(passwordEncoder.encode(password));
                     courier.setTelegramChatId("phone:" + phone);
                     courier.setActive(true);
                     Courier saved = courierRepository.save(courier);
@@ -263,5 +275,12 @@ public class CourierController {
                         + "Жеткирүү заказдары бул жерге келет.\n"
                         + "Веб-панель: /courier"
         );
+    }
+
+    private String normalizeNickname(String nickname) {
+        if (nickname == null) {
+            return "";
+        }
+        return nickname.trim().toLowerCase();
     }
 }

@@ -13,6 +13,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.CommandLineRunner;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
@@ -31,6 +32,7 @@ public class RestaurantDataInitializer implements CommandLineRunner {
     private final CustomerOrderRepository orderRepository;
     private final MenuItemRepository menuItemRepository;
     private final CourierRepository courierRepository;
+    private final PasswordEncoder passwordEncoder;
 
     @Value("${courier.default.phone:0990912913}")
     private String defaultCourierPhone;
@@ -38,16 +40,24 @@ public class RestaurantDataInitializer implements CommandLineRunner {
     @Value("${courier.default.name:Сыргый}")
     private String defaultCourierName;
 
+    @Value("${courier.default.nickname:syrgy}")
+    private String defaultCourierNickname;
+
+    @Value("${courier.default.password:ratlion123}")
+    private String defaultCourierPassword;
+
     public RestaurantDataInitializer(
             RestaurantRepository restaurantRepository,
             CustomerOrderRepository orderRepository,
             MenuItemRepository menuItemRepository,
-            CourierRepository courierRepository
+            CourierRepository courierRepository,
+            PasswordEncoder passwordEncoder
     ) {
         this.restaurantRepository = restaurantRepository;
         this.orderRepository = orderRepository;
         this.menuItemRepository = menuItemRepository;
         this.courierRepository = courierRepository;
+        this.passwordEncoder = passwordEncoder;
     }
 
     @Override
@@ -81,12 +91,13 @@ public class RestaurantDataInitializer implements CommandLineRunner {
         }
     }
 
-    /** Тест курьери — телефон менен /courier панелине кирет */
+    /** Тест курьери — /courier панелине ник + пароль менен кирет */
     private void ensureDefaultCourier() {
         String phone = PhoneUtils.normalize(defaultCourierPhone);
         if (phone.isBlank()) {
             return;
         }
+        String nickname = defaultCourierNickname == null ? "" : defaultCourierNickname.trim().toLowerCase();
         courierRepository.findByPhone(phone).ifPresentOrElse(c -> {
             boolean changed = false;
             if (!Boolean.TRUE.equals(c.getActive())) {
@@ -98,17 +109,38 @@ public class RestaurantDataInitializer implements CommandLineRunner {
                 c.setName(defaultCourierName);
                 changed = true;
             }
+            if (!nickname.isBlank() && (c.getNickname() == null || c.getNickname().isBlank())) {
+                if (!courierRepository.existsByNicknameIgnoreCase(nickname)
+                        || nickname.equalsIgnoreCase(c.getNickname())) {
+                    c.setNickname(nickname);
+                    changed = true;
+                }
+            }
+            if (c.getPasswordHash() == null && defaultCourierPassword != null && !defaultCourierPassword.isBlank()) {
+                c.setPasswordHash(passwordEncoder.encode(defaultCourierPassword));
+                changed = true;
+            }
             if (changed) {
                 courierRepository.save(c);
             }
         }, () -> {
+            if (nickname.isBlank() || defaultCourierPassword == null || defaultCourierPassword.isBlank()) {
+                log.warn("Default courier not created — set courier.default.nickname and courier.default.password");
+                return;
+            }
+            if (courierRepository.existsByNicknameIgnoreCase(nickname)) {
+                log.warn("Default courier nickname '{}' already taken", nickname);
+                return;
+            }
             Courier courier = new Courier();
             courier.setName(defaultCourierName);
             courier.setPhone(phone);
+            courier.setNickname(nickname);
+            courier.setPasswordHash(passwordEncoder.encode(defaultCourierPassword));
             courier.setTelegramChatId("phone:" + phone);
             courier.setActive(true);
             courierRepository.save(courier);
-            log.info("Created default courier: {} ({})", defaultCourierName, phone);
+            log.info("Created default courier: {} @{} ({})", defaultCourierName, nickname, phone);
         });
     }
 

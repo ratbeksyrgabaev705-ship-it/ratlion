@@ -112,16 +112,18 @@
         </section>
 
         <section id="sec-couriers" class="delivery-section">
-            <div class="delivery-head"><h1>Курьерлер</h1><p>Аты + телефон → катта</p></div>
+            <div class="delivery-head"><h1>Курьерлер</h1><p>Аты, телефон, ник, пароль → аккаунт ачуу</p></div>
             <div class="delivery-panel" style="margin-bottom:16px">
                 <label class="delivery-label">Курьер каттоо</label>
                 <div class="delivery-toolbar" style="margin-top:8px;flex-wrap:wrap">
                     <input id="dCourierName" class="delivery-input" type="text" placeholder="Аты (мисалы: Азамат)">
                     <input id="dCourierPhone" class="delivery-input" type="tel" placeholder="Телефон (0990123456)" inputmode="tel">
+                    <input id="dCourierNickname" class="delivery-input" type="text" placeholder="Ник (azamat)" autocapitalize="off">
+                    <input id="dCourierPassword" class="delivery-input" type="text" placeholder="Пароль (4+ символ)">
                     <button type="button" class="delivery-btn delivery-btn-green" onclick="dAddCourier()">Каттоо</button>
                 </div>
                 <p style="font-size:13px;color:var(--d-muted);margin-top:12px;line-height:1.6">
-                    Курьер өзү да <strong>/courier</strong> сайтына кирип, аты + телефон менен аккаунт ача алат.
+                    Курьер <strong>/courier</strong> сайтына өз ники жана пароли менен кирип, өз аккаунтуна кирет.
                 </p>
             </div>
             <div class="delivery-panel" style="margin-bottom:16px">
@@ -179,6 +181,6 @@
 
 <script src="/reports-ui.js"></script>
 <script src="/push-notify.js"></script>
-<script src="/delivery.js?v=3"></script>
+<script src="/delivery.js?v=4"></script>
 </body>
 </html>

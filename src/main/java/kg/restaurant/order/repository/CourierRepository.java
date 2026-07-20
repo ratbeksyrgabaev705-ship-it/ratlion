@@ -17,4 +17,8 @@ public interface CourierRepository extends JpaRepository<Courier, Long> {
     boolean existsByTelegramChatId(String telegramChatId);
 
     Optional<Courier> findByPhone(String phone);
+
+    Optional<Courier> findByNicknameIgnoreCase(String nickname);
+
+    boolean existsByNicknameIgnoreCase(String nickname);
 }
