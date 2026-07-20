@@ -5,7 +5,7 @@ import com.zaxxer.hikari.HikariDataSource;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnExpression;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Primary;
@@ -20,17 +20,19 @@ import java.nio.charset.StandardCharsets;
  */
 @Configuration
 @Profile("prod")
-@ConditionalOnExpression(
-        "'${USE_POSTGRES:false}' == 'true' "
-                + "or ('${DATABASE_URL:}' != null and !'${DATABASE_URL:}'.isEmpty())"
-)
+@ConditionalOnProperty(name = "USE_POSTGRES", havingValue = "true")
 public class ProductionDatabaseConfig {
 
     private static final Logger log = LoggerFactory.getLogger(ProductionDatabaseConfig.class);
 
     @Bean
     @Primary
-    public DataSource postgresDataSource(@Value("${DATABASE_URL}") String databaseUrl) {
+    public DataSource postgresDataSource(@Value("${DATABASE_URL:}") String databaseUrl) {
+        if (databaseUrl == null || databaseUrl.isBlank()) {
+            throw new IllegalStateException(
+                    "USE_POSTGRES=true, бирок DATABASE_URL бош — Render'ден Internal Database URL коюңуз"
+            );
+        }
         ParsedUrl parsed = ParsedUrl.from(databaseUrl);
         log.info("PostgreSQL: {}:{}/{}", parsed.host(), parsed.port(), parsed.database());
 
