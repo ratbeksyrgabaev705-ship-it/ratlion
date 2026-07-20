@@ -47,12 +47,12 @@ public class TelegramService {
     public TelegramSendResult sendToChatWithResult(String targetChatId, String text) {
         if (botToken == null || botToken.isBlank()) {
             log.warn("Telegram иштебейт: bot token бош");
-            return TelegramSendResult.fail("Telegram бот орнотулган эмес (TELEGRAM_BOT_TOKEN)");
+            return TelegramSendResult.ofFailure("Telegram бот орнотулган эмес (TELEGRAM_BOT_TOKEN)");
         }
 
         if (targetChatId == null || targetChatId.isBlank()) {
             log.warn("Telegram иштебейт: chat id бош");
-            return TelegramSendResult.fail("Telegram chat ID бош");
+            return TelegramSendResult.ofFailure("Telegram chat ID бош");
         }
 
         try {
@@ -73,14 +73,14 @@ public class TelegramService {
 
             if (response != null && response.contains("\"ok\":false")) {
                 log.error("Telegram API катасы: {}", response);
-                return TelegramSendResult.fail(humanizeTelegramError(response));
+                return TelegramSendResult.ofFailure(humanizeTelegramError(response));
             }
 
-            return TelegramSendResult.ok();
+            return TelegramSendResult.ofSuccess();
 
         } catch (Exception e) {
             log.error("Telegram катасы: {}", e.getMessage());
-            return TelegramSendResult.fail("Telegram байланыш катасы: " + e.getMessage());
+            return TelegramSendResult.ofFailure("Telegram байланыш катасы: " + e.getMessage());
         }
     }
 
@@ -98,12 +98,12 @@ public class TelegramService {
         return "Telegram жиберилбedi — ID туурабы жана ботко /start basылганбы текшериңиз";
     }
 
-    public record TelegramSendResult(boolean ok, String error) {
-        static TelegramSendResult ok() {
+    public record TelegramSendResult(boolean success, String error) {
+        public static TelegramSendResult ofSuccess() {
             return new TelegramSendResult(true, null);
         }
 
-        static TelegramSendResult fail(String error) {
+        public static TelegramSendResult ofFailure(String error) {
             return new TelegramSendResult(false, error);
         }
     }

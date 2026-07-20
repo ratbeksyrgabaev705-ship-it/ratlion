@@ -162,8 +162,8 @@ public class RestaurantController {
                     "✅ RATLION — " + saved.getName() + " Telegram байlandi!\n\n"
                             + "🆕 Кабыл алынган заказдар бул группага келет."
             );
-            result.put("telegramSent", sendResult.ok());
-            if (!sendResult.ok()) {
+            result.put("telegramSent", sendResult.success());
+            if (!sendResult.success()) {
                 result.put("telegramError", sendResult.error());
             }
         }
@@ -189,7 +189,7 @@ public class RestaurantController {
                 "🧪 RATLION тест — " + restaurant.getName() + "\n\n"
                         + "Эскертүүлөр бул группага келет ✅"
         );
-        if (sendResult.ok()) {
+        if (sendResult.success()) {
             return ResponseEntity.ok(java.util.Map.of("telegramSent", true));
         }
         return ResponseEntity.ok(java.util.Map.of(

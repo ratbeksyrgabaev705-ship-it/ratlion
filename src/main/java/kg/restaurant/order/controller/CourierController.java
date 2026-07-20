@@ -294,8 +294,8 @@ public class CourierController {
                             + "🛵 Жаңы заказ сунуштары бул жерге келет.\n"
                             + "→ /courier"
             );
-            result.put("telegramSent", sendResult.ok());
-            if (!sendResult.ok()) {
+            result.put("telegramSent", sendResult.success());
+            if (!sendResult.success()) {
                 result.put("telegramError", sendResult.error());
             }
         }
@@ -322,7 +322,7 @@ public class CourierController {
                         + "👤 " + safeName(courier.getName()) + "\n"
                         + "Эскертүүлөр бул аккаунтка келет ✅"
         );
-        if (sendResult.ok()) {
+        if (sendResult.success()) {
             return ResponseEntity.ok(Map.of("telegramSent", true, "message", "Тест билдирүү жиберилди"));
         }
         return ResponseEntity.ok(Map.of(
