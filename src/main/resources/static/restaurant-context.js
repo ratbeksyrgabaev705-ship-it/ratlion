@@ -112,4 +112,30 @@
         const p = path.charAt(0) === '/' ? path : '/' + path;
         return restaurantBase + p;
     };
+
+    window.getBankPhone = function () {
+        return (window.RESTAURANT && window.RESTAURANT.bankPhone) || '0600 600 828';
+    };
+
+    window.getBankRecipientName = function () {
+        return (window.RESTAURANT && window.RESTAURANT.bankRecipientName) || 'Ратбек С.';
+    };
+
+    window.bankPhoneDigits = function () {
+        return getBankPhone().replace(/\D/g, '');
+    };
+
+    window.applyBankPaymentInfo = function () {
+        const phone = getBankPhone();
+        const recipient = getBankRecipientName();
+        const phoneEl = document.getElementById('bankPhoneNumber') || document.getElementById('bankNumber');
+        if (phoneEl) phoneEl.textContent = phone;
+        const recipientEl = document.getElementById('recipientLabel');
+        if (recipientEl) {
+            const prefix = (window.CustomerI18n && CustomerI18n.t('recipientPrefix')) || 'Алуучу:';
+            recipientEl.textContent = prefix + ' ' + recipient;
+        }
+        const recipientValueEl = document.getElementById('bankRecipientValue');
+        if (recipientValueEl) recipientValueEl.textContent = recipient;
+    };
 })();

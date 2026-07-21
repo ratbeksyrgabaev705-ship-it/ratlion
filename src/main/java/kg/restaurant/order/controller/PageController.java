@@ -162,7 +162,12 @@ public class PageController {
 
     @GetMapping("/chaikhana-customer.css")
     public String legacyChaikhanaCss() {
-        return "redirect:/default-customer.css";
+        return "redirect:/burger-men-customer.css?v=2";
+    }
+
+    @GetMapping("/mburger-customer.css")
+    public String mburgerCss() {
+        return "redirect:/burger-men-customer.css?v=2";
     }
 
     @GetMapping("/bazar-korgon-customer.css")
@@ -177,7 +182,12 @@ public class PageController {
 
     @GetMapping("/chaikhana")
     public String legacyChaikhanaMenu() {
-        return "redirect:/ordo-cafe";
+        return "redirect:/mburger";
+    }
+
+    @GetMapping("/m-burger")
+    public String mburgerShortcut() {
+        return "redirect:/mburger";
     }
 
     @GetMapping("/femili")

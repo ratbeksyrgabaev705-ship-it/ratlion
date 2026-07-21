@@ -12,7 +12,9 @@
             id: /*[[${restaurantId}]]*/ null,
             slug: /*[[${restaurantSlug}]]*/ '',
             name: /*[[${restaurantName}]]*/ '',
-            base: /*[[${restaurantBase}]]*/ '/'
+            base: /*[[${restaurantBase}]]*/ '/',
+            bankPhone: /*[[${bankPhone}]]*/ '0600 600 828',
+            bankRecipientName: /*[[${bankRecipientName}]]*/ 'Ратбек С.'
         };
     </script>
     <script src="/restaurant-context.js"></script>
@@ -801,7 +803,7 @@
                             <div class="bank-label">MBANK номери</div>
                         </div>
                     </div>
-                    <button type="button" class="copy-button" onclick="copyText('0600600828')">📋</button>
+                    <button type="button" class="copy-button" onclick="copyText(bankPhoneDigits())">📋</button>
                 </div>
 
                 <div class="bank-info">
@@ -809,9 +811,9 @@
                         <div class="round-icon">👤</div>
                         <div>
                             <div class="info-label">Алуучунун аты-жөнү:</div>
-                            <div class="info-value">Ратбек С.</div>
+                            <div id="bankRecipientValue" class="info-value">Ратбек С.</div>
                         </div>
-                        <button type="button" class="copy-small" onclick="copyText('Ратбек С.')">📋</button>
+                        <button type="button" class="copy-small" onclick="copyText(getBankRecipientName())">📋</button>
                     </div>
                     <div class="info-row">
                         <div class="round-icon">💰</div>
@@ -927,6 +929,7 @@
         document.getElementById("submitButton");
 
     function loadPage() {
+        if (window.applyBankPaymentInfo) applyBankPaymentInfo();
         try {
             const savedCart =
                 JSON.parse(localStorage.getItem("cart"));

@@ -34,6 +34,12 @@ public class RestaurantPageService {
         if ("zhorolor-samsasy".equals(normalized)) {
             return "zhorolor";
         }
+        if ("chaikhana".equals(normalized)) {
+            return "mburger";
+        }
+        if ("mburger".equals(normalized) || "m-burger".equals(normalized)) {
+            return "mburger";
+        }
         return normalized;
     }
 
@@ -65,7 +71,17 @@ public class RestaurantPageService {
         model.addAttribute("customerTheme", resolveCustomerTheme(restaurant.getSlug()));
         model.addAttribute("customerCss", resolveCustomerCss(restaurant.getSlug()));
         model.addAttribute("restaurantAddress", restaurant.getAddress() != null ? restaurant.getAddress() : "");
+        model.addAttribute("bankPhone", defaultBankPhone(restaurant.getBankPhone()));
+        model.addAttribute("bankRecipientName", defaultBankRecipientName(restaurant.getBankRecipientName()));
         model.addAttribute("restaurantNotFound", false);
+    }
+
+    private String defaultBankPhone(String value) {
+        return value == null || value.isBlank() ? "0600 600 828" : value.trim();
+    }
+
+    private String defaultBankRecipientName(String value) {
+        return value == null || value.isBlank() ? "Ратбек С." : value.trim();
     }
 
     public void enrichNotFound(Model model, String slug) {
@@ -89,10 +105,10 @@ public class RestaurantPageService {
         if ("burger-men".equals(s)) {
             return "burger-men-" + defaultTemplate;
         }
-        if ("ordo-cafe".equals(s)) {
-            return "ordo-cafe-" + defaultTemplate;
+        if ("mburger".equals(s)) {
+            return "burger-men-" + defaultTemplate;
         }
-        if ("chaikhana".equals(s)) {
+        if ("ordo-cafe".equals(s)) {
             return "ordo-cafe-" + defaultTemplate;
         }
         if ("zhorolor".equals(s)) {
@@ -115,11 +131,11 @@ public class RestaurantPageService {
         if ("burger-men".equals(s)) {
             return "burger-men";
         }
+        if ("mburger".equals(s)) {
+            return "mburger";
+        }
         if ("ordo-cafe".equals(s)) {
             return "ordo-cafe";
-        }
-        if ("chaikhana".equals(s)) {
-            return "chaikhana";
         }
         if ("zhorolor".equals(s)) {
             return "zhorolor";
@@ -132,7 +148,7 @@ public class RestaurantPageService {
             case "family" -> "/family-customer.css";
             case "aga-ini" -> "/aga-ini-customer.css?v=2";
             case "ordo-cafe" -> "/ordo-cafe-customer.css";
-            case "chaikhana" -> "/ordo-cafe-customer.css";
+            case "mburger" -> "/burger-men-customer.css?v=2";
             case "burger-men" -> "/burger-men-customer.css?v=2";
             case "zhorolor" -> "/zhorolor-customer.css?v=10";
             default -> "/default-customer.css";

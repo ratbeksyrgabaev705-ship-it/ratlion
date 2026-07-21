@@ -25,7 +25,7 @@ public class RestaurantDataInitializer implements CommandLineRunner {
     private static final Logger log = LoggerFactory.getLogger(RestaurantDataInitializer.class);
     private static final int MAX_RESTAURANTS = 50;
     private static final java.util.Set<String> CANONICAL_SLUGS = java.util.Set.of(
-            "aga-ini", "ordo-cafe", "chaikhana", "family", "burger-men", "zhorolor"
+            "aga-ini", "ordo-cafe", "mburger", "family", "burger-men", "zhorolor"
     );
 
     private final RestaurantRepository restaurantRepository;
@@ -69,7 +69,7 @@ public class RestaurantDataInitializer implements CommandLineRunner {
             ensureFamilyRestaurant();
             ensureBurgerMenRestaurant();
             ensureOrdoCafeRestaurant();
-            ensureChaikhanaRestaurant();
+            ensureMburgerRestaurant();
             ensureZhorolorRestaurant();
             ensureAgaIniRestaurant();
             migrateLegacyRestaurantSlugs();
@@ -77,10 +77,11 @@ public class RestaurantDataInitializer implements CommandLineRunner {
             syncOrderPrefixes();
         syncAllCityAddresses();
             syncCustomerUrls();
+            syncDefaultBankPaymentInfo();
             backfillRestaurantIds();
             seedFamilyMenuIfEmpty();
             seedOrdoCafeMenuIfEmpty();
-            seedChaikhanaMenuIfEmpty();
+            seedMburgerMenuIfEmpty();
             seedAgaIniMenuIfEmpty();
             seedBurgerMenMenuIfEmpty();
             seedZhorolorMenuIfEmpty();
@@ -214,32 +215,52 @@ public class RestaurantDataInitializer implements CommandLineRunner {
         restaurantRepository.save(ordo);
     }
 
-    private void ensureChaikhanaRestaurant() {
-        Restaurant chaikhana = restaurantRepository.findBySlug("chaikhana").orElse(null);
-        if (chaikhana == null) {
-            chaikhana = buildRestaurant(
-                    "ЧАЙХАНА", "chaikhana", "🍵", "#8B4513", "CH",
-                    "Лагман, плов, самса"
+    private void ensureMburgerRestaurant() {
+        restaurantRepository.findBySlug("chaikhana").ifPresent(old -> {
+            if (restaurantRepository.findBySlug("mburger").isEmpty()) {
+                old.setSlug("mburger");
+                old.setName("MBURGER");
+                old.setCustomerUrl("/mburger");
+                old.setOrderPrefix("MB");
+                old.setTagline("Бургер · Картошка · Комбо · Соус");
+                old.setEmoji("🍔");
+                old.setAccentColor("#FF6B00");
+                old.setLogoUrl("/restaurant/burger-men/logo.svg");
+                old.setBannerUrl("https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?w=800&q=80");
+                menuItemRepository.deleteAll(menuItemRepository.findByRestaurantId(old.getId()));
+                restaurantRepository.save(old);
+                log.info("Migrated chaikhana -> mburger");
+            }
+        });
+
+        Restaurant mburger = restaurantRepository.findBySlug("mburger").orElse(null);
+        if (mburger == null) {
+            mburger = buildRestaurant(
+                    "MBURGER", "mburger", "🍔", "#FF6B00", "MB",
+                    "Бургер · Картошка · Комбо · Соус"
             );
-            chaikhana.setLogoUrl("/restaurant/ordo-cafe/logo.png");
-            chaikhana.setBannerUrl("/restaurant/ordo-cafe/hero-bg.jpg");
-            restaurantRepository.save(chaikhana);
-            log.info("Created Chaikhana restaurant");
+            mburger.setLogoUrl("/restaurant/burger-men/logo.svg");
+            mburger.setBannerUrl("https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?w=800&q=80");
+            restaurantRepository.save(mburger);
+            log.info("Created MBURGER restaurant");
             return;
         }
-        chaikhana.setActive(true);
-        chaikhana.setAcceptingOrders(true);
-        chaikhana.setName("ЧАЙХАНА");
-        chaikhana.setCustomerUrl("/chaikhana");
-        chaikhana.setTagline("Лагман, плов, самса");
-        chaikhana.setAddress("Базар-Коргон шаары");
-        if (chaikhana.getAccentColor() == null || chaikhana.getAccentColor().isBlank()) {
-            chaikhana.setAccentColor("#8B4513");
+        mburger.setActive(true);
+        mburger.setAcceptingOrders(true);
+        mburger.setName("MBURGER");
+        mburger.setCustomerUrl("/mburger");
+        mburger.setTagline("Бургер · Картошка · Комбо · Соус");
+        mburger.setAddress("Базар-Коргон шаары");
+        if (mburger.getAccentColor() == null || mburger.getAccentColor().isBlank()) {
+            mburger.setAccentColor("#FF6B00");
         }
-        if (chaikhana.getOrderPrefix() == null || chaikhana.getOrderPrefix().isBlank()) {
-            chaikhana.setOrderPrefix("CH");
+        if (mburger.getOrderPrefix() == null || mburger.getOrderPrefix().isBlank()) {
+            mburger.setOrderPrefix("MB");
         }
-        restaurantRepository.save(chaikhana);
+        if (mburger.getLogoUrl() == null || mburger.getLogoUrl().isBlank()) {
+            mburger.setLogoUrl("/restaurant/burger-men/logo.svg");
+        }
+        restaurantRepository.save(mburger);
     }
 
     private void migrateLegacyRestaurantSlugs() {
@@ -257,14 +278,19 @@ public class RestaurantDataInitializer implements CommandLineRunner {
                 restaurantRepository.save(old);
             }
         });
+        restaurantRepository.findBySlug("chaikhana").ifPresent(old -> {
+            old.setActive(false);
+            restaurantRepository.save(old);
+            log.info("Deactivated legacy chaikhana slug");
+        });
     }
 
-    /** Заказ номери префикстери: AI1, OD1, CH1, FM1, BM1, JS1 */
+    /** Заказ номери префикстери: AI1, OD1, MB1, FM1, BM1, JS1 */
     private void syncOrderPrefixes() {
         Map<String, String> prefixes = Map.ofEntries(
                 Map.entry("aga-ini", "AI"),
                 Map.entry("ordo-cafe", "OD"),
-                Map.entry("chaikhana", "CH"),
+                Map.entry("mburger", "MB"),
                 Map.entry("family", "FM"),
                 Map.entry("burger-men", "BM"),
                 Map.entry("zhorolor", "JS")
@@ -409,7 +435,18 @@ public class RestaurantDataInitializer implements CommandLineRunner {
         if (bm == null || menuItemRepository.findByRestaurantId(bm.getId()).size() > 0) {
             return;
         }
-        Long rid = bm.getId();
+        seedBurgerStyleMenu(bm.getId(), "BURGERMAN");
+    }
+
+    private void seedMburgerMenuIfEmpty() {
+        Restaurant mburger = restaurantRepository.findBySlug("mburger").orElse(null);
+        if (mburger == null || menuItemRepository.findByRestaurantId(mburger.getId()).size() > 0) {
+            return;
+        }
+        seedBurgerStyleMenu(mburger.getId(), "MBURGER");
+    }
+
+    private void seedBurgerStyleMenu(Long rid, String label) {
         List<MenuItem> menu = List.of(
                 familyItem(rid, "Классик бургер", "Классик бургер", "Бургерлер", "Бургеры",
                         "Уй эти, салат, помидор, соус", "Говядина, салат, помидор, соус",
@@ -452,7 +489,7 @@ public class RestaurantDataInitializer implements CommandLineRunner {
                         30.0, "https://images.unsplash.com/photo-1472476446867-f7eedbf9b2a5?w=400&q=80")
         );
         menuItemRepository.saveAll(menu);
-        log.info("Seeded {} menu items for BURGERMAN (id={})", menu.size(), rid);
+        log.info("Seeded {} menu items for {} (id={})", menu.size(), label, rid);
     }
 
     private void seedOrdoCafeMenuIfEmpty() {
@@ -514,36 +551,6 @@ public class RestaurantDataInitializer implements CommandLineRunner {
 
         menuItemRepository.saveAll(menu);
         log.info("Seeded {} menu items for Ordo Cafe (id={})", menu.size(), rid);
-    }
-
-    private void seedChaikhanaMenuIfEmpty() {
-        Restaurant chaikhana = restaurantRepository.findBySlug("chaikhana").orElse(null);
-        if (chaikhana == null || menuItemRepository.findByRestaurantId(chaikhana.getId()).size() > 0) {
-            return;
-        }
-        seedOrdoStyleMenu(chaikhana.getId(), "Chaikhana");
-    }
-
-    private void seedOrdoStyleMenu(Long restaurantId, String label) {
-        List<MenuItem> menu = List.of(
-                bkMenuItem(restaurantId, "Уйгур лагман 0,7", "Уйгурский лагман 0,7", "Лагман", "Лагман",
-                        "Колго чоюлган кесме, уй эти, жашылчалар", "Домашняя лапша с говядиной", 280.0,
-                        "https://images.unsplash.com/photo-1569718212165-3a8278d5f624?w=400&q=80"),
-                bkMenuItem(restaurantId, "Плов", "Плов", "Плов", "Плов",
-                        "Күрүч, уй эти, сабиз, пияз", "Рис, говядина, морковь", 350.0,
-                        "https://images.unsplash.com/photo-1603133872878-684f208fb84b?w=400&q=80"),
-                bkMenuItem(restaurantId, "Этти самса", "Самса с мясом", "Самса", "Самса",
-                        "Тандырда бышырылган этти самса", "Самса с мясом", 80.0,
-                        "https://images.unsplash.com/photo-1601050690597-df0568f70950?w=400&q=80"),
-                bkMenuItem(restaurantId, "Шорпа", "Шорпа", "Шорпо", "Шорпо",
-                        "Уй эти, картошка, жашылчалар", "Говядина, картофель", 280.0,
-                        "https://images.unsplash.com/photo-1547592166-23ac45744acd?w=400&q=80"),
-                bkMenuItem(restaurantId, "Жашыл чай", "Зелёный чай", "Ичимдиктер", "Напитки",
-                        "Ысыk жашыл чай", "Зелёный чай", 50.0,
-                        "https://images.unsplash.com/photo-1556679343-c7306c1976bc?w=400&q=80")
-        );
-        menuItemRepository.saveAll(menu);
-        log.info("Seeded {} menu items for {} (id={})", menu.size(), label, restaurantId);
     }
 
     private void seedZhorolorMenuIfEmpty() {
@@ -991,6 +998,23 @@ public class RestaurantDataInitializer implements CommandLineRunner {
             boolean changed = false;
             if (!expected.equals(restaurant.getCustomerUrl())) {
                 restaurant.setCustomerUrl(expected);
+                changed = true;
+            }
+            if (changed) {
+                restaurantRepository.save(restaurant);
+            }
+        }
+    }
+
+    private void syncDefaultBankPaymentInfo() {
+        for (Restaurant restaurant : restaurantRepository.findAll()) {
+            boolean changed = false;
+            if (restaurant.getBankPhone() == null || restaurant.getBankPhone().isBlank()) {
+                restaurant.setBankPhone("0600 600 828");
+                changed = true;
+            }
+            if (restaurant.getBankRecipientName() == null || restaurant.getBankRecipientName().isBlank()) {
+                restaurant.setBankRecipientName("Ратбек С.");
                 changed = true;
             }
             if (changed) {

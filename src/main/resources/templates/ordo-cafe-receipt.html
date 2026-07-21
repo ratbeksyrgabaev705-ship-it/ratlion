@@ -15,7 +15,9 @@
             id: /*[[${restaurantId}]]*/ 3,
             slug: /*[[${restaurantSlug}]]*/ 'ordo-cafe',
             name: /*[[${restaurantName}]]*/ 'ОРДО КАФЕ',
-            base: /*[[${restaurantBase}]]*/ '/ordo-cafe'
+            base: /*[[${restaurantBase}]]*/ '/ordo-cafe',
+            bankPhone: /*[[${bankPhone}]]*/ '0600 600 828',
+            bankRecipientName: /*[[${bankRecipientName}]]*/ 'Ратбек С.'
         };
     </script>
     <script src="/restaurant-context.js"></script>
@@ -152,7 +154,7 @@
             </div>
             <div class="fp-bank-box">
                 <div class="fp-bank-label" id="mbankLabel">MBANK номери</div>
-                <div class="num">0600 600 828</div>
+                <div class="num" id="bankPhoneNumber">0600 600 828</div>
                 <div class="fp-bank-label" id="recipientLabel" style="margin-top:12px">Алуучу: Ратбек С.</div>
                 <div class="fp-bank-label" id="transferAmountLabel" style="margin-top:12px">Которула турган сумма:</div>
                 <div id="paymentAmount" class="num fp-bank-sum">0 сом</div>
@@ -296,7 +298,7 @@
         document.getElementById('payBankTitle').textContent = CustomerI18n.t('payBankTransfer');
         document.getElementById('payBankHint').textContent = CustomerI18n.t('payBankHint');
         document.getElementById('mbankLabel').textContent = CustomerI18n.t('mbankLabel');
-        document.getElementById('recipientLabel').textContent = CustomerI18n.t('recipientLabel');
+        if (window.applyBankPaymentInfo) applyBankPaymentInfo();
         document.getElementById('transferAmountLabel').textContent = CustomerI18n.t('transferAmountLabel');
         document.getElementById('uploadReceiptText').textContent = CustomerI18n.t('uploadReceipt');
         document.getElementById('uploadReceiptBtn').textContent = CustomerI18n.t('uploadReceiptBtn');

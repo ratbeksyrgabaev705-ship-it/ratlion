@@ -57,7 +57,7 @@
         </section>
 
         <section id="sec-restaurants" class="delivery-section">
-            <div class="delivery-head"><h1>Ресторандар</h1><p>Ресторан тизмеси — маалымат үчүн баскыла</p></div>
+            <div class="delivery-head"><h1>Ресторандар</h1><p>Картаны басыңыз — банк которуу номери жана алуучunun аты-жönü</p></div>
             <div id="dRestGrid" class="delivery-rest-grid"></div>
         </section>
 
@@ -140,7 +140,22 @@
         </section>
 
         <section id="sec-settings" class="delivery-section">
-            <div class="delivery-head"><h1>Орнотуулар</h1><p>RATLION жалпы орнотуулары</p></div>
+            <div class="delivery-head"><h1>Орнотуулар</h1><p>RATLION башкаруу — банк которуу, оператор</p></div>
+            <div class="delivery-panel" style="margin-bottom:16px">
+                <label class="delivery-label">💳 Банк которуу (ар бир ресторан)</label>
+                <p style="font-size:13px;color:var(--d-muted);margin:8px 0 12px;line-height:1.5">
+                    Кардар төлөө баракчасында көрүнүүчү MBANK номери жана алуучunun аты-жönü. Ар бир ресторан өз номери менен иштейт.
+                </p>
+                <div class="delivery-toolbar" style="flex-wrap:wrap;margin-bottom:10px">
+                    <select id="dBankRest" class="delivery-select" onchange="dLoadBankSettings()">
+                        <option value="">Ресторан тандаңыз</option>
+                    </select>
+                    <input id="dBankPhoneSet" class="delivery-input" type="tel" placeholder="MBANK номери (0600 600 828)">
+                    <input id="dBankRecipientSet" class="delivery-input" type="text" placeholder="Алуучunun аты-жönü (Ратбек С.)">
+                    <button type="button" class="delivery-btn delivery-btn-primary" onclick="dSaveBankSettings()">Сактоо</button>
+                </div>
+                <p id="dBankHint" style="font-size:12px;color:var(--d-muted)">Ресторан тандаңыз</p>
+            </div>
             <div class="delivery-panel">
                 <label class="delivery-label">Оператордун аты</label>
                 <div class="delivery-toolbar" style="margin-top:8px">
@@ -181,6 +196,6 @@
 
 <script src="/reports-ui.js"></script>
 <script src="/push-notify.js"></script>
-<script src="/delivery.js?v=6"></script>
+<script src="/delivery.js?v=8"></script>
 </body>
 </html>

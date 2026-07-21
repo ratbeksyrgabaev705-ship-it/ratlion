@@ -49,6 +49,12 @@ public class Restaurant {
     /** Telegram чат ID — жаңы заказ келгенде билдирүү */
     private String telegramChatId;
 
+    /** MBANK / банк которуу номери */
+    private String bankPhone;
+
+    /** Алуучунун аты-жönü (банк которуу) */
+    private String bankRecipientName;
+
     public Restaurant() {
     }
 
@@ -187,5 +193,21 @@ public class Restaurant {
 
     public void setTelegramChatId(String telegramChatId) {
         this.telegramChatId = telegramChatId;
+    }
+
+    public String getBankPhone() {
+        return bankPhone;
+    }
+
+    public void setBankPhone(String bankPhone) {
+        this.bankPhone = bankPhone;
+    }
+
+    public String getBankRecipientName() {
+        return bankRecipientName;
+    }
+
+    public void setBankRecipientName(String bankRecipientName) {
+        this.bankRecipientName = bankRecipientName;
     }
 }

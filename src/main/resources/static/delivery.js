@@ -176,7 +176,47 @@
             clearInterval(courierActivityTimer);
             courierActivityTimer = null;
         }
-        if (section === 'settings') { /* noop */ }
+        if (section === 'settings') initSettings();
+    };
+
+    function initSettings() {
+        const sel = q('dBankRest');
+        if (sel) {
+            const prev = sel.value;
+            sel.innerHTML = '<option value="">Ресторан тандаңыз</option>' +
+                restaurants.map(function (r) {
+                    return `<option value="${r.id}">${esc(r.emoji || '🏪')} ${esc(r.name)}</option>`;
+                }).join('');
+            if (prev) sel.value = prev;
+        }
+        const op = q('dOperator');
+        if (op && !op.value) op.value = localStorage.getItem('ratlionOperator') || '';
+        dLoadBankSettings();
+    }
+
+    window.dLoadBankSettings = function () {
+        const id = q('dBankRest')?.value;
+        const hint = q('dBankHint');
+        const phone = q('dBankPhoneSet');
+        const recipient = q('dBankRecipientSet');
+        if (!id) {
+            if (phone) phone.value = '';
+            if (recipient) recipient.value = '';
+            if (hint) hint.textContent = 'Ресторан тандаңыз';
+            return;
+        }
+        const r = restaurantMap[id];
+        if (!r) return;
+        if (phone) phone.value = r.bankPhone || '0600 600 828';
+        if (recipient) recipient.value = r.bankRecipientName || 'Ратбек С.';
+        if (hint) hint.textContent = 'Кардар checkout: /' + (r.slug || '') + '/receipt';
+    };
+
+    window.dSaveBankSettings = async function () {
+        const id = q('dBankRest')?.value;
+        if (!id) { alert('Ресторан тандаңыз'); return; }
+        await dSaveBankPayment(Number(id), q('dBankPhoneSet')?.value, q('dBankRecipientSet')?.value);
+        dLoadBankSettings();
     };
 
     function handleHash() {
@@ -273,6 +313,7 @@
             <article class="delivery-rest-card" onclick="dOpenRestaurant(${r.id})">
                 <h3>${r.emoji || '🏪'} ${esc(r.name)}</h3>
                 <p>${esc(r.tagline || r.address || '—')}</p>
+                <p style="font-size:12px;color:var(--d-muted);margin-top:6px">💳 ${esc(r.bankPhone || '0600 600 828')} · ${esc(r.bankRecipientName || 'Ратбек С.')}</p>
                 <span class="delivery-badge ${r.active !== false ? 'delivery-badge-accepted' : 'delivery-badge-rejected'}">
                     ${r.active !== false ? 'Ачык' : 'Жабык'}
                 </span>
@@ -282,13 +323,22 @@
     window.dOpenRestaurant = function (id) {
         const r = restaurantMap[id];
         if (!r) return;
-        q('dRestModalTitle').textContent = 'Ресторан маалыматы';
+        q('dRestModalTitle').textContent = r.name || 'Ресторан';
         q('dRestModalBody').innerHTML = `
             <div class="delivery-detail-grid">
                 <div><strong>Ресторандын аты</strong><br>${esc(r.name)}</div>
                 <div><strong>Абалы</strong><br>${r.active !== false ? '🟢 Ачык' : '🔴 Жабык'}</div>
                 <div><strong>Телефон</strong><br>${esc(r.phone || '—')}</div>
                 <div><strong>Дарек</strong><br>${esc(r.address || '—')}</div>
+                <div class="full" style="margin-top:16px;padding-top:16px;border-top:1px solid var(--d-line)">
+                    <label class="delivery-label">💳 Банк которуу (кардар checkout)</label>
+                    <p style="font-size:12px;color:var(--d-muted);margin:6px 0 10px">MBANK номери жана алуучунун аты-жönü — кардар төлөө баракчасында көрүнөт</p>
+                    <div class="delivery-toolbar" style="flex-wrap:wrap;margin-bottom:8px">
+                        <input id="dBankPhone" class="delivery-input" type="tel" placeholder="0600 600 828" value="${esc(r.bankPhone || '0600 600 828')}">
+                        <input id="dBankRecipient" class="delivery-input" type="text" placeholder="Ратбек С." value="${esc(r.bankRecipientName || 'Ратбек С.')}">
+                    </div>
+                    <button type="button" class="delivery-btn delivery-btn-primary delivery-btn-sm" onclick="dSaveBankPayment(${r.id})">Банк маалыматын сактоо</button>
+                </div>
                 <div class="full" style="display:flex;flex-wrap:wrap;gap:8px;margin-top:12px">
                     <button class="delivery-btn delivery-btn-sm ${r.active ? 'delivery-btn-green' : 'delivery-btn-outline'}" onclick="dToggleRest(${r.id}, ${!r.active})">${r.active ? 'Ресторанды жабуу' : 'Ресторанды ачуу'}</button>
                     <a class="delivery-btn delivery-btn-outline delivery-btn-sm" href="/kitchen/${esc(r.slug)}" target="_blank">🍳 Кухня</a>
@@ -296,6 +346,37 @@
                 </div>
             </div>`;
         q('dRestModal').classList.add('open');
+    };
+
+    window.dSaveBankPayment = async function (id, phoneVal, recipientVal) {
+        const r = restaurantMap[id];
+        if (!r) return;
+        const bankPhone = (phoneVal != null ? phoneVal : (q('dBankPhone')?.value || '')).trim();
+        const bankRecipientName = (recipientVal != null ? recipientVal : (q('dBankRecipient')?.value || '')).trim();
+        if (!bankPhone || !bankRecipientName) {
+            alert('MBANK номери жана алуучунун аты-жönü керек');
+            return;
+        }
+        try {
+            const res = await fetch('/api/restaurants/' + id, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ ...r, bankPhone, bankRecipientName })
+            });
+            if (!res.ok) {
+                const err = await res.json().catch(function () { return {}; });
+                alert(err.error || 'Сакталган жок');
+                return;
+            }
+            const saved = await res.json();
+            restaurantMap[id] = { ...r, ...saved };
+            restaurants = restaurants.map(function (x) { return x.id === id ? restaurantMap[id] : x; });
+            renderRestaurants();
+            alert('✅ Банк маалыматы сакталды');
+            if (q('dRestModal')?.classList.contains('open')) dOpenRestaurant(id);
+        } catch (e) {
+            alert('Сактоо ишке ашкан жок');
+        }
     };
 
     window.dCloseRestModal = function () { q('dRestModal').classList.remove('open'); };

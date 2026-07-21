@@ -123,6 +123,16 @@ public class RestaurantController {
                     ? null
                     : updatedRestaurant.getTelegramChatId().trim());
         }
+        if (updatedRestaurant.getBankPhone() != null) {
+            restaurant.setBankPhone(updatedRestaurant.getBankPhone().isBlank()
+                    ? null
+                    : updatedRestaurant.getBankPhone().trim());
+        }
+        if (updatedRestaurant.getBankRecipientName() != null) {
+            restaurant.setBankRecipientName(updatedRestaurant.getBankRecipientName().isBlank()
+                    ? null
+                    : updatedRestaurant.getBankRecipientName().trim());
+        }
 
         if (updatedRestaurant.getSlug() != null && !updatedRestaurant.getSlug().isBlank()) {
             String slug = slugify(updatedRestaurant.getSlug());
@@ -154,6 +164,8 @@ public class RestaurantController {
         result.put("acceptingOrders", saved.getAcceptingOrders());
         result.put("ordersPaused", saved.getOrdersPaused());
         result.put("telegramChatId", saved.getTelegramChatId());
+        result.put("bankPhone", saved.getBankPhone());
+        result.put("bankRecipientName", saved.getBankRecipientName());
 
         String tgChatId = saved.getTelegramChatId();
         if (tgChatId != null && !tgChatId.isBlank()) {
