@@ -284,7 +284,7 @@ public class PageController {
         if ("femili".equalsIgnoreCase(slug)) {
             return "redirect:/family";
         }
-        if ("bazar-korgon".equalsIgnoreCase(slug) || "chaikhana".equalsIgnoreCase(slug)) {
+        if ("bazar-korgon".equalsIgnoreCase(slug)) {
             return "redirect:/ordo-cafe";
         }
         Restaurant restaurant = restaurantPageService.findBySlug(slug).orElse(null);

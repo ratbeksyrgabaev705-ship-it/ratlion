@@ -25,9 +25,7 @@ public class RestaurantPageService {
         if ("femili".equals(normalized) || "femily".equals(normalized)) {
             return "family";
         }
-        if ("ordo".equals(normalized)
-                || "bazar-korgon".equals(normalized)
-                || "chaikhana".equals(normalized)) {
+        if ("ordo".equals(normalized)) {
             return "ordo-cafe";
         }
         if ("burgerman".equals(normalized)) {
@@ -94,6 +92,9 @@ public class RestaurantPageService {
         if ("ordo-cafe".equals(s)) {
             return "ordo-cafe-" + defaultTemplate;
         }
+        if ("chaikhana".equals(s)) {
+            return "ordo-cafe-" + defaultTemplate;
+        }
         if ("zhorolor".equals(s)) {
             return "zhorolor-" + defaultTemplate;
         }
@@ -117,6 +118,9 @@ public class RestaurantPageService {
         if ("ordo-cafe".equals(s)) {
             return "ordo-cafe";
         }
+        if ("chaikhana".equals(s)) {
+            return "chaikhana";
+        }
         if ("zhorolor".equals(s)) {
             return "zhorolor";
         }
@@ -128,6 +132,7 @@ public class RestaurantPageService {
             case "family" -> "/family-customer.css";
             case "aga-ini" -> "/aga-ini-customer.css?v=2";
             case "ordo-cafe" -> "/ordo-cafe-customer.css";
+            case "chaikhana" -> "/ordo-cafe-customer.css";
             case "burger-men" -> "/burger-men-customer.css?v=2";
             case "zhorolor" -> "/zhorolor-customer.css?v=10";
             default -> "/default-customer.css";

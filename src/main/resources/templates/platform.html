@@ -167,7 +167,7 @@
     <aside class="sidebar">
         <div class="brand">
             <div class="brand-title">🚀 Менин панелим</div>
-            <div class="brand-sub">5 ресторанга чейин платформа</div>
+            <div class="brand-sub">6 ресторанга чейин платформа</div>
         </div>
         <nav class="nav">
             <button class="nav-btn active" data-screen="dashboard" onclick="showScreen('dashboard', this)">📊 Dashboard</button>
@@ -208,7 +208,7 @@
                     <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;">
                         <div>
                             <div class="card-title" style="margin:0;">Ресторандар</div>
-                            <div style="font-size:13px;color:var(--muted);margin-top:4px;">Максимум 5 ресторан</div>
+                            <div style="font-size:13px;color:var(--muted);margin-top:4px;">Максимум 6 ресторан</div>
                         </div>
                         <button id="addRestaurantBtn" class="btn gold" onclick="openRestaurantModal()">+ Ресторан кошуу</button>
                     </div>
@@ -328,7 +328,7 @@
             document.getElementById('restCountBadge').textContent = dashboardData.restaurantCount || 0;
             document.getElementById('newOrdersBadge').textContent = dashboardData.newOrders || 0;
             document.getElementById('addRestaurantBtn').disabled =
-                (dashboardData.restaurantCount || 0) >= (dashboardData.maxRestaurants || 5);
+                (dashboardData.restaurantCount || 0) >= (dashboardData.maxRestaurants || 6);
         } catch (e) {
             console.error(e);
         }

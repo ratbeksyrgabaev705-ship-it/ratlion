@@ -120,7 +120,7 @@ public class PlatformService {
         dashboard.put("activeOrders", activeOrders);
         dashboard.put("activeCouriers", activeCouriers);
         dashboard.put("restaurantCount", restaurants.size());
-        dashboard.put("maxRestaurants", 5);
+        dashboard.put("maxRestaurants", 6);
         dashboard.put("restaurants", restaurantRows);
         dashboard.put("recentOrders", recentOrders);
         dashboard.put("selectedRestaurantId", restaurantId);

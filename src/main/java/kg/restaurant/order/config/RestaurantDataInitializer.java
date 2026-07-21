@@ -25,7 +25,7 @@ public class RestaurantDataInitializer implements CommandLineRunner {
     private static final Logger log = LoggerFactory.getLogger(RestaurantDataInitializer.class);
     private static final int MAX_RESTAURANTS = 50;
     private static final java.util.Set<String> CANONICAL_SLUGS = java.util.Set.of(
-            "aga-ini", "ordo-cafe", "family", "burger-men", "zhorolor"
+            "aga-ini", "ordo-cafe", "chaikhana", "family", "burger-men", "zhorolor"
     );
 
     private final RestaurantRepository restaurantRepository;
@@ -69,6 +69,7 @@ public class RestaurantDataInitializer implements CommandLineRunner {
             ensureFamilyRestaurant();
             ensureBurgerMenRestaurant();
             ensureOrdoCafeRestaurant();
+            ensureChaikhanaRestaurant();
             ensureZhorolorRestaurant();
             ensureAgaIniRestaurant();
             migrateLegacyRestaurantSlugs();
@@ -79,6 +80,7 @@ public class RestaurantDataInitializer implements CommandLineRunner {
             backfillRestaurantIds();
             seedFamilyMenuIfEmpty();
             seedOrdoCafeMenuIfEmpty();
+            seedChaikhanaMenuIfEmpty();
             seedAgaIniMenuIfEmpty();
             seedBurgerMenMenuIfEmpty();
             seedZhorolorMenuIfEmpty();
@@ -212,6 +214,34 @@ public class RestaurantDataInitializer implements CommandLineRunner {
         restaurantRepository.save(ordo);
     }
 
+    private void ensureChaikhanaRestaurant() {
+        Restaurant chaikhana = restaurantRepository.findBySlug("chaikhana").orElse(null);
+        if (chaikhana == null) {
+            chaikhana = buildRestaurant(
+                    "ЧАЙХАНА", "chaikhana", "🍵", "#8B4513", "CH",
+                    "Лагман, плов, самса"
+            );
+            chaikhana.setLogoUrl("/restaurant/ordo-cafe/logo.png");
+            chaikhana.setBannerUrl("/restaurant/ordo-cafe/hero-bg.jpg");
+            restaurantRepository.save(chaikhana);
+            log.info("Created Chaikhana restaurant");
+            return;
+        }
+        chaikhana.setActive(true);
+        chaikhana.setAcceptingOrders(true);
+        chaikhana.setName("ЧАЙХАНА");
+        chaikhana.setCustomerUrl("/chaikhana");
+        chaikhana.setTagline("Лагман, плов, самса");
+        chaikhana.setAddress("Базар-Коргон шаары");
+        if (chaikhana.getAccentColor() == null || chaikhana.getAccentColor().isBlank()) {
+            chaikhana.setAccentColor("#8B4513");
+        }
+        if (chaikhana.getOrderPrefix() == null || chaikhana.getOrderPrefix().isBlank()) {
+            chaikhana.setOrderPrefix("CH");
+        }
+        restaurantRepository.save(chaikhana);
+    }
+
     private void migrateLegacyRestaurantSlugs() {
         restaurantRepository.findBySlug("bazar-korgon").ifPresent(old -> {
             if (restaurantRepository.findBySlug("ordo-cafe").isEmpty()) {
@@ -227,29 +257,17 @@ public class RestaurantDataInitializer implements CommandLineRunner {
                 restaurantRepository.save(old);
             }
         });
-        restaurantRepository.findBySlug("chaikhana").ifPresent(old -> {
-            if (restaurantRepository.findBySlug("ordo-cafe").isEmpty()) {
-                old.setSlug("ordo-cafe");
-                old.setName("ОРДО");
-                old.setCustomerUrl("/ordo-cafe");
-                old.setOrderPrefix("OD");
-                restaurantRepository.save(old);
-                log.info("Migrated chaikhana slug to ordo-cafe");
-            } else {
-                old.setActive(false);
-                restaurantRepository.save(old);
-            }
-        });
     }
 
-    /** Заказ номери префикстери: AI1, OD1, FM1, BM1, JS1 */
+    /** Заказ номери префикстери: AI1, OD1, CH1, FM1, BM1, JS1 */
     private void syncOrderPrefixes() {
-        Map<String, String> prefixes = Map.of(
-                "aga-ini", "AI",
-                "ordo-cafe", "OD",
-                "family", "FM",
-                "burger-men", "BM",
-                "zhorolor", "JS"
+        Map<String, String> prefixes = Map.ofEntries(
+                Map.entry("aga-ini", "AI"),
+                Map.entry("ordo-cafe", "OD"),
+                Map.entry("chaikhana", "CH"),
+                Map.entry("family", "FM"),
+                Map.entry("burger-men", "BM"),
+                Map.entry("zhorolor", "JS")
         );
         for (Map.Entry<String, String> entry : prefixes.entrySet()) {
             restaurantRepository.findBySlug(entry.getKey()).ifPresent(restaurant -> {
@@ -496,6 +514,36 @@ public class RestaurantDataInitializer implements CommandLineRunner {
 
         menuItemRepository.saveAll(menu);
         log.info("Seeded {} menu items for Ordo Cafe (id={})", menu.size(), rid);
+    }
+
+    private void seedChaikhanaMenuIfEmpty() {
+        Restaurant chaikhana = restaurantRepository.findBySlug("chaikhana").orElse(null);
+        if (chaikhana == null || menuItemRepository.findByRestaurantId(chaikhana.getId()).size() > 0) {
+            return;
+        }
+        seedOrdoStyleMenu(chaikhana.getId(), "Chaikhana");
+    }
+
+    private void seedOrdoStyleMenu(Long restaurantId, String label) {
+        List<MenuItem> menu = List.of(
+                bkMenuItem(restaurantId, "Уйгур лагман 0,7", "Уйгурский лагман 0,7", "Лагман", "Лагман",
+                        "Колго чоюлган кесме, уй эти, жашылчалар", "Домашняя лапша с говядиной", 280.0,
+                        "https://images.unsplash.com/photo-1569718212165-3a8278d5f624?w=400&q=80"),
+                bkMenuItem(restaurantId, "Плов", "Плов", "Плов", "Плов",
+                        "Күрүч, уй эти, сабиз, пияз", "Рис, говядина, морковь", 350.0,
+                        "https://images.unsplash.com/photo-1603133872878-684f208fb84b?w=400&q=80"),
+                bkMenuItem(restaurantId, "Этти самса", "Самса с мясом", "Самса", "Самса",
+                        "Тандырда бышырылган этти самса", "Самса с мясом", 80.0,
+                        "https://images.unsplash.com/photo-1601050690597-df0568f70950?w=400&q=80"),
+                bkMenuItem(restaurantId, "Шорпа", "Шорпа", "Шорпо", "Шорпо",
+                        "Уй эти, картошка, жашылчалар", "Говядина, картофель", 280.0,
+                        "https://images.unsplash.com/photo-1547592166-23ac45744acd?w=400&q=80"),
+                bkMenuItem(restaurantId, "Жашыл чай", "Зелёный чай", "Ичимдиктер", "Напитки",
+                        "Ысыk жашыл чай", "Зелёный чай", 50.0,
+                        "https://images.unsplash.com/photo-1556679343-c7306c1976bc?w=400&q=80")
+        );
+        menuItemRepository.saveAll(menu);
+        log.info("Seeded {} menu items for {} (id={})", menu.size(), label, restaurantId);
     }
 
     private void seedZhorolorMenuIfEmpty() {
