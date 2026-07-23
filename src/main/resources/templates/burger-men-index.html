@@ -23,9 +23,9 @@
     <header class="bm-topbar">
         <div th:if="${restaurantSlug == 'mburger'}" class="bm-brand bm-brand-mburger">
             <img class="bm-brand-logo"
-                 th:src="${restaurantLogo != null && !#strings.isEmpty(restaurantLogo) ? restaurantLogo : '/restaurant/mburger/logo.png?v=2'}"
+                 th:src="${restaurantLogo != null && !#strings.isEmpty(restaurantLogo) ? restaurantLogo : '/restaurant/mburger/logo.png?v=3'}"
                  th:alt="${restaurantName}"
-                 src="/restaurant/mburger/logo.png?v=2"
+                 src="/restaurant/mburger/logo.png?v=3"
                  alt="MBURGER">
         </div>
         <div th:unless="${restaurantSlug == 'mburger'}" class="bm-brand">

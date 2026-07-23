@@ -225,7 +225,7 @@ public class RestaurantDataInitializer implements CommandLineRunner {
                 old.setTagline("ДААМДУУ · ТЕЗ · САПАТТУУ");
                 old.setEmoji("🍔");
                 old.setAccentColor("#FF6B00");
-                old.setLogoUrl("/restaurant/mburger/logo.png?v=2");
+                old.setLogoUrl("/restaurant/mburger/logo.png?v=3");
                 old.setBannerUrl("https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?w=800&q=80");
                 menuItemRepository.deleteAll(menuItemRepository.findByRestaurantId(old.getId()));
                 restaurantRepository.save(old);
@@ -239,7 +239,7 @@ public class RestaurantDataInitializer implements CommandLineRunner {
                     "MBURGER", "mburger", "🍔", "#F5A623", "MB",
                     "ДААМДУУ · ТЕЗ · САПАТТУУ"
             );
-            mburger.setLogoUrl("/restaurant/mburger/logo.png?v=2");
+            mburger.setLogoUrl("/restaurant/mburger/logo.png?v=3");
             mburger.setBannerUrl("https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?w=800&q=80");
             restaurantRepository.save(mburger);
             log.info("Created MBURGER restaurant");
@@ -250,7 +250,7 @@ public class RestaurantDataInitializer implements CommandLineRunner {
         mburger.setName("MBURGER");
         mburger.setCustomerUrl("/mburger");
         mburger.setTagline("ДААМДУУ · ТЕЗ · САПАТТУУ");
-        mburger.setLogoUrl("/restaurant/mburger/logo.png?v=2");
+        mburger.setLogoUrl("/restaurant/mburger/logo.png?v=3");
         mburger.setAccentColor("#F5A623");
         mburger.setAddress("Базар-Коргон шаары");
         if (mburger.getOrderPrefix() == null || mburger.getOrderPrefix().isBlank()) {
