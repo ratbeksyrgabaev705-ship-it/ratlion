@@ -17,12 +17,25 @@
     <script src="/restaurant-context.js"></script>
     <script src="/restaurant-i18n.js"></script>
 </head>
-<body class="bm-body">
+<body th:class="${restaurantSlug == 'mburger' ? 'bm-body bm-body-mburger' : 'bm-body'}">
 
 <div class="bm-page">
     <header class="bm-topbar">
-        <div class="bm-brand">
-            <span class="bm-brand-icon">🍔</span>
+        <div th:if="${restaurantSlug == 'mburger'}" class="bm-brand bm-brand-mburger">
+            <img class="bm-brand-logo"
+                 th:src="${restaurantLogo != null && !#strings.isEmpty(restaurantLogo) ? restaurantLogo : '/restaurant/mburger/logo.png?v=1'}"
+                 th:alt="${restaurantName}"
+                 src="/restaurant/mburger/logo.png?v=1"
+                 alt="MBURGER">
+        </div>
+        <div th:unless="${restaurantSlug == 'mburger'}" class="bm-brand">
+            <img th:if="${restaurantLogo != null && !#strings.isEmpty(restaurantLogo)}"
+                 class="bm-brand-logo"
+                 th:src="${restaurantLogo}"
+                 th:alt="${restaurantName}"
+                 alt="">
+            <span th:unless="${restaurantLogo != null && !#strings.isEmpty(restaurantLogo)}"
+                  class="bm-brand-icon">🍔</span>
             <div>
                 <div class="bm-brand-title">
                     <span class="bm-burger">BURGER</span><span class="bm-man">MAN</span>
@@ -498,8 +511,9 @@
     }
 
     function applyLanguage() {
-        document.getElementById('promoTitle').innerHTML = CustomerI18n.t('bmPromoTitle');
-        document.getElementById('promoSub').textContent = CustomerI18n.t('bmPromoSub');
+        const isMburger = window.restaurantSlug === 'mburger';
+        document.getElementById('promoTitle').innerHTML = CustomerI18n.t(isMburger ? 'mbPromoTitle' : 'bmPromoTitle');
+        document.getElementById('promoSub').textContent = CustomerI18n.t(isMburger ? 'mbPromoSub' : 'bmPromoSub');
         document.getElementById('promoDelivery').textContent = CustomerI18n.t('bmDelivery');
         document.getElementById('promoCity').textContent = window.RESTAURANT.address || 'Базар-Коргон';
         document.getElementById('openCartText').textContent = CustomerI18n.t('openCart');

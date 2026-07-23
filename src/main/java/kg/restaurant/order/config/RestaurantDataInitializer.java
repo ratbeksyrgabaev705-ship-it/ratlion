@@ -222,10 +222,10 @@ public class RestaurantDataInitializer implements CommandLineRunner {
                 old.setName("MBURGER");
                 old.setCustomerUrl("/mburger");
                 old.setOrderPrefix("MB");
-                old.setTagline("Бургер · Картошка · Комбо · Соус");
+                old.setTagline("ДААМДУУ · ТЕЗ · САПАТТУУ");
                 old.setEmoji("🍔");
                 old.setAccentColor("#FF6B00");
-                old.setLogoUrl("/restaurant/burger-men/logo.svg");
+                old.setLogoUrl("/restaurant/mburger/logo.png?v=1");
                 old.setBannerUrl("https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?w=800&q=80");
                 menuItemRepository.deleteAll(menuItemRepository.findByRestaurantId(old.getId()));
                 restaurantRepository.save(old);
@@ -236,10 +236,10 @@ public class RestaurantDataInitializer implements CommandLineRunner {
         Restaurant mburger = restaurantRepository.findBySlug("mburger").orElse(null);
         if (mburger == null) {
             mburger = buildRestaurant(
-                    "MBURGER", "mburger", "🍔", "#FF6B00", "MB",
-                    "Бургер · Картошка · Комбо · Соус"
+                    "MBURGER", "mburger", "🍔", "#F5A623", "MB",
+                    "ДААМДУУ · ТЕЗ · САПАТТУУ"
             );
-            mburger.setLogoUrl("/restaurant/burger-men/logo.svg");
+            mburger.setLogoUrl("/restaurant/mburger/logo.png?v=1");
             mburger.setBannerUrl("https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?w=800&q=80");
             restaurantRepository.save(mburger);
             log.info("Created MBURGER restaurant");
@@ -249,16 +249,12 @@ public class RestaurantDataInitializer implements CommandLineRunner {
         mburger.setAcceptingOrders(true);
         mburger.setName("MBURGER");
         mburger.setCustomerUrl("/mburger");
-        mburger.setTagline("Бургер · Картошка · Комбо · Соус");
+        mburger.setTagline("ДААМДУУ · ТЕЗ · САПАТТУУ");
+        mburger.setLogoUrl("/restaurant/mburger/logo.png?v=1");
+        mburger.setAccentColor("#F5A623");
         mburger.setAddress("Базар-Коргон шаары");
-        if (mburger.getAccentColor() == null || mburger.getAccentColor().isBlank()) {
-            mburger.setAccentColor("#FF6B00");
-        }
         if (mburger.getOrderPrefix() == null || mburger.getOrderPrefix().isBlank()) {
             mburger.setOrderPrefix("MB");
-        }
-        if (mburger.getLogoUrl() == null || mburger.getLogoUrl().isBlank()) {
-            mburger.setLogoUrl("/restaurant/burger-men/logo.svg");
         }
         restaurantRepository.save(mburger);
     }
