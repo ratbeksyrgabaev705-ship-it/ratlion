@@ -69,29 +69,46 @@ button { cursor: pointer; border: none; background: none; }
 .bm-body-mburger .bm-topbar {
     background: #f5a623 !important;
     margin: 0;
-    padding: 10px 16px 12px;
+    padding: 10px 12px 12px;
     border-radius: 0 0 18px 18px;
     border-bottom: none;
     box-shadow: 0 4px 14px rgba(217, 119, 6, 0.28);
+    display: grid;
+    grid-template-columns: 52px 1fr auto;
+    align-items: center;
+    gap: 8px;
+}
+
+.bm-mburger-title {
+    text-align: center;
+    font-size: 26px;
+    font-weight: 900;
+    letter-spacing: 3px;
+    line-height: 1;
+    color: #1a1008;
+    text-shadow: 0 1px 0 rgba(255, 255, 255, 0.45);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .bm-body-mburger .bm-brand-mburger {
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 68px;
-    height: 68px;
+    width: 52px;
+    height: 52px;
     border-radius: 50%;
     background: #120a04;
     border: 2px solid rgba(255, 255, 255, 0.35);
-    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.28);
+    box-shadow: 0 3px 10px rgba(0, 0, 0, 0.22);
     flex-shrink: 0;
     overflow: hidden;
 }
 
 .bm-body-mburger .bm-brand-mburger .bm-brand-logo {
-    height: 64px;
-    width: 64px;
+    height: 48px;
+    width: 48px;
     object-fit: cover;
     border-radius: 50%;
     filter: none;

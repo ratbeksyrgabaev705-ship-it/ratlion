@@ -28,6 +28,7 @@
                  src="/restaurant/mburger/logo.png?v=3"
                  alt="MBURGER">
         </div>
+        <div th:if="${restaurantSlug == 'mburger'}" class="bm-mburger-title" th:text="${restaurantName}">MBURGER</div>
         <div th:unless="${restaurantSlug == 'mburger'}" class="bm-brand">
             <img th:if="${restaurantLogo != null && !#strings.isEmpty(restaurantLogo)}"
                  class="bm-brand-logo"
