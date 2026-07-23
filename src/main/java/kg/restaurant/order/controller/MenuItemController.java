@@ -3,7 +3,6 @@ package kg.restaurant.order.controller;
 import kg.restaurant.order.model.MenuItem;
 import kg.restaurant.order.repository.MenuItemRepository;
 import kg.restaurant.order.service.ReceiptStorageService;
-import kg.restaurant.order.service.MenuContentService;
 import kg.restaurant.order.service.TelegramService;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.*;
@@ -23,18 +22,15 @@ public class MenuItemController {
     private final MenuItemRepository menuItemRepository;
     private final TelegramService telegramService;
     private final ReceiptStorageService receiptStorageService;
-    private final MenuContentService menuContentService;
 
     public MenuItemController(
             MenuItemRepository menuItemRepository,
             TelegramService telegramService,
-            ReceiptStorageService receiptStorageService,
-            MenuContentService menuContentService
+            ReceiptStorageService receiptStorageService
     ) {
         this.menuItemRepository = menuItemRepository;
         this.telegramService = telegramService;
         this.receiptStorageService = receiptStorageService;
-        this.menuContentService = menuContentService;
     }
 
     // Бардык тамактарды алуу
@@ -45,7 +41,7 @@ public class MenuItemController {
         List<MenuItem> items = restaurantId != null
                 ? menuItemRepository.findByRestaurantId(restaurantId)
                 : menuItemRepository.findAll();
-        return menuContentService.enrichAll(items);
+        return items;
     }
 
     /*
@@ -153,17 +149,17 @@ public class MenuItemController {
         if (item == null) return null;
 
         item.setName(updatedItem.getName());
-        item.setDescription(updatedItem.getDescription());
+        item.setDescription(blankToNull(updatedItem.getDescription()));
         item.setIngredients(updatedItem.getIngredients());
         item.setCategory(updatedItem.getCategory());
 
         item.setNameKg(updatedItem.getNameKg());
-        item.setDescriptionKg(updatedItem.getDescriptionKg());
+        item.setDescriptionKg(blankToNull(updatedItem.getDescriptionKg()));
         item.setIngredientsKg(updatedItem.getIngredientsKg());
         item.setCategoryKg(updatedItem.getCategoryKg());
 
         item.setNameRu(updatedItem.getNameRu());
-        item.setDescriptionRu(updatedItem.getDescriptionRu());
+        item.setDescriptionRu(blankToNull(updatedItem.getDescriptionRu()));
         item.setIngredientsRu(updatedItem.getIngredientsRu());
         item.setCategoryRu(updatedItem.getCategoryRu());
 
@@ -231,6 +227,13 @@ public class MenuItemController {
                     "Аты: " + item.getName() + " (ID: " + id + ")");
         }
         menuItemRepository.deleteById(id);
+    }
+
+    private String blankToNull(String value) {
+        if (value == null || value.isBlank()) {
+            return null;
+        }
+        return value.trim();
     }
 
     private String getFileExtension(String fileName) {

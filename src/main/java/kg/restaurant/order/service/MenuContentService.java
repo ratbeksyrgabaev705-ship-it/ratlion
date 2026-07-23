@@ -31,10 +31,8 @@ public class MenuContentService {
             applyCatalogEntry(item, matched.get());
         }
 
-        if (MenuContentGenerator.needsIngredients(item)
-                || MenuContentGenerator.needsDescription(item)
-                || hasShortContent(item)) {
-            MenuContentGenerator.applyGeneratedContent(item);
+        if (MenuContentGenerator.needsIngredients(item) || hasShortIngredients(item)) {
+            MenuContentGenerator.applyGeneratedIngredients(item);
         }
 
         syncLegacyFields(item);
@@ -52,10 +50,21 @@ public class MenuContentService {
     public boolean shouldPersistEnrichment(MenuItem original, MenuItem enriched) {
         return !safeEquals(original.getIngredientsKg(), enriched.getIngredientsKg())
                 || !safeEquals(original.getIngredientsRu(), enriched.getIngredientsRu())
-                || !safeEquals(original.getDescriptionKg(), enriched.getDescriptionKg())
-                || !safeEquals(original.getDescriptionRu(), enriched.getDescriptionRu())
-                || !safeEquals(original.getIngredients(), enriched.getIngredients())
-                || !safeEquals(original.getDescription(), enriched.getDescription());
+                || !safeEquals(original.getIngredients(), enriched.getIngredients());
+    }
+
+    private boolean matchesCatalogName(String candidate, String match) {
+        if (candidate.isBlank() || match.isBlank()) {
+            return false;
+        }
+        if (candidate.equals(match)) {
+            return true;
+        }
+        // Short tokens like "ош" must not match inside "кош".
+        if (match.length() < 4) {
+            return false;
+        }
+        return candidate.contains(match) || match.contains(candidate);
     }
 
     private Optional<MenuCatalogEntry> findCatalogMatch(MenuItem item) {
@@ -77,9 +86,8 @@ public class MenuContentService {
 
                 String normalizedCandidate = MenuContentGenerator.normalize(candidate);
                 for (String matchName : entry.getMatchNames()) {
-                    if (normalizedCandidate.equals(MenuContentGenerator.normalize(matchName))
-                            || normalizedCandidate.contains(MenuContentGenerator.normalize(matchName))
-                            || MenuContentGenerator.normalize(matchName).contains(normalizedCandidate)) {
+                    String normalizedMatch = MenuContentGenerator.normalize(matchName);
+                    if (matchesCatalogName(normalizedCandidate, normalizedMatch)) {
                         return Optional.of(entry);
                     }
                 }
@@ -104,20 +112,6 @@ public class MenuContentService {
             }
         }
 
-        if (MenuContentGenerator.needsDescription(item)) {
-            item.setDescriptionKg(entry.getDescriptionKg());
-            item.setDescriptionRu(entry.getDescriptionRu());
-            item.setDescription(entry.getDescriptionKg());
-        } else {
-            if (isTooShort(item.getDescriptionKg(), 60) && !isBlank(entry.getDescriptionKg())) {
-                item.setDescriptionKg(entry.getDescriptionKg());
-                item.setDescription(entry.getDescriptionKg());
-            }
-            if (isTooShort(item.getDescriptionRu(), 60) && !isBlank(entry.getDescriptionRu())) {
-                item.setDescriptionRu(entry.getDescriptionRu());
-            }
-        }
-
         if (isBlank(item.getCategoryKg()) && !isBlank(entry.getCategoryKg())) {
             item.setCategoryKg(entry.getCategoryKg());
         }
@@ -126,19 +120,14 @@ public class MenuContentService {
         }
     }
 
-    private boolean hasShortContent(MenuItem item) {
+    private boolean hasShortIngredients(MenuItem item) {
         return isTooShort(item.getIngredientsKg(), 40)
-                || isTooShort(item.getIngredientsRu(), 40)
-                || isTooShort(item.getDescriptionKg(), 60)
-                || isTooShort(item.getDescriptionRu(), 60);
+                || isTooShort(item.getIngredientsRu(), 40);
     }
 
     private void syncLegacyFields(MenuItem item) {
         if (isBlank(item.getIngredients()) && !isBlank(item.getIngredientsKg())) {
             item.setIngredients(item.getIngredientsKg());
-        }
-        if (isBlank(item.getDescription()) && !isBlank(item.getDescriptionKg())) {
-            item.setDescription(item.getDescriptionKg());
         }
     }
 

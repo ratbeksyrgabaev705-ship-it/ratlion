@@ -454,7 +454,7 @@
 
     function menuName(item) { return item.nameKg || item.name || item.nameRu || '—'; }
     function menuCategory(item) { return item.categoryKg || item.category || item.categoryRu || '—'; }
-    function menuDesc(item) { return item.descriptionKg || item.description || item.descriptionRu || ''; }
+    function menuDesc(item) { return item.descriptionKg || item.descriptionRu || ''; }
 
     function renderCategoryFilters(list) {
         const el = q('kMenuCategories');
@@ -532,7 +532,7 @@
     function fillMenuForm(item) {
         q('kmfName').value = item.nameKg || item.name || '';
         q('kmfCategory').value = item.categoryKg || item.category || '';
-        q('kmfDesc').value = item.descriptionKg || item.description || '';
+        q('kmfDesc').value = item.descriptionKg || '';
         q('kmfPrice').value = item.price || '';
         q('kmfNameRu').value = item.nameRu || '';
         q('kmfCategoryRu').value = item.categoryRu || '';
@@ -577,8 +577,8 @@
             nameRu: q('kmfNameRu').value.trim() || q('kmfName').value.trim(),
             categoryKg: q('kmfCategory').value.trim(),
             categoryRu: q('kmfCategoryRu').value.trim() || q('kmfCategory').value.trim(),
-            descriptionKg: q('kmfDesc').value.trim(),
-            descriptionRu: q('kmfDescRu').value.trim(),
+            descriptionKg: q('kmfDesc').value.trim() || null,
+            descriptionRu: q('kmfDescRu').value.trim() || null,
             ingredientsKg: q('kmfIngredients').value.trim(),
             ingredientsRu: q('kmfIngredients').value.trim(),
             price: Number(q('kmfPrice').value),
