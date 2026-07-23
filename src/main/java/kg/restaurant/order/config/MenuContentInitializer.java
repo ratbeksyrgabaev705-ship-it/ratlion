@@ -2,7 +2,6 @@ package kg.restaurant.order.config;
 
 import kg.restaurant.order.model.MenuItem;
 import kg.restaurant.order.repository.MenuItemRepository;
-import kg.restaurant.order.service.MenuContentService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.CommandLineRunner;
@@ -16,14 +15,9 @@ public class MenuContentInitializer implements CommandLineRunner {
     private static final Logger log = LoggerFactory.getLogger(MenuContentInitializer.class);
 
     private final MenuItemRepository menuItemRepository;
-    private final MenuContentService menuContentService;
 
-    public MenuContentInitializer(
-            MenuItemRepository menuItemRepository,
-            MenuContentService menuContentService
-    ) {
+    public MenuContentInitializer(MenuItemRepository menuItemRepository) {
         this.menuItemRepository = menuItemRepository;
-        this.menuContentService = menuContentService;
     }
 
     @Override
@@ -40,21 +34,9 @@ public class MenuContentInitializer implements CommandLineRunner {
                 clearedCount++;
             }
         }
+
         if (clearedCount > 0) {
             log.info("Cleared auto-generated menu descriptions for {} item(s)", clearedCount);
-        }
-
-        int updatedCount = 0;
-        for (MenuItem item : items) {
-            MenuItem enriched = menuContentService.enrich(item);
-            if (menuContentService.shouldPersistEnrichment(item, enriched)) {
-                menuItemRepository.save(enriched);
-                updatedCount++;
-            }
-        }
-
-        if (updatedCount > 0) {
-            log.info("Menu content enriched for {} item(s)", updatedCount);
         }
     }
 
@@ -85,6 +67,8 @@ public class MenuContentInitializer implements CommandLineRunner {
                 || text.contains("Чайхананын плову")
                 || text.contains("Плов Чайханы")
                 || text.contains("Сочный лагман — Чайхананын")
-                || text.contains("Одно из самых любимых классических блюд");
+                || text.contains("Одно из самых любимых классических блюд")
+                || text.contains("пremium тандоо")
+                || text.contains("премиальный выбор");
     }
 }

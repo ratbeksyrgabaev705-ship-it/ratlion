@@ -87,19 +87,19 @@ public class MenuItemController {
         // Эски талаалар
         menuItem.setName(nameKg);
         menuItem.setIngredients(ingredientsKg);
-        menuItem.setDescription(descriptionKg);
+        menuItem.setDescription(blankToNull(descriptionKg));
         menuItem.setCategory(categoryKg);
 
         // Кыргызча
         menuItem.setNameKg(nameKg);
         menuItem.setIngredientsKg(ingredientsKg);
-        menuItem.setDescriptionKg(descriptionKg);
+        menuItem.setDescriptionKg(blankToNull(descriptionKg));
         menuItem.setCategoryKg(categoryKg);
 
         // Орусча
         menuItem.setNameRu(nameRu);
         menuItem.setIngredientsRu(ingredientsRu);
-        menuItem.setDescriptionRu(descriptionRu);
+        menuItem.setDescriptionRu(blankToNull(descriptionRu));
         menuItem.setCategoryRu(categoryRu);
 
         menuItem.setPrice(price);
@@ -162,6 +162,12 @@ public class MenuItemController {
         item.setDescriptionRu(blankToNull(updatedItem.getDescriptionRu()));
         item.setIngredientsRu(updatedItem.getIngredientsRu());
         item.setCategoryRu(updatedItem.getCategoryRu());
+
+        if (item.getDescriptionKg() == null && item.getDescriptionRu() == null) {
+            item.setDescription(null);
+        } else if (item.getDescriptionKg() != null) {
+            item.setDescription(item.getDescriptionKg());
+        }
 
         item.setPrice(updatedItem.getPrice());
         item.setWeight(updatedItem.getWeight());
