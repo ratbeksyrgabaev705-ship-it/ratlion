@@ -148,7 +148,7 @@ public class RestaurantPageService {
             case "family" -> "/family-customer.css";
             case "aga-ini" -> "/aga-ini-customer.css?v=2";
             case "ordo-cafe" -> "/ordo-cafe-customer.css";
-            case "mburger" -> "/burger-men-customer.css?v=4";
+            case "mburger" -> "/burger-men-customer.css?v=5";
             case "burger-men" -> "/burger-men-customer.css?v=2";
             case "zhorolor" -> "/zhorolor-customer.css?v=10";
             default -> "/default-customer.css";
