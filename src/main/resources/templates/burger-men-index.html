@@ -127,21 +127,57 @@
     let sheetQty = 1;
     let sheetLockUntil = 0;
 
-    const CAT_DEFS = [
-        { key: 'all', i18n: 'catAll', match: () => true, icon: '🍽' },
-        { key: 'burgers', i18n: 'catBurgers', match: c => /бургер|burger/i.test(c), icon: '🍔' },
-        { key: 'combo', i18n: 'catCombo', match: c => /комбо|combo/i.test(c), icon: '🍟' },
-        { key: 'shawarma', i18n: 'catShawarma', match: c => /шаурма|shaver/i.test(c), icon: '🌯' },
-        { key: 'snacks', i18n: 'catSnacks', match: c => /снэк|закуск|картош|наггет|snack|fries/i.test(c), icon: '🍗' },
-        { key: 'drinks', i18n: 'catDrinks', match: c => /суусундук|напит|cola|кола|drink/i.test(c), icon: '🥤' },
-        { key: 'sauces', i18n: 'catSauces', match: c => /соус|sauce/i.test(c), icon: '🫙' }
-    ];
+    let dynamicCategories = [];
 
     const TAG_CYCLE = ['hit', 'new', 'spicy'];
 
     function formatMoney(v) { return Number(v || 0).toLocaleString('ru-RU', { maximumFractionDigits: 0 }); }
     function formatQty(v) { return Math.max(0, Math.round(Number(v || 0))); }
     function escapeHtml(v) { return String(v || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+    function categoryStorageKey(item) {
+        return (item.categoryKg || item.category || item.categoryRu || '').trim();
+    }
+
+    function categoryIcon(name) {
+        const c = String(name || '').toLowerCase();
+        if (/бургер|burger/i.test(c)) return '🍔';
+        if (/комбо|combo/i.test(c)) return '🍟';
+        if (/шаурма|shaver/i.test(c)) return '🌯';
+        if (/крыл|wing/i.test(c)) return '🍗';
+        if (/наггет|nugget/i.test(c)) return '🍗';
+        if (/жеңил|снэк|закуск|snack|донер/i.test(c)) return '🍟';
+        if (/картош|fries/i.test(c)) return '🍟';
+        if (/суусундук|напит|drink|кола/i.test(c)) return '🥤';
+        if (/соус|sauce/i.test(c)) return '🫙';
+        return '🍽';
+    }
+
+    function buildDynamicCategories() {
+        const map = new Map();
+        allMenuItems.forEach(item => {
+            const key = categoryStorageKey(item);
+            if (!key) return;
+            if (!map.has(key)) {
+                map.set(key, {
+                    key,
+                    labelKg: item.categoryKg || item.category || key,
+                    labelRu: item.categoryRu || item.category || item.categoryKg || key,
+                    icon: categoryIcon(key)
+                });
+            }
+        });
+        dynamicCategories = Array.from(map.values());
+    }
+
+    function getCategoryLabel(cat) {
+        if (!cat) return '';
+        return CustomerI18n.getLang() === 'ru' ? cat.labelRu : cat.labelKg;
+    }
+
+    function categoryRowId(key) {
+        return 'cat-' + String(key).replace(/[^a-zA-Z0-9\u0400-\u04FF]+/g, '-');
+    }
 
     function getName(item) { return CustomerI18n.getItemName(item) || 'Тамак'; }
     function getCategory(item) { return CustomerI18n.getCategory(item); }
@@ -246,9 +282,7 @@
     }
 
     function itemMatchesCat(item, catKey) {
-        const cat = getCategory(item);
-        const def = CAT_DEFS.find(d => d.key === catKey);
-        return def ? def.match(cat) : true;
+        return categoryStorageKey(item) === catKey;
     }
 
     function itemsForCat(catKey) {
@@ -256,7 +290,7 @@
     }
 
     function isHomeView() {
-        return selectedCat === 'all' || selectedCat === 'burgers' || selectedCat === 'combo' || selectedCat === 'shawarma';
+        return selectedCat === 'all';
     }
 
     function getTagHtml(item, index) {
@@ -298,15 +332,16 @@
         return `<article class="bm-combo-card" onclick="openSheet(${id}, event)">${imgHtml}<div class="bm-combo-info"><div class="bm-card-name">${escapeHtml(getName(item))}</div><div class="bm-card-desc">${escapeHtml(getDesc(item))}</div><div class="bm-card-foot"><span class="bm-card-price">${formatMoney(item.price)} сом</span>${renderAction(item, id)}</div></div></article>`;
     }
 
-    function renderCategorySection(titleKey, rowId, items, renderCard) {
+    function renderCategorySection(title, catKey, items, renderCard, showViewAll) {
         if (!items.length) return '';
-        const viewAllFn = rowId === 'burgersScrollRow' ? 'viewAllBurgers(event)'
-            : rowId === 'comboScrollRow' ? 'viewAllCombos(event)'
-            : 'viewAllShawarma(event)';
+        const rowId = categoryRowId(catKey);
+        const viewAllFn = showViewAll
+            ? `viewAllCategory(${JSON.stringify(catKey)}, event)`
+            : '';
         return `<section class="bm-section" id="${rowId}Section">
             <div class="bm-section-head">
-                <h2>${escapeHtml(CustomerI18n.t(titleKey))}</h2>
-                <button type="button" class="bm-section-link" onclick="${viewAllFn}">${escapeHtml(CustomerI18n.t('bmViewAll'))} ›</button>
+                <h2>${escapeHtml(title)}</h2>
+                ${showViewAll ? `<button type="button" class="bm-section-link" onclick="${viewAllFn}">${escapeHtml(CustomerI18n.t('bmViewAll'))} ›</button>` : ''}
             </div>
             <div id="${rowId}" class="bm-scroll-row">${items.map(renderCard).join('')}</div>
         </section>`;
@@ -319,19 +354,17 @@
         let html = '';
 
         if (isHomeView()) {
-            const burgers = itemsForCat('burgers');
-            const combos = itemsForCat('combo');
-            const shawarma = itemsForCat('shawarma');
-            html += renderCategorySection('catBurgers', 'burgersScrollRow', burgers, renderPopularCard);
-            html += renderCategorySection('catCombo', 'comboScrollRow', combos, renderComboCard);
-            html += renderCategorySection('catShawarma', 'shawarmaScrollRow', shawarma, renderPopularCard);
+            dynamicCategories.forEach(cat => {
+                const items = itemsForCat(cat.key);
+                const renderCard = /комбо|combo/i.test(cat.key) ? renderComboCard : renderPopularCard;
+                html += renderCategorySection(getCategoryLabel(cat), cat.key, items, renderCard, true);
+            });
         } else {
-            const def = CAT_DEFS.find(d => d.key === selectedCat);
+            const cat = dynamicCategories.find(c => c.key === selectedCat);
             const items = itemsForCat(selectedCat);
-            const titleKey = def ? def.i18n : 'catAll';
-            const renderCard = selectedCat === 'combo' ? renderComboCard : renderPopularCard;
+            const renderCard = /комбо|combo/i.test(selectedCat) ? renderComboCard : renderPopularCard;
             if (items.length) {
-                html += renderCategorySection(titleKey, selectedCat + 'ScrollRow', items, renderCard);
+                html += renderCategorySection(getCategoryLabel(cat), selectedCat, items, renderCard, false);
             }
         }
 
@@ -345,10 +378,10 @@
 
     function renderCategories() {
         const nav = document.getElementById('categoryNav');
-        nav.innerHTML = CAT_DEFS.filter(c => c.key !== 'all').map(cat => `
-            <button type="button" class="bm-cat-btn ${selectedCat === cat.key ? 'active' : ''}" data-cat="${cat.key}" onclick="selectCategory('${cat.key}')">
+        nav.innerHTML = dynamicCategories.map(cat => `
+            <button type="button" class="bm-cat-btn ${selectedCat === cat.key ? 'active' : ''}" data-cat="${escapeHtml(cat.key)}" onclick="selectCategory(${JSON.stringify(cat.key)})">
                 <span class="bm-cat-icon">${cat.icon}</span>
-                <span class="bm-cat-label">${escapeHtml(CustomerI18n.t(cat.i18n))}</span>
+                <span class="bm-cat-label">${escapeHtml(getCategoryLabel(cat))}</span>
             </button>
         `).join('');
     }
@@ -357,12 +390,9 @@
         selectedCat = key;
         renderCategories();
         renderMenu();
-        if (key === 'burgers' || key === 'combo' || key === 'shawarma') {
+        if (key !== 'all') {
             requestAnimationFrame(function () {
-                const rowId = key === 'burgers' ? 'burgersScrollRow'
-                    : key === 'combo' ? 'comboScrollRow'
-                    : 'shawarmaScrollRow';
-                document.getElementById(rowId + 'Section')?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                document.getElementById(categoryRowId(key) + 'Section')?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
             });
         }
     }
@@ -376,34 +406,14 @@
         });
     }
 
-    function viewAllBurgers(event) {
+    function viewAllCategory(catKey, event) {
         if (event) event.preventDefault();
-        if (!isHomeView()) {
-            selectedCat = 'all';
-            renderCategories();
-            renderMenu();
-        }
-        requestAnimationFrame(function () { scrollRowToEnd('burgersScrollRow'); });
-    }
-
-    function viewAllCombos(event) {
-        if (event) event.preventDefault();
-        if (!isHomeView()) {
-            selectedCat = 'all';
-            renderCategories();
-            renderMenu();
-        }
-        requestAnimationFrame(function () { scrollRowToEnd('comboScrollRow'); });
-    }
-
-    function viewAllShawarma(event) {
-        if (event) event.preventDefault();
-        if (!isHomeView()) {
-            selectedCat = 'all';
-            renderCategories();
-            renderMenu();
-        }
-        requestAnimationFrame(function () { scrollRowToEnd('shawarmaScrollRow'); });
+        selectedCat = 'all';
+        renderCategories();
+        renderMenu();
+        requestAnimationFrame(function () {
+            scrollRowToEnd(categoryRowId(catKey));
+        });
     }
 
     function openSheet(itemId, event) {
@@ -555,7 +565,11 @@
     fetch('/menu?restaurantId=' + encodeURIComponent(restaurantId))
         .then(r => r.ok ? r.json() : Promise.reject())
         .then(data => {
-            allMenuItems = Array.isArray(data) ? data : [];
+            allMenuItems = Array.isArray(data) ? data.filter(i => i.available !== false) : [];
+            buildDynamicCategories();
+            if (dynamicCategories.length && selectedCat !== 'all' && !dynamicCategories.some(c => c.key === selectedCat)) {
+                selectedCat = 'all';
+            }
             renderCategories();
             renderMenu();
             updateCartUi();
