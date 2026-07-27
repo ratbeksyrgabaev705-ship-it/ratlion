@@ -48,7 +48,7 @@
 .rep-order-badge-sm { padding: 4px 10px; font-size: 12px; border-radius: 8px; }
 
 .rep-table { width: 100%; border-collapse: collapse; font-size: 13px; }
-.rep-table th, .rep-table td { padding: 10px 12px; text-align: left; border-bottom: 1px solid #e2e8f0; vertical-align: top; }
+.rep-table th, .rep-table td { padding: 10px 12px; text-align: left; border-bottom: 1px solid #e2e8f0; vertical-align: top; color: #1e293b; }
 .rep-table th { font-size: 11px; text-transform: uppercase; color: #64748b; font-weight: 700; background: #f8fafc; }
 .rep-table tfoot td { border-top: 2px solid #cbd5e1; background: #f8fafc; font-weight: 700; }
 .rep-table .rep-num { text-align: right; white-space: nowrap; }
@@ -60,8 +60,8 @@
 .rep-chart-row { display: grid; grid-template-columns: minmax(80px, 1.2fr) 1fr 72px; gap: 8px; align-items: center; font-size: 12px; }
 .rep-chart-bar-wrap { height: 8px; background: #e2e8f0; border-radius: 4px; overflow: hidden; }
 .rep-chart-bar { height: 100%; background: #16a34a; border-radius: 4px; min-width: 2px; }
-.rep-chart-label { color: #64748b; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.rep-chart-val { font-weight: 700; text-align: right; }
+.rep-chart-label { color: #334155; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.rep-chart-val { font-weight: 700; text-align: right; color: #0f172a; }
 
 .rep-month-btn { padding: 6px 12px; border-radius: 8px; border: 1px solid #e2e8f0; background: #fff; font-size: 12px; font-weight: 600; cursor: pointer; }
 .rep-month-btn:hover { border-color: #16a34a; background: #ecfdf5; }
