@@ -320,7 +320,7 @@ public class RestaurantDataInitializer implements CommandLineRunner {
                     "Бургер · Картошка · Комбо · Соус"
             );
             bm.setAddress("Базар-Коргон");
-            bm.setLogoUrl("/restaurant/burger-men/logo.svg");
+            bm.setLogoUrl("/restaurant/burger-men/logo.png?v=1");
             bm.setBannerUrl("https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?w=800&q=80");
             restaurantRepository.save(bm);
             return;
@@ -330,7 +330,7 @@ public class RestaurantDataInitializer implements CommandLineRunner {
         bm.setCustomerUrl("/burger-men");
         bm.setTagline("Бургер · Картошка · Комбо · Соус");
         bm.setAddress("Базар-Коргон");
-        bm.setLogoUrl("/restaurant/burger-men/logo.svg");
+        bm.setLogoUrl("/restaurant/burger-men/logo.png?v=1");
         bm.setBannerUrl("https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?w=800&q=80");
         bm.setAccentColor("#E31837");
         restaurantRepository.save(bm);

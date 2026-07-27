@@ -29,20 +29,12 @@
                  alt="MBURGER">
         </div>
         <div th:if="${restaurantSlug == 'mburger'}" class="bm-mburger-title" th:text="${restaurantName}">MBURGER</div>
-        <div th:unless="${restaurantSlug == 'mburger'}" class="bm-brand">
-            <img th:if="${restaurantLogo != null && !#strings.isEmpty(restaurantLogo)}"
-                 class="bm-brand-logo"
-                 th:src="${restaurantLogo}"
+        <div th:unless="${restaurantSlug == 'mburger'}" class="bm-brand bm-brand-burgerman">
+            <img class="bm-brand-logo bm-brand-logo-wide"
+                 th:src="${restaurantLogo != null && !#strings.isEmpty(restaurantLogo) ? restaurantLogo : '/restaurant/burger-men/logo.png?v=1'}"
                  th:alt="${restaurantName}"
-                 alt="">
-            <span th:unless="${restaurantLogo != null && !#strings.isEmpty(restaurantLogo)}"
-                  class="bm-brand-icon">🍔</span>
-            <div>
-                <div class="bm-brand-title">
-                    <span class="bm-burger">BURGER</span><span class="bm-man">MAN</span>
-                </div>
-                <div class="bm-brand-sub">BURGER HOUSE</div>
-            </div>
+                 src="/restaurant/burger-men/logo.png?v=1"
+                 alt="BURGERMAN">
         </div>
         <a id="topCartLink" class="bm-top-cart" href="#">
             <span class="bm-top-cart-icon">

@@ -66,6 +66,20 @@ button { cursor: pointer; border: none; background: none; }
     display: block;
 }
 
+.bm-brand-burgerman {
+    flex: 1;
+    min-width: 0;
+    justify-content: flex-start;
+}
+
+.bm-brand-logo-wide {
+    height: 56px;
+    width: auto;
+    max-width: min(220px, 62vw);
+    object-fit: contain;
+    filter: drop-shadow(0 2px 6px rgba(0, 0, 0, 0.35));
+}
+
 .bm-body-mburger .bm-topbar {
     background: #f5a623 !important;
     margin: 0;
