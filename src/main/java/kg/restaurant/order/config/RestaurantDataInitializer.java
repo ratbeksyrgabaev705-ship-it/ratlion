@@ -179,7 +179,6 @@ public class RestaurantDataInitializer implements CommandLineRunner {
             return;
         }
         family.setActive(true);
-        family.setAcceptingOrders(true);
         family.setName("FEMILY");
         family.setTagline("Даамдуу тамактар жана жагымдуу атмосфера сизди күтөт.");
         family.setLogoUrl("/restaurant/family/logo.png");
@@ -205,7 +204,6 @@ public class RestaurantDataInitializer implements CommandLineRunner {
             return;
         }
         ordo.setActive(true);
-        ordo.setAcceptingOrders(true);
         ordo.setName("ОРДО КАФЕ");
         ordo.setCustomerUrl("/ordo-cafe");
         ordo.setTagline("Лагман, плов, самса");
@@ -246,7 +244,6 @@ public class RestaurantDataInitializer implements CommandLineRunner {
             return;
         }
         mburger.setActive(true);
-        mburger.setAcceptingOrders(true);
         mburger.setName("MBURGER");
         mburger.setCustomerUrl("/mburger");
         mburger.setTagline("ДААМДУУ · ТЕЗ · САПАТТУУ");
@@ -329,7 +326,6 @@ public class RestaurantDataInitializer implements CommandLineRunner {
             return;
         }
         bm.setActive(true);
-        bm.setAcceptingOrders(true);
         bm.setName("BURGERMAN");
         bm.setCustomerUrl("/burger-men");
         bm.setTagline("Бургер · Картошка · Комбо · Соус");
@@ -351,7 +347,6 @@ public class RestaurantDataInitializer implements CommandLineRunner {
             return;
         }
         zs.setActive(true);
-        zs.setAcceptingOrders(true);
         zs.setName("ЖОРОЛОР САМСАСЫ");
         zs.setCustomerUrl("/zhorolor");
         zs.setTagline("Самса жана выпечка");
@@ -391,7 +386,6 @@ public class RestaurantDataInitializer implements CommandLineRunner {
             return;
         }
         aga.setActive(true);
-        aga.setAcceptingOrders(true);
         aga.setName("АГА-ИНИ");
         aga.setCustomerUrl("/aga-ini");
         aga.setTagline("Суши · Пицца · Крылышки · Шаурма · Бургер");

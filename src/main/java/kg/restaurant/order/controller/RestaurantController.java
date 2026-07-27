@@ -183,6 +183,35 @@ public class RestaurantController {
         return ResponseEntity.ok(result);
     }
 
+    /** Кухня панели — ресторанды жабуу/ачуу (кардарлар заказ бербейт) */
+    @PatchMapping("/{id}/accepting-orders")
+    public ResponseEntity<Map<String, Object>> setAcceptingOrders(
+            @PathVariable Long id,
+            @RequestBody Map<String, Boolean> body
+    ) {
+        Restaurant restaurant = restaurantRepository.findById(id).orElse(null);
+        if (restaurant == null) {
+            return ResponseEntity.notFound().build();
+        }
+        Boolean accepting = body.get("acceptingOrders");
+        if (accepting == null) {
+            return ResponseEntity.badRequest().body(Map.of(
+                    "error", "acceptingOrders талап кылынат"
+            ));
+        }
+        restaurant.setAcceptingOrders(accepting);
+        Restaurant saved = restaurantRepository.save(restaurant);
+        telegramService.sendMessage(
+                (accepting ? "🟢" : "🔒") + " " + saved.getName() + "\n"
+                        + (accepting ? "Ресторан ачылды — заказдар кабыл алынат" : "Ресторан жабылды — заказдар токтотулду")
+        );
+        return ResponseEntity.ok(Map.of(
+                "id", saved.getId(),
+                "name", saved.getName(),
+                "acceptingOrders", saved.getAcceptingOrders()
+        ));
+    }
+
     /** Telegram тест — ресторан группасына билдирүү жиберүү */
     @PostMapping("/{id}/telegram/test")
     public ResponseEntity<?> testTelegram(@PathVariable Long id) {

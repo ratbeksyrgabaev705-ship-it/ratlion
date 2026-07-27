@@ -388,6 +388,58 @@ body.kitchen-body {
     border: 1px solid #334155;
 }
 
+.kitchen-sidebar-foot {
+    margin-top: auto;
+    padding: 16px 14px 18px;
+    border-top: 1px solid var(--k-line);
+    display: grid;
+    gap: 10px;
+}
+
+.kitchen-rest-status {
+    font-size: 12px;
+    line-height: 1.4;
+    padding: 10px 12px;
+    border-radius: 10px;
+    text-align: center;
+}
+
+.kitchen-rest-open {
+    background: rgba(22, 163, 74, 0.15);
+    color: #86efac;
+    border: 1px solid rgba(22, 163, 74, 0.35);
+}
+
+.kitchen-rest-closed {
+    background: rgba(239, 68, 68, 0.12);
+    color: #fca5a5;
+    border: 1px solid rgba(239, 68, 68, 0.35);
+}
+
+.kitchen-close-btn {
+    width: 100%;
+    border: 1px solid #475569;
+    background: #111827;
+    color: #f8fafc;
+    border-radius: 12px;
+    padding: 12px 14px;
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: background 0.15s, border-color 0.15s;
+}
+
+.kitchen-close-btn:hover {
+    background: #1f2937;
+    border-color: #64748b;
+}
+
+.kitchen-close-btn.is-closed {
+    background: rgba(22, 163, 74, 0.18);
+    border-color: rgba(22, 163, 74, 0.45);
+    color: #bbf7d0;
+}
+
 @media (max-width: 1100px) {
     .kitchen-board { grid-template-columns: 1fr; }
     .kitchen-sidebar { position: static; width: 100%; }

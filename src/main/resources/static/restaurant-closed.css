@@ -1,0 +1,44 @@
+body.restaurant-closed {
+    overflow: hidden;
+}
+
+.restaurant-closed-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 99999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    background: rgba(15, 23, 42, 0.72);
+    backdrop-filter: blur(6px);
+}
+
+.restaurant-closed-card {
+    width: min(420px, 100%);
+    background: #fff;
+    border-radius: 20px;
+    padding: 28px 24px;
+    text-align: center;
+    box-shadow: 0 24px 60px rgba(0, 0, 0, 0.28);
+}
+
+.restaurant-closed-icon {
+    font-size: 48px;
+    line-height: 1;
+    margin-bottom: 12px;
+}
+
+.restaurant-closed-card h2 {
+    font-size: 22px;
+    line-height: 1.3;
+    margin: 0 0 10px;
+    color: #111827;
+}
+
+.restaurant-closed-card p {
+    margin: 0;
+    font-size: 15px;
+    line-height: 1.5;
+    color: #64748b;
+}

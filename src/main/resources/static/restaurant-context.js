@@ -9,6 +9,7 @@
     window.restaurantBase = r.base || (slug ? '/' + slug : '/');
     window.restaurantSlug = slug;
     window.restaurantId = id;
+    window.restaurantAcceptingOrders = r.acceptingOrders !== false;
 
     if (slug) {
         localStorage.setItem('lastRestaurantSlug', slug);
@@ -16,6 +17,17 @@
     if (id != null) {
         localStorage.setItem('restaurantId', String(id));
     }
+
+    (function loadClosedStyles() {
+        if (document.querySelector('link[data-restaurant-closed-css]')) {
+            return;
+        }
+        const link = document.createElement('link');
+        link.rel = 'stylesheet';
+        link.href = '/restaurant-closed.css?v=1';
+        link.setAttribute('data-restaurant-closed-css', '1');
+        document.head.appendChild(link);
+    })();
 
     window.cartStorageKey = function () {
         return 'cart:' + slug;
@@ -138,4 +150,82 @@
         const recipientValueEl = document.getElementById('bankRecipientValue');
         if (recipientValueEl) recipientValueEl.textContent = recipient;
     };
+
+    function closedTexts() {
+        const lang = window.CustomerI18n && CustomerI18n.getLang ? CustomerI18n.getLang() : 'ky';
+        if (lang === 'ru') {
+            return {
+                title: 'Сегодня ресторан закрыт',
+                sub: 'Заказы временно не принимаются. Зайдите позже.'
+            };
+        }
+        return {
+            title: 'Бүгүн ресторан жабылды',
+            sub: 'Заказдар убактылуу кабыл алынбайт. Кийин кайра кириңиз.'
+        };
+    }
+
+    window.isRestaurantOpen = function () {
+        return window.restaurantAcceptingOrders !== false;
+    };
+
+    window.applyRestaurantClosedOverlay = function () {
+        const existing = document.getElementById('restaurant-closed-overlay');
+        if (window.isRestaurantOpen()) {
+            if (existing) existing.remove();
+            document.body.classList.remove('restaurant-closed');
+            return;
+        }
+        if (existing) return;
+        const texts = closedTexts();
+        const overlay = document.createElement('div');
+        overlay.id = 'restaurant-closed-overlay';
+        overlay.className = 'restaurant-closed-overlay';
+        overlay.innerHTML =
+            '<div class="restaurant-closed-card">' +
+            '<div class="restaurant-closed-icon">🔒</div>' +
+            '<h2>' + texts.title + '</h2>' +
+            '<p>' + texts.sub + '</p>' +
+            '</div>';
+        document.body.appendChild(overlay);
+        document.body.classList.add('restaurant-closed');
+    };
+
+    window.refreshRestaurantStatus = async function () {
+        if (!id) {
+            window.applyRestaurantClosedOverlay();
+            return;
+        }
+        try {
+            const res = await fetch('/api/restaurants/' + encodeURIComponent(id));
+            if (res.ok) {
+                const data = await res.json();
+                window.restaurantAcceptingOrders = data.acceptingOrders !== false;
+            }
+        } catch (e) {
+            /* keep last known state */
+        }
+        window.applyRestaurantClosedOverlay();
+    };
+
+    document.addEventListener('DOMContentLoaded', function () {
+        window.refreshRestaurantStatus();
+        setInterval(window.refreshRestaurantStatus, 30000);
+    });
+
+    document.addEventListener('visibilitychange', function () {
+        if (document.visibilityState === 'visible') {
+            window.refreshRestaurantStatus();
+        }
+    });
+
+    if (window.CustomerI18n && CustomerI18n.onLanguageChange) {
+        CustomerI18n.onLanguageChange(function () {
+            const overlay = document.getElementById('restaurant-closed-overlay');
+            if (overlay) {
+                overlay.remove();
+            }
+            window.applyRestaurantClosedOverlay();
+        });
+    }
 })();

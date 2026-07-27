@@ -73,7 +73,14 @@ public class RestaurantPageService {
         model.addAttribute("restaurantAddress", restaurant.getAddress() != null ? restaurant.getAddress() : "");
         model.addAttribute("bankPhone", defaultBankPhone(restaurant.getBankPhone()));
         model.addAttribute("bankRecipientName", defaultBankRecipientName(restaurant.getBankRecipientName()));
+        model.addAttribute("acceptingOrders", isAcceptingOrders(restaurant));
         model.addAttribute("restaurantNotFound", false);
+    }
+
+    public boolean isAcceptingOrders(Restaurant restaurant) {
+        return restaurant == null
+                || restaurant.getAcceptingOrders() == null
+                || Boolean.TRUE.equals(restaurant.getAcceptingOrders());
     }
 
     private String defaultBankPhone(String value) {

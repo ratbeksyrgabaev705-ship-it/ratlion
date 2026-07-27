@@ -657,6 +657,7 @@
                 scopeName = restaurantData.name || scopeName;
                 scopeSlug = restaurantData.slug || scopeSlug;
                 applyBrand();
+                updateRestaurantOpenUi();
                 const tgInput = q('kTelegramChatId');
                 if (tgInput) tgInput.value = restaurantData.telegramChatId || '';
             }
@@ -704,6 +705,47 @@
             }
         } catch (e) {
             alert('Тест ишке ашкан жок');
+        }
+    };
+
+    function isAcceptingOrders() {
+        return restaurantData?.acceptingOrders !== false;
+    }
+
+    function updateRestaurantOpenUi() {
+        const btn = q('kCloseRestaurantBtn');
+        const status = q('kRestaurantStatus');
+        if (!btn || !status) return;
+        const open = isAcceptingOrders();
+        btn.textContent = open ? '🔒 Ресторанды жабуу' : '🔓 Ресторанды ачуу';
+        btn.classList.toggle('is-closed', !open);
+        status.textContent = open ? '🟢 Ачык — заказ алабыз' : '🔴 Жабык — заказ жок';
+        status.classList.toggle('kitchen-rest-open', open);
+        status.classList.toggle('kitchen-rest-closed', !open);
+    }
+
+    window.kToggleRestaurantOpen = async function () {
+        if (!scopeId) return;
+        if (!restaurantData) await loadRestaurant();
+        if (!restaurantData) return;
+        const next = !isAcceptingOrders();
+        const msg = next
+            ? 'Ресторанды ачасызбы? Кардарлар заказ бере алат.'
+            : 'Ресторанды жабасызбы? Кардарлар «бүгүн ресторан жабылды» деп көрөт.';
+        if (!confirm(msg)) return;
+        try {
+            const res = await fetch('/api/restaurants/' + scopeId + '/accepting-orders', {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ acceptingOrders: next })
+            });
+            const data = await res.json().catch(function () { return {}; });
+            if (!res.ok) throw new Error(data.error || 'failed');
+            restaurantData.acceptingOrders = data.acceptingOrders;
+            updateRestaurantOpenUi();
+            toast(next ? 'Ресторан ачылды' : 'Ресторан жабылды');
+        } catch (e) {
+            toast('Ишке ашкан жок');
         }
     };
 

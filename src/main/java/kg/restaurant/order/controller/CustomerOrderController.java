@@ -13,10 +13,12 @@ import kg.restaurant.order.service.ReceiptStorageService;
 import kg.restaurant.order.service.TelegramService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.io.IOException;
 import java.time.LocalDateTime;
@@ -252,6 +254,7 @@ public class CustomerOrderController {
     public ResponseEntity<CustomerOrder> createOrder(
             @RequestBody CustomerOrder order
     ) {
+        ensureRestaurantAcceptingOrders(order.getRestaurantId());
         prepareNewOrder(order);
         CustomerOrder savedOrder = repo.save(order);
         notifyNewOrder(savedOrder);
@@ -285,6 +288,7 @@ public class CustomerOrderController {
         order.setPaymentAmount(paymentAmount);
         order.setRestaurantId(restaurantId);
 
+        ensureRestaurantAcceptingOrders(restaurantId);
         prepareNewOrder(order);
         CustomerOrder savedOrder = repo.save(order);
 
@@ -468,6 +472,16 @@ public class CustomerOrderController {
         order.setPaymentStatus("WAITING_PAYMENT");
         order.setCourierId(null);
         assignDisplayOrderNumber(order);
+    }
+
+    private void ensureRestaurantAcceptingOrders(Long restaurantId) {
+        if (restaurantId == null) {
+            return;
+        }
+        Restaurant restaurant = restaurantRepository.findById(restaurantId).orElse(null);
+        if (restaurant != null && Boolean.FALSE.equals(restaurant.getAcceptingOrders())) {
+            throw new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE, "RESTAURANT_CLOSED");
+        }
     }
 
     /** AI1, FM1, OD1 — ар бир ресторандын өз номери */

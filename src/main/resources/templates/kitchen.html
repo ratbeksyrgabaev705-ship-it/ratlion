@@ -53,6 +53,10 @@
             <button type="button" class="kitchen-nav-item" data-sec="menu" onclick="kNav('menu', this)">🍽️ Меню башкаруу</button>
             <button type="button" class="kitchen-nav-item" data-sec="reports" onclick="kNav('reports', this)">📊 Отчеттор</button>
         </nav>
+        <div class="kitchen-sidebar-foot">
+            <div id="kRestaurantStatus" class="kitchen-rest-status kitchen-rest-open">🟢 Ачык</div>
+            <button type="button" id="kCloseRestaurantBtn" class="kitchen-close-btn" onclick="kToggleRestaurantOpen()">🔒 Ресторанды жабуу</button>
+        </div>
     </aside>
 
     <main class="kitchen-main">
@@ -164,6 +168,6 @@
 <div id="kToast" class="adm-toast"></div>
 
 <script src="/reports-ui.js"></script>
-<script src="/kitchen.js?v=6"></script>
+<script src="/kitchen.js?v=7"></script>
 </body>
 </html>
