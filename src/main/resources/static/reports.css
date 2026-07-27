@@ -57,12 +57,48 @@
 .rep-table-orders tbody tr:hover { background: #f8fafc; }
 
 .rep-chart { display: flex; flex-direction: column; gap: 8px; }
-.rep-chart-row { display: grid; grid-template-columns: 80px 1fr 70px; gap: 8px; align-items: center; font-size: 12px; }
+.rep-chart-row { display: grid; grid-template-columns: minmax(80px, 1.2fr) 1fr 72px; gap: 8px; align-items: center; font-size: 12px; }
 .rep-chart-bar-wrap { height: 8px; background: #e2e8f0; border-radius: 4px; overflow: hidden; }
 .rep-chart-bar { height: 100%; background: #16a34a; border-radius: 4px; min-width: 2px; }
 .rep-chart-label { color: #64748b; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .rep-chart-val { font-weight: 700; text-align: right; }
 
 .rep-month-btn { padding: 6px 12px; border-radius: 8px; border: 1px solid #e2e8f0; background: #fff; font-size: 12px; font-weight: 600; cursor: pointer; }
-.rep-month-btn:hover { border-color: #16a34a; }
-.rep-year-label { font-weight: 800; font-size: 14px; margin-right: 8px; }
+.rep-month-btn:hover { border-color: #16a34a; background: #ecfdf5; }
+.rep-year-label { font-weight: 800; font-size: 14px; margin-right: 8px; color: #0f172a; }
+
+/* ===== Report header & hero ===== */
+.rep-header {
+    display: flex; flex-wrap: wrap; align-items: flex-start; justify-content: space-between;
+    gap: 12px; margin-bottom: 20px; padding-bottom: 16px; border-bottom: 2px solid #e2e8f0;
+}
+.rep-header-title { font-size: 20px; font-weight: 800; color: #0f172a; margin: 0 0 4px; }
+.rep-header-date { font-size: 14px; color: #64748b; margin: 0; }
+.rep-header-rest {
+    font-size: 13px; font-weight: 700; color: #15803d; background: #ecfdf5;
+    border: 1px solid #86efac; padding: 6px 12px; border-radius: 999px;
+}
+
+.rep-hero {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+    gap: 12px;
+    margin-bottom: 20px;
+}
+.rep-hero-card {
+    display: flex; align-items: center; gap: 12px;
+    background: linear-gradient(135deg, #f8fafc 0%, #fff 100%);
+    border: 1px solid #e2e8f0; border-radius: 14px; padding: 16px;
+}
+.rep-hero-revenue { border-color: #86efac; background: linear-gradient(135deg, #ecfdf5 0%, #fff 100%); }
+.rep-hero-revenue strong { color: #15803d; font-size: 26px; }
+.rep-hero-icon { font-size: 28px; line-height: 1; flex-shrink: 0; }
+.rep-hero-card label { display: block; font-size: 11px; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 0.03em; }
+.rep-hero-card strong { display: block; font-size: 22px; font-weight: 800; color: #0f172a; margin-top: 2px; line-height: 1.2; }
+.rep-hero-card strong small { font-size: 13px; font-weight: 600; color: #64748b; }
+
+.rep-sub { font-size: 12px; color: #64748b; margin: -8px 0 14px; line-height: 1.45; }
+.rep-note {
+    font-size: 13px; padding: 12px 14px; border-radius: 10px; margin-bottom: 16px; line-height: 1.5;
+}
+.rep-note-warn { background: #fffbeb; border: 1px solid #fcd34d; color: #92400e; }

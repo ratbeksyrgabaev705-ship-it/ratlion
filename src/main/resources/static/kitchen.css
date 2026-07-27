@@ -440,6 +440,55 @@ body.kitchen-body {
     color: #bbf7d0;
 }
 
+/* ===== Kitchen Reports panel ===== */
+.kitchen-reports-panel { margin-top: 4px; }
+
+.k-rep-info {
+    display: flex; gap: 12px; align-items: flex-start;
+    background: rgba(59, 130, 246, 0.12); border: 1px solid rgba(59, 130, 246, 0.35);
+    border-radius: 12px; padding: 14px 16px; margin-bottom: 20px; color: #cbd5e1;
+}
+.k-rep-info-icon { font-size: 20px; line-height: 1; flex-shrink: 0; margin-top: 2px; }
+.k-rep-info strong { color: #e2e8f0; display: block; margin-bottom: 4px; }
+.k-rep-info p { margin: 0; font-size: 13px; line-height: 1.55; color: #94a3b8; }
+
+.k-rep-block-title {
+    font-size: 13px; font-weight: 800; color: #e2e8f0;
+    margin: 0 0 10px; letter-spacing: 0.02em;
+}
+.k-rep-hint { font-size: 12px; color: #64748b; margin: -4px 0 10px; line-height: 1.45; }
+
+.k-rep-pills { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 16px; }
+.k-rep-pill {
+    padding: 10px 14px; border-radius: 999px; border: 1px solid #475569;
+    background: #1a2332; color: #cbd5e1; font-size: 13px; font-weight: 700;
+    cursor: pointer; transition: background 0.15s, border-color 0.15s, color 0.15s;
+}
+.k-rep-pill:hover { border-color: #64748b; color: #fff; }
+.k-rep-pill.active {
+    background: rgba(22, 163, 74, 0.22); border-color: #16a34a; color: #bbf7d0;
+}
+
+.k-rep-custom {
+    display: flex; flex-wrap: wrap; align-items: center; gap: 10px;
+    margin-bottom: 20px; padding: 14px; background: #1a2332;
+    border: 1px solid #334155; border-radius: 12px;
+}
+.k-rep-custom label { font-size: 12px; font-weight: 700; color: #94a3b8; }
+
+.k-rep-month-nav { display: flex; flex-direction: column; gap: 10px; margin-bottom: 20px; }
+.k-rep-month-year { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+
+.k-rep-loading {
+    text-align: center; padding: 24px; color: #94a3b8; font-size: 14px; font-weight: 600;
+}
+
+#kRepResult { margin-top: 8px; }
+#kRepResult .rep-wrap {
+    background: #f8fafc; border-radius: 14px; padding: 16px;
+    border: 1px solid #e2e8f0;
+}
+
 @media (max-width: 1100px) {
     .kitchen-board { grid-template-columns: 1fr; }
     .kitchen-sidebar { position: static; width: 100%; }

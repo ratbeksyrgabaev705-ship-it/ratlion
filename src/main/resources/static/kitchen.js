@@ -287,7 +287,7 @@
         location.hash = section;
         if (section === 'orders') renderOrderSections();
         if (section === 'menu') loadMenu();
-        if (section === 'reports') loadReports();
+        if (section === 'reports') initReports();
     };
 
     function handleHash() {
@@ -425,20 +425,109 @@
         }
     };
 
+    const K_REP_AYLAR = ['Учт', 'Бир', 'Же', 'Чап', 'Беш', 'Кул', 'Тек', 'Баш', 'Аяк', 'Тог', 'Жет', 'Бек'];
+    let reportsInited = false;
+
+    function getActiveReportPreset() {
+        const active = document.querySelector('#kRepPills .k-rep-pill.active');
+        return active?.dataset?.preset || 'today';
+    }
+
+    function setActiveReportPreset(preset) {
+        document.querySelectorAll('#kRepPills .k-rep-pill').forEach(function (btn) {
+            btn.classList.toggle('active', btn.dataset.preset === preset);
+        });
+        const customRow = q('kRepCustomRow');
+        if (customRow) customRow.style.display = preset === 'custom' ? 'flex' : 'none';
+    }
+
+    function initReportPills() {
+        const pills = q('kRepPills');
+        if (!pills || pills.dataset.bound) return;
+        pills.dataset.bound = '1';
+        pills.addEventListener('click', function (e) {
+            const btn = e.target.closest('.k-rep-pill');
+            if (!btn) return;
+            const preset = btn.dataset.preset || 'today';
+            setActiveReportPreset(preset);
+            if (preset !== 'custom') kLoadReports();
+        });
+    }
+
+    async function loadReportMonthNav() {
+        const nav = q('kRepMonthNav');
+        if (!nav || !scopeId) return;
+        try {
+            const years = await ReportsUI.fetchYears(scopeId);
+            nav.innerHTML = years.map(function (y) {
+                return '<div class="k-rep-month-year">' +
+                    '<span class="rep-year-label">' + y + '</span>' +
+                    K_REP_AYLAR.map(function (m, i) {
+                        return '<button type="button" class="rep-month-btn" onclick="kLoadMonthReport(' + y + ',' + (i + 1) + ')">' + m + '</button>';
+                    }).join('') +
+                    '</div>';
+            }).join('');
+        } catch (e) {
+            nav.innerHTML = '<p class="k-rep-hint">Ай тизмеси жүктөлбөдү</p>';
+        }
+    }
+
+    function initReports() {
+        initReportPills();
+        if (!reportsInited) {
+            const today = new Date();
+            const iso = today.toISOString().slice(0, 10);
+            const fromEl = q('kRepFrom');
+            const toEl = q('kRepTo');
+            if (fromEl && !fromEl.value) fromEl.value = iso;
+            if (toEl && !toEl.value) toEl.value = iso;
+            reportsInited = true;
+        }
+        loadReportMonthNav();
+        kLoadReports();
+    }
+
     async function loadReports() {
         if (!scopeId) return;
         await kLoadReports();
     }
 
+    window.kLoadMonthReport = async function (year, month) {
+        if (!scopeId) return;
+        setActiveReportPreset('');
+        document.querySelectorAll('#kRepPills .k-rep-pill').forEach(function (b) { b.classList.remove('active'); });
+        const loading = q('kRepLoading');
+        const result = q('kRepResult');
+        if (loading) loading.style.display = 'block';
+        if (result) result.innerHTML = '';
+        try {
+            const data = await ReportsUI.fetchMonthly(year, month, scopeId);
+            if (result) result.innerHTML = ReportsUI.renderReport(data);
+        } catch (e) {
+            if (result) result.innerHTML = '<div class="kitchen-empty">Жүктөлбөдү</div>';
+        } finally {
+            if (loading) loading.style.display = 'none';
+        }
+    };
+
     window.kLoadReports = async function () {
         if (!scopeId) return;
-        const preset = q('kRepPreset')?.value || 'today';
+        const preset = getActiveReportPreset();
+        const loading = q('kRepLoading');
+        const result = q('kRepResult');
+        if (loading) loading.style.display = 'block';
         try {
-            const data = await ReportsUI.fetchSummary(preset, scopeId, null, null);
-            const el = q('kRepResult');
-            if (el) el.innerHTML = ReportsUI.renderReport(data);
+            const data = await ReportsUI.fetchSummary(
+                preset,
+                scopeId,
+                q('kRepFrom')?.value || null,
+                q('kRepTo')?.value || null
+            );
+            if (result) result.innerHTML = ReportsUI.renderReport(data);
         } catch (e) {
-            if (q('kRepResult')) q('kRepResult').innerHTML = '<div class="kitchen-empty">Жүктөлбөдү</div>';
+            if (result) result.innerHTML = '<div class="kitchen-empty">Жүктөлбөдү</div>';
+        } finally {
+            if (loading) loading.style.display = 'none';
         }
     };
 

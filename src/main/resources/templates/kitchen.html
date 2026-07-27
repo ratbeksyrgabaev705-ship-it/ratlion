@@ -5,9 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title th:text="${restaurantName != null ? restaurantName + ' — Ресторан панели' : 'Ресторан панели'}">Ресторан панели</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@500;600;700;800&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="/kitchen.css?v=3">
+    <link rel="stylesheet" href="/kitchen.css?v=4">
     <link rel="stylesheet" href="/restaurant-admin.css">
-    <link rel="stylesheet" href="/reports.css">
+    <link rel="stylesheet" href="/reports.css?v=2">
     <script th:inline="javascript">
         window.KITCHEN = {
             id: /*[[${restaurantId}]]*/ null,
@@ -115,18 +115,46 @@
         </section>
 
         <section id="sec-reports" class="kitchen-section">
-            <div class="kitchen-head"><div><h1>Отчеттор</h1><p>Гана бул ресторан — жеткирилген заказдар</p></div></div>
-            <div class="kitchen-panel">
-                <div class="kitchen-toolbar">
-                    <select id="kRepPreset" class="kitchen-select">
-                        <option value="today">Күндük отчет</option>
-                        <option value="evening">Кечки отчет</option>
-                        <option value="week">Апталык отчет</option>
-                        <option value="month">Айлык отчет</option>
-                        <option value="year">Жылдык отчет</option>
-                    </select>
-                    <button type="button" class="kitchen-btn kitchen-btn-primary" onclick="kLoadReports()">Көрсөт</button>
+            <div class="kitchen-head">
+                <div>
+                    <h1>Отчеттор</h1>
+                    <p>Канча сатылды, канча киреше келди — жеткирилген заказдар гана</p>
                 </div>
+            </div>
+            <div class="kitchen-panel kitchen-reports-panel">
+                <div class="k-rep-info">
+                    <span class="k-rep-info-icon">ℹ️</span>
+                    <div>
+                        <strong>Эмне эсептелет?</strong>
+                        <p>Отчетко <strong>жеткирилген</strong> заказдар гана кирет. Жаңы, даярдалуудагы жана жокко чыгарылган заказдар көрүнбөйт.</p>
+                    </div>
+                </div>
+
+                <div class="k-rep-block-title">1. Мезгил тандаңыз</div>
+                <div class="k-rep-pills" id="kRepPills">
+                    <button type="button" class="k-rep-pill active" data-preset="today">📅 Бүгүн</button>
+                    <button type="button" class="k-rep-pill" data-preset="yesterday">Кечээ</button>
+                    <button type="button" class="k-rep-pill" data-preset="evening" title="17:00–24:00">🌙 Кечки</button>
+                    <button type="button" class="k-rep-pill" data-preset="week">📆 Бул апта</button>
+                    <button type="button" class="k-rep-pill" data-preset="month">🗓 Бул ай</button>
+                    <button type="button" class="k-rep-pill" data-preset="lastmonth">← Өткөн ай</button>
+                    <button type="button" class="k-rep-pill" data-preset="year">📊 Бул жыл</button>
+                    <button type="button" class="k-rep-pill" data-preset="custom">✏️ Башка күн</button>
+                </div>
+
+                <div id="kRepCustomRow" class="k-rep-custom" style="display:none">
+                    <label>Башталган күн</label>
+                    <input id="kRepFrom" class="kitchen-input kitchen-input-sm" type="date">
+                    <label>Аяктаган күн</label>
+                    <input id="kRepTo" class="kitchen-input kitchen-input-sm" type="date">
+                    <button type="button" class="kitchen-btn kitchen-btn-primary kitchen-btn-sm" onclick="kLoadReports()">Көрсөт</button>
+                </div>
+
+                <div class="k-rep-block-title">2. Ай боюunca (тарых)</div>
+                <p class="k-rep-hint">Тандаңыз — ошол айдын толук отчети чыгат</p>
+                <div id="kRepMonthNav" class="k-rep-month-nav"></div>
+
+                <div id="kRepLoading" class="k-rep-loading" style="display:none">⏳ Отчет жүктөлүүдө...</div>
                 <div id="kRepResult"></div>
             </div>
         </section>
@@ -167,7 +195,7 @@
 
 <div id="kToast" class="adm-toast"></div>
 
-<script src="/reports-ui.js"></script>
-<script src="/kitchen.js?v=7"></script>
+<script src="/reports-ui.js?v=2"></script>
+<script src="/kitchen.js?v=8"></script>
 </body>
 </html>
