@@ -85,9 +85,10 @@ public class RestaurantDataInitializer implements CommandLineRunner {
             seedAgaIniMenuIfEmpty();
             seedBurgerMenMenuIfEmpty();
             seedZhorolorMenuIfEmpty();
-            ensureFamilyPizzas();
-            syncFamilyMenuImages();
-            syncFamilyMenuDetails();
+            // Меню/суроттомо startup'та кайра жазылбайт — kitchen'ден жазылган маалымат калат
+            // ensureFamilyPizzas();
+            // syncFamilyMenuImages();
+            // syncFamilyMenuDetails();
             ensureDefaultCourier();
         } catch (Exception e) {
             log.error("DB init failed — app will still start: {}", e.getMessage(), e);
@@ -227,7 +228,6 @@ public class RestaurantDataInitializer implements CommandLineRunner {
                 old.setAccentColor("#FF6B00");
                 old.setLogoUrl("/restaurant/mburger/logo.png?v=3");
                 old.setBannerUrl("https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?w=800&q=80");
-                menuItemRepository.deleteAll(menuItemRepository.findByRestaurantId(old.getId()));
                 restaurantRepository.save(old);
                 log.info("Migrated chaikhana -> mburger");
             }
