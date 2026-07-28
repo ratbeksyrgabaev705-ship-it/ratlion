@@ -160,6 +160,21 @@
             display: block;
         }
 
+        .hero-logo-milan {
+            width: 112px;
+            height: 72px;
+            border-radius: 14px;
+            background: #f3f4f6;
+            padding: 4px;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.22);
+        }
+
+        .hero-logo-milan .hero-logo-img {
+            border-radius: 10px;
+            object-fit: contain;
+            background: #f3f4f6;
+        }
+
         .hero-logo-fallback {
             display: none;
             width: 100%;
