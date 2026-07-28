@@ -339,21 +339,21 @@ public class RestaurantDataInitializer implements CommandLineRunner {
     private void ensureZhorolorRestaurant() {
         Restaurant zs = restaurantRepository.findBySlug("zhorolor").orElse(null);
         if (zs == null) {
-            zs = buildRestaurant("ЖОРОЛОР САМСАСЫ", "zhorolor", "🥟", "#2D6A4F", "JS", "Самса жана выпечка");
+            zs = buildRestaurant("MILAN", "zhorolor", "🍽", "#2D6A4F", "JS", "Restaurant");
             zs.setAddress("Базар-Коргон шаары");
             zs.setBannerUrl("/restaurant/zhorolor/banner.jpg");
-            zs.setLogoUrl("/restaurant/zhorolor/logo.png");
+            zs.setLogoUrl("/restaurant/zhorolor/logo.png?v=2");
             restaurantRepository.save(zs);
             return;
         }
         zs.setActive(true);
-        zs.setName("ЖОРОЛОР САМСАСЫ");
+        zs.setName("MILAN");
         zs.setCustomerUrl("/zhorolor");
-        zs.setTagline("Самса жана выпечка");
+        zs.setTagline("Restaurant");
         zs.setAddress("Базар-Коргон шаары");
         zs.setBannerUrl("/restaurant/zhorolor/banner.jpg");
         zs.setAccentColor("#2D6A4F");
-        zs.setLogoUrl("/restaurant/zhorolor/logo.png");
+        zs.setLogoUrl("/restaurant/zhorolor/logo.png?v=2");
         restaurantRepository.save(zs);
     }
 
@@ -956,7 +956,7 @@ public class RestaurantDataInitializer implements CommandLineRunner {
                 buildRestaurant("ОРДО КАФЕ", "ordo-cafe", "🍽", "#c9a227", "OD", "Лагман, плов, самса"),
                 buildRestaurant("FEMILY", "family", "F", "#5C1A1A", "FM", "Даамдуу тамактар"),
                 buildRestaurant("BURGERMAN", "burger-men", "🍔", "#E31837", "BM", "Бургер · Картошка · Комбо · Соус"),
-                buildRestaurant("ЖОРОЛОР САМСАСЫ", "zhorolor", "🥟", "#2D6A4F", "JS", "Самса жана выпечка")
+                buildRestaurant("MILAN", "zhorolor", "🍽", "#2D6A4F", "JS", "Restaurant"),
         );
 
         restaurantRepository.saveAll(defaults);

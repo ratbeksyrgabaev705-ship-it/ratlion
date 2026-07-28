@@ -10,7 +10,7 @@
         window.RESTAURANT = {
             id: /*[[${restaurantId}]]*/ null,
             slug: /*[[${restaurantSlug}]]*/ 'zhorolor',
-            name: /*[[${restaurantName}]]*/ 'ЖОРОЛОР САМСАСЫ',
+            name: /*[[${restaurantName}]]*/ 'MILAN',
             base: /*[[${restaurantBase}]]*/ '/zhorolor'
         };
     </script>
@@ -431,7 +431,7 @@
             <button type="button" class="item-lang-pill" id="langToggle">Кыргызча / Русский</button>
         </div>
         <div class="item-hero-logo">
-            <img th:src="${restaurantLogo != null && !#strings.isEmpty(restaurantLogo) ? restaurantLogo : '/restaurant/zhorolor/logo.png'}" src="/restaurant/zhorolor/logo.png" th:alt="${restaurantName}" alt="">
+            <img th:src="${restaurantLogo != null && !#strings.isEmpty(restaurantLogo) ? restaurantLogo : '/restaurant/zhorolor/logo.png?v=2'}" src="/restaurant/zhorolor/logo.png?v=2" th:alt="${restaurantName}" alt="MILAN">
         </div>
     </header>
 

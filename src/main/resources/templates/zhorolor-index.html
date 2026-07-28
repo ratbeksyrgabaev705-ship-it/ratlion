@@ -3,13 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title th:text="${restaurantName}">ЖОРОЛОР САМСАСЫ</title>
+    <title th:text="${restaurantName}">MILAN</title>
     <link rel="stylesheet" th:href="${customerCss}" href="/zhorolor-customer.css?v=10">
     <script th:inline="javascript">
         window.RESTAURANT = {
             id: /*[[${restaurantId}]]*/ 1,
             slug: /*[[${restaurantSlug}]]*/ 'zhorolor',
-            name: /*[[${restaurantName}]]*/ 'ЖОРОЛОР САМСАСЫ',
+            name: /*[[${restaurantName}]]*/ 'MILAN',
             base: /*[[${restaurantBase}]]*/ '/zhorolor'
         };
     </script>
@@ -42,13 +42,13 @@
                 </div>
 
                 <div class="hero-brand-block">
-                    <div class="hero-logo-ring">
+                    <div class="hero-logo-ring hero-logo-milan">
                         <img
                                 th:if="${restaurantLogo != null && !#strings.isEmpty(restaurantLogo)}"
                                 th:src="${restaurantLogo}"
                                 th:alt="${restaurantName}"
-                                src="/restaurant/zhorolor/logo.png"
-                                alt="zhorolor"
+                                src="/restaurant/zhorolor/logo.png?v=2"
+                                alt="MILAN"
                                 class="hero-logo-img"
                                 onerror="this.style.display='none';this.nextElementSibling.style.display='flex';"
                         >
@@ -57,7 +57,7 @@
                     </div>
 
                     <div class="hero-info">
-                        <h1 class="hero-title" th:text="${restaurantName}">ЖОРОЛОР САМСАСЫ</h1>
+                        <h1 class="hero-title" th:text="${restaurantName}">MILAN</h1>
                         <p class="hero-meta">
                             <svg class="meta-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
                                 <path d="M12 21s7-5.2 7-11a7 7 0 10-14 0c0 5.8 7 11 7 11z"/>
