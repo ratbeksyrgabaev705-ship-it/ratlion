@@ -4,13 +4,13 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title th:text="${restaurantName}">MILAN</title>
-    <link rel="stylesheet" th:href="${customerCss}" href="/zhorolor-customer.css?v=10">
+    <link rel="stylesheet" th:href="${customerCss}" href="/milan-customer.css?v=10">
     <script th:inline="javascript">
         window.RESTAURANT = {
             id: /*[[${restaurantId}]]*/ 1,
-            slug: /*[[${restaurantSlug}]]*/ 'zhorolor',
+            slug: /*[[${restaurantSlug}]]*/ 'milan',
             name: /*[[${restaurantName}]]*/ 'MILAN',
-            base: /*[[${restaurantBase}]]*/ '/zhorolor'
+            base: /*[[${restaurantBase}]]*/ '/milan'
         };
     </script>
     <script src="/restaurant-context.js?v=2"></script>
@@ -61,7 +61,7 @@
                     </div>
                 </div>
 
-                <a th:href="${restaurantBase + '/cart'}" href="/zhorolor/cart" class="hero-cart-glass">
+                <a th:href="${restaurantBase + '/cart'}" href="/milan/cart" class="hero-cart-glass">
                     <svg class="cart-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
                         <path d="M6 6h15l-1.5 9h-12z"/>
                         <circle cx="9" cy="20" r="1.5"/>
@@ -135,7 +135,7 @@
 
     <a
             id="openCartText"
-            th:href="${restaurantBase + '/cart'}" href="/zhorolor/cart"
+            th:href="${restaurantBase + '/cart'}" href="/milan/cart"
             class="open-cart"
     >
         Себетке өтүү →

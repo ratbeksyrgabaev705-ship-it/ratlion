@@ -10,7 +10,7 @@
 | ОРДО | `/ordo-cafe` (же `/ordo`) | `/kitchen/ordo-cafe` |
 | BURGERMAN | `/burger-men` (же `/burgerman`) | `/kitchen/burger-men` |
 | FEMILY | `/family` (же `/femily`) | `/kitchen/family` |
-| ЖОРОЛОР САМСАСЫ | `/zhorolor` | `/kitchen/zhorolor` |
+| MILAN | `/milan` | `/kitchen/milan` |
 
 ## Панелдер
 
@@ -66,7 +66,7 @@ git push -u origin main
 | Башкы | `https://SIZIN-DOMEN/` |
 | RATLION (чек) | `https://SIZIN-DOMEN/ratlion` |
 | BURGERMAN | `https://SIZIN-DOMEN/burger-men` |
-| ЖОРОЛОР | `https://SIZIN-DOMEN/zhorolor` |
+| MILAN | `https://SIZIN-DOMEN/milan` |
 | Кухня | `https://SIZIN-DOMEN/kitchen/burger-men` |
 | Курьер | `https://SIZIN-DOMEN/courier` |
 

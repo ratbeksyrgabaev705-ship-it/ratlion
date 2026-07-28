@@ -25,7 +25,7 @@ public class RestaurantDataInitializer implements CommandLineRunner {
     private static final Logger log = LoggerFactory.getLogger(RestaurantDataInitializer.class);
     private static final int MAX_RESTAURANTS = 50;
     private static final java.util.Set<String> CANONICAL_SLUGS = java.util.Set.of(
-            "aga-ini", "ordo-cafe", "mburger", "family", "burger-men", "zhorolor"
+            "aga-ini", "ordo-cafe", "mburger", "family", "burger-men", "milan"
     );
 
     private final RestaurantRepository restaurantRepository;
@@ -70,7 +70,8 @@ public class RestaurantDataInitializer implements CommandLineRunner {
             ensureBurgerMenRestaurant();
             ensureOrdoCafeRestaurant();
             ensureMburgerRestaurant();
-            ensureZhorolorRestaurant();
+            migrateZhorolorToMilan();
+            ensureMilanRestaurant();
             ensureAgaIniRestaurant();
             migrateLegacyRestaurantSlugs();
             deactivateLegacyRestaurantSlugs();
@@ -90,7 +91,7 @@ public class RestaurantDataInitializer implements CommandLineRunner {
             // syncFamilyMenuImages();
             // syncFamilyMenuDetails();
             ensureDefaultCourier();
-            syncZhorolorMilanBranding();
+            syncMilanBranding();
         } catch (Exception e) {
             log.error("DB init failed — app will still start: {}", e.getMessage(), e);
         }
@@ -287,7 +288,7 @@ public class RestaurantDataInitializer implements CommandLineRunner {
                 Map.entry("mburger", "MB"),
                 Map.entry("family", "FM"),
                 Map.entry("burger-men", "BM"),
-                Map.entry("zhorolor", "JS")
+                Map.entry("milan", "JS")
         );
         for (Map.Entry<String, String> entry : prefixes.entrySet()) {
             restaurantRepository.findBySlug(entry.getKey()).ifPresent(restaurant -> {
@@ -337,51 +338,76 @@ public class RestaurantDataInitializer implements CommandLineRunner {
         restaurantRepository.save(bm);
     }
 
-    private void ensureZhorolorRestaurant() {
-        Restaurant zs = restaurantRepository.findBySlug("zhorolor").orElse(null);
-        if (zs == null) {
-            zs = buildRestaurant("MILAN", "zhorolor", "🍽", "#2D6A4F", "JS", "Restaurant");
-            zs.setAddress("Базар-Коргон шаары");
-            zs.setBannerUrl("/restaurant/zhorolor/hero-bg.jpg?v=1");
-            zs.setLogoUrl("/restaurant/zhorolor/sign-photo.png?v=1");
-            restaurantRepository.save(zs);
-            return;
-        }
-        zs.setActive(true);
-        zs.setName("MILAN");
-        zs.setCustomerUrl("/zhorolor");
-        zs.setTagline("Restaurant");
-        zs.setAddress("Базар-Коргон шаары");
-        zs.setBannerUrl("/restaurant/zhorolor/hero-bg.jpg?v=1");
-        zs.setAccentColor("#2D6A4F");
-        zs.setLogoUrl("/restaurant/zhorolor/sign-photo.png?v=1");
-        restaurantRepository.save(zs);
+    private void migrateZhorolorToMilan() {
+        restaurantRepository.findBySlug("zhorolor").ifPresent(old -> {
+            if (restaurantRepository.findBySlug("milan").isEmpty()) {
+                old.setSlug("milan");
+                old.setName("MILAN");
+                old.setCustomerUrl("/milan");
+                restaurantRepository.save(old);
+                log.info("Migrated zhorolor slug to milan");
+            } else if (!Boolean.FALSE.equals(old.getActive())) {
+                old.setActive(false);
+                restaurantRepository.save(old);
+                log.info("Deactivated legacy zhorolor slug");
+            }
+        });
     }
 
-    /** zhorolor → MILAN: базада эski ат калбасын */
-    private void syncZhorolorMilanBranding() {
-        restaurantRepository.findBySlug("zhorolor").ifPresent(zs -> {
+    private void ensureMilanRestaurant() {
+        Restaurant milan = restaurantRepository.findBySlug("milan").orElse(null);
+        if (milan == null) {
+            milan = buildRestaurant("MILAN", "milan", "🍽", "#2D6A4F", "JS", "Restaurant");
+            milan.setAddress("Базар-Коргон шаары");
+            milan.setBannerUrl("/restaurant/zhorolor/hero-bg.jpg?v=1");
+            milan.setLogoUrl("/restaurant/zhorolor/sign-photo.png?v=1");
+            restaurantRepository.save(milan);
+            return;
+        }
+        milan.setActive(true);
+        milan.setName("MILAN");
+        milan.setCustomerUrl("/milan");
+        milan.setTagline("Restaurant");
+        milan.setAddress("Базар-Коргон шаары");
+        milan.setBannerUrl("/restaurant/zhorolor/hero-bg.jpg?v=1");
+        milan.setAccentColor("#2D6A4F");
+        milan.setLogoUrl("/restaurant/zhorolor/sign-photo.png?v=1");
+        restaurantRepository.save(milan);
+    }
+
+    /** milan branding базада туруктуу болsun */
+    private void syncMilanBranding() {
+        restaurantRepository.findBySlug("milan").ifPresent(milan -> {
             boolean changed = false;
-            if (!"MILAN".equals(zs.getName())) {
-                zs.setName("MILAN");
+            if (!"MILAN".equals(milan.getName())) {
+                milan.setName("MILAN");
                 changed = true;
             }
-            if (!"Restaurant".equals(zs.getTagline())) {
-                zs.setTagline("Restaurant");
+            if (!"Restaurant".equals(milan.getTagline())) {
+                milan.setTagline("Restaurant");
+                changed = true;
+            }
+            if (!"/milan".equals(milan.getCustomerUrl())) {
+                milan.setCustomerUrl("/milan");
                 changed = true;
             }
             String logo = "/restaurant/zhorolor/sign-photo.png?v=1";
-            if (!logo.equals(zs.getLogoUrl())) {
-                zs.setLogoUrl(logo);
+            if (!logo.equals(milan.getLogoUrl())) {
+                milan.setLogoUrl(logo);
                 changed = true;
             }
-            if (!"🍽".equals(zs.getEmoji())) {
-                zs.setEmoji("🍽");
+            String banner = "/restaurant/zhorolor/hero-bg.jpg?v=1";
+            if (!banner.equals(milan.getBannerUrl())) {
+                milan.setBannerUrl(banner);
+                changed = true;
+            }
+            if (!"🍽".equals(milan.getEmoji())) {
+                milan.setEmoji("🍽");
                 changed = true;
             }
             if (changed) {
-                restaurantRepository.save(zs);
-                log.info("Synced MILAN branding for zhorolor (id={})", zs.getId());
+                restaurantRepository.save(milan);
+                log.info("Synced MILAN branding for milan (id={})", milan.getId());
             }
         });
     }
@@ -573,11 +599,11 @@ public class RestaurantDataInitializer implements CommandLineRunner {
     }
 
     private void seedZhorolorMenuIfEmpty() {
-        Restaurant zs = restaurantRepository.findBySlug("zhorolor").orElse(null);
-        if (zs == null || menuItemRepository.findByRestaurantId(zs.getId()).size() > 0) {
+        Restaurant milan = restaurantRepository.findBySlug("milan").orElse(null);
+        if (milan == null || menuItemRepository.findByRestaurantId(milan.getId()).size() > 0) {
             return;
         }
-        Long rid = zs.getId();
+        Long rid = milan.getId();
         List<MenuItem> menu = List.of(
                 familyItem(rid, "Этти самса", "Самса с мясом", "Самса", "Самса",
                         "Тандырда бышырылган этти самса", "Самса с говядиной",
@@ -985,7 +1011,7 @@ public class RestaurantDataInitializer implements CommandLineRunner {
                 buildRestaurant("ОРДО КАФЕ", "ordo-cafe", "🍽", "#c9a227", "OD", "Лагман, плов, самса"),
                 buildRestaurant("FEMILY", "family", "F", "#5C1A1A", "FM", "Даамдуу тамактар"),
                 buildRestaurant("BURGERMAN", "burger-men", "🍔", "#E31837", "BM", "Бургер · Картошка · Комбо · Соус"),
-                buildRestaurant("MILAN", "zhorolor", "🍽", "#2D6A4F", "JS", "Restaurant")
+                buildRestaurant("MILAN", "milan", "🍽", "#2D6A4F", "JS", "Restaurant")
         );
 
         restaurantRepository.saveAll(defaults);

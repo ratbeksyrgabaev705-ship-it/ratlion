@@ -31,8 +31,8 @@ public class RestaurantPageService {
         if ("burgerman".equals(normalized)) {
             return "burger-men";
         }
-        if ("zhorolor-samsasy".equals(normalized)) {
-            return "zhorolor";
+        if ("zhorolor".equals(normalized) || "zhorolor-samsasy".equals(normalized)) {
+            return "milan";
         }
         if ("chaikhana".equals(normalized)) {
             return "mburger";
@@ -60,7 +60,7 @@ public class RestaurantPageService {
     public void enrichModel(Model model, Restaurant restaurant) {
         model.addAttribute("restaurantId", restaurant.getId());
         model.addAttribute("restaurantSlug", restaurant.getSlug());
-        if ("zhorolor".equals(restaurant.getSlug())) {
+        if ("milan".equals(restaurant.getSlug())) {
             model.addAttribute("restaurantName", "MILAN");
             model.addAttribute("restaurantTagline", "Restaurant");
             model.addAttribute("restaurantLogo", "/restaurant/zhorolor/sign-photo.png?v=1");
@@ -74,7 +74,7 @@ public class RestaurantPageService {
         model.addAttribute("restaurantColor", restaurant.getAccentColor());
         model.addAttribute(
                 "restaurantBanner",
-                "zhorolor".equals(restaurant.getSlug())
+                "milan".equals(restaurant.getSlug())
                         ? "/restaurant/zhorolor/hero-bg.jpg?v=1"
                         : restaurant.getBannerUrl()
         );
@@ -130,7 +130,7 @@ public class RestaurantPageService {
         if ("ordo-cafe".equals(s)) {
             return "ordo-cafe-" + defaultTemplate;
         }
-        if ("zhorolor".equals(s)) {
+        if ("milan".equals(s)) {
             return "zhorolor-" + defaultTemplate;
         }
         if (usesFamilyLayout(slug)) {
@@ -156,7 +156,7 @@ public class RestaurantPageService {
         if ("ordo-cafe".equals(s)) {
             return "ordo-cafe";
         }
-        if ("zhorolor".equals(s)) {
+        if ("milan".equals(s)) {
             return "zhorolor";
         }
         return "default";
@@ -169,7 +169,7 @@ public class RestaurantPageService {
             case "ordo-cafe" -> "/ordo-cafe-customer.css";
             case "mburger" -> "/burger-men-customer.css?v=10";
             case "burger-men" -> "/burger-men-customer.css?v=3";
-            case "zhorolor" -> "/zhorolor-customer.css?v=15";
+            case "milan" -> "/zhorolor-customer.css?v=16";
             default -> "/default-customer.css";
         };
     }

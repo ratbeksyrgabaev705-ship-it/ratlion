@@ -5,14 +5,14 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title th:text="${restaurantName}">Себет</title>
     <link rel="stylesheet" href="/family-customer.css">
-    <link rel="stylesheet" th:href="${customerCss}" href="/zhorolor-customer.css">
+    <link rel="stylesheet" th:href="${customerCss}" href="/milan-customer.css">
     <link rel="stylesheet" href="/jolchu-success.css">
     <script th:inline="javascript">
         window.RESTAURANT = {
             id: /*[[${restaurantId}]]*/ 3,
-            slug: /*[[${restaurantSlug}]]*/ 'zhorolor',
+            slug: /*[[${restaurantSlug}]]*/ 'milan',
             name: /*[[${restaurantName}]]*/ 'MILAN',
-            base: /*[[${restaurantBase}]]*/ '/zhorolor'
+            base: /*[[${restaurantBase}]]*/ '/milan'
         };
     </script>
     <script src="/restaurant-context.js?v=2"></script>
@@ -86,7 +86,7 @@
 </div>
 
 <nav class="fp-bottom-nav">
-    <a class="fp-nav-item" th:href="${restaurantBase}" href="/zhorolor">
+    <a class="fp-nav-item" th:href="${restaurantBase}" href="/milan">
         <span class="fp-nav-icon">🏠</span> <span id="navHomeLabel">Башкы</span>
     </a>
     <a class="fp-nav-item active" href="#">

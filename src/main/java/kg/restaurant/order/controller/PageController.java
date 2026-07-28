@@ -210,9 +210,34 @@ public class PageController {
         return "redirect:/burger-men";
     }
 
+    @GetMapping("/zhorolor")
+    public String legacyZhorolor() {
+        return "redirect:/milan";
+    }
+
+    @GetMapping("/zhorolor/cart")
+    public String legacyZhorolorCart() {
+        return "redirect:/milan/cart";
+    }
+
+    @GetMapping("/zhorolor/item")
+    public String legacyZhorolorItem(@RequestParam(required = false) Long id) {
+        return id != null ? "redirect:/milan/item?id=" + id : "redirect:/milan/item";
+    }
+
+    @GetMapping("/zhorolor/receipt")
+    public String legacyZhorolorReceipt() {
+        return "redirect:/milan/receipt";
+    }
+
     @GetMapping("/zhorolor-samsasy")
     public String zhorolorSamsasyShortcut() {
-        return "redirect:/zhorolor";
+        return "redirect:/milan";
+    }
+
+    @GetMapping("/kitchen/zhorolor")
+    public String legacyKitchenZhorolor() {
+        return "redirect:/kitchen/milan";
     }
 
     @GetMapping("/restaurant/{slug}")
