@@ -63,7 +63,7 @@ public class RestaurantPageService {
         if ("zhorolor".equals(restaurant.getSlug())) {
             model.addAttribute("restaurantName", "MILAN");
             model.addAttribute("restaurantTagline", "Restaurant");
-            model.addAttribute("restaurantLogo", "/restaurant/zhorolor/logo.png?v=3");
+            model.addAttribute("restaurantLogo", "/restaurant/zhorolor/sign-photo.png?v=1");
             model.addAttribute("restaurantEmoji", "🍽");
         } else {
             model.addAttribute("restaurantName", restaurant.getName());
@@ -164,7 +164,7 @@ public class RestaurantPageService {
             case "ordo-cafe" -> "/ordo-cafe-customer.css";
             case "mburger" -> "/burger-men-customer.css?v=10";
             case "burger-men" -> "/burger-men-customer.css?v=3";
-            case "zhorolor" -> "/zhorolor-customer.css?v=13";
+            case "zhorolor" -> "/zhorolor-customer.css?v=14";
             default -> "/default-customer.css";
         };
     }

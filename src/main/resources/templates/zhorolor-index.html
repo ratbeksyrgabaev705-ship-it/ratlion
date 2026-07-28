@@ -58,6 +58,16 @@
                     </div>
                 </div>
 
+                <div class="hero-sign-photo">
+                    <img
+                            th:src="${restaurantLogo != null && !#strings.isEmpty(restaurantLogo) ? restaurantLogo : '/restaurant/zhorolor/sign-photo.png?v=1'}"
+                            src="/restaurant/zhorolor/sign-photo.png?v=1"
+                            th:alt="${restaurantName}"
+                            alt="MILAN Restaurant"
+                            class="hero-sign-img"
+                    >
+                </div>
+
                 <a th:href="${restaurantBase + '/cart'}" href="/zhorolor/cart" class="hero-cart-glass">
                     <svg class="cart-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
                         <path d="M6 6h15l-1.5 9h-12z"/>

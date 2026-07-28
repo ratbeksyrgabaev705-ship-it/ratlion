@@ -343,7 +343,7 @@ public class RestaurantDataInitializer implements CommandLineRunner {
             zs = buildRestaurant("MILAN", "zhorolor", "🍽", "#2D6A4F", "JS", "Restaurant");
             zs.setAddress("Базар-Коргон шаары");
             zs.setBannerUrl("/restaurant/zhorolor/banner.jpg");
-            zs.setLogoUrl("/restaurant/zhorolor/logo.png?v=3");
+            zs.setLogoUrl("/restaurant/zhorolor/sign-photo.png?v=1");
             restaurantRepository.save(zs);
             return;
         }
@@ -354,7 +354,7 @@ public class RestaurantDataInitializer implements CommandLineRunner {
         zs.setAddress("Базар-Коргон шаары");
         zs.setBannerUrl("/restaurant/zhorolor/banner.jpg");
         zs.setAccentColor("#2D6A4F");
-        zs.setLogoUrl("/restaurant/zhorolor/logo.png?v=3");
+        zs.setLogoUrl("/restaurant/zhorolor/sign-photo.png?v=1");
         restaurantRepository.save(zs);
     }
 
@@ -370,7 +370,7 @@ public class RestaurantDataInitializer implements CommandLineRunner {
                 zs.setTagline("Restaurant");
                 changed = true;
             }
-            String logo = "/restaurant/zhorolor/logo.png?v=3";
+            String logo = "/restaurant/zhorolor/sign-photo.png?v=1";
             if (!logo.equals(zs.getLogoUrl())) {
                 zs.setLogoUrl(logo);
                 changed = true;
