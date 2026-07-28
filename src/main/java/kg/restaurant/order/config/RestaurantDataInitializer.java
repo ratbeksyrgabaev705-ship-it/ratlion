@@ -90,6 +90,7 @@ public class RestaurantDataInitializer implements CommandLineRunner {
             // syncFamilyMenuImages();
             // syncFamilyMenuDetails();
             ensureDefaultCourier();
+            syncZhorolorMilanBranding();
         } catch (Exception e) {
             log.error("DB init failed — app will still start: {}", e.getMessage(), e);
         }
@@ -342,7 +343,7 @@ public class RestaurantDataInitializer implements CommandLineRunner {
             zs = buildRestaurant("MILAN", "zhorolor", "🍽", "#2D6A4F", "JS", "Restaurant");
             zs.setAddress("Базар-Коргон шаары");
             zs.setBannerUrl("/restaurant/zhorolor/banner.jpg");
-            zs.setLogoUrl("/restaurant/zhorolor/logo.png?v=2");
+            zs.setLogoUrl("/restaurant/zhorolor/logo.png?v=3");
             restaurantRepository.save(zs);
             return;
         }
@@ -353,8 +354,36 @@ public class RestaurantDataInitializer implements CommandLineRunner {
         zs.setAddress("Базар-Коргон шаары");
         zs.setBannerUrl("/restaurant/zhorolor/banner.jpg");
         zs.setAccentColor("#2D6A4F");
-        zs.setLogoUrl("/restaurant/zhorolor/logo.png?v=2");
+        zs.setLogoUrl("/restaurant/zhorolor/logo.png?v=3");
         restaurantRepository.save(zs);
+    }
+
+    /** zhorolor → MILAN: базада эski ат калбасын */
+    private void syncZhorolorMilanBranding() {
+        restaurantRepository.findBySlug("zhorolor").ifPresent(zs -> {
+            boolean changed = false;
+            if (!"MILAN".equals(zs.getName())) {
+                zs.setName("MILAN");
+                changed = true;
+            }
+            if (!"Restaurant".equals(zs.getTagline())) {
+                zs.setTagline("Restaurant");
+                changed = true;
+            }
+            String logo = "/restaurant/zhorolor/logo.png?v=3";
+            if (!logo.equals(zs.getLogoUrl())) {
+                zs.setLogoUrl(logo);
+                changed = true;
+            }
+            if (!"🍽".equals(zs.getEmoji())) {
+                zs.setEmoji("🍽");
+                changed = true;
+            }
+            if (changed) {
+                restaurantRepository.save(zs);
+                log.info("Synced MILAN branding for zhorolor (id={})", zs.getId());
+            }
+        });
     }
 
     private void deactivateLegacyRestaurantSlugs() {

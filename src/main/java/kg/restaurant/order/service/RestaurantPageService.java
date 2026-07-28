@@ -60,11 +60,18 @@ public class RestaurantPageService {
     public void enrichModel(Model model, Restaurant restaurant) {
         model.addAttribute("restaurantId", restaurant.getId());
         model.addAttribute("restaurantSlug", restaurant.getSlug());
-        model.addAttribute("restaurantName", restaurant.getName());
-        model.addAttribute("restaurantEmoji", restaurant.getEmoji());
+        if ("zhorolor".equals(restaurant.getSlug())) {
+            model.addAttribute("restaurantName", "MILAN");
+            model.addAttribute("restaurantTagline", "Restaurant");
+            model.addAttribute("restaurantLogo", "/restaurant/zhorolor/logo.png?v=3");
+            model.addAttribute("restaurantEmoji", "🍽");
+        } else {
+            model.addAttribute("restaurantName", restaurant.getName());
+            model.addAttribute("restaurantTagline", restaurant.getTagline());
+            model.addAttribute("restaurantLogo", restaurant.getLogoUrl());
+            model.addAttribute("restaurantEmoji", restaurant.getEmoji());
+        }
         model.addAttribute("restaurantColor", restaurant.getAccentColor());
-        model.addAttribute("restaurantTagline", restaurant.getTagline());
-        model.addAttribute("restaurantLogo", restaurant.getLogoUrl());
         model.addAttribute("restaurantBanner", restaurant.getBannerUrl());
         model.addAttribute("restaurantBase", publicPath(restaurant));
         model.addAttribute("kitchenBase", kitchenPath(restaurant));
@@ -157,7 +164,7 @@ public class RestaurantPageService {
             case "ordo-cafe" -> "/ordo-cafe-customer.css";
             case "mburger" -> "/burger-men-customer.css?v=10";
             case "burger-men" -> "/burger-men-customer.css?v=3";
-            case "zhorolor" -> "/zhorolor-customer.css?v=11";
+            case "zhorolor" -> "/zhorolor-customer.css?v=12";
             default -> "/default-customer.css";
         };
     }
