@@ -63,6 +63,23 @@
             color: var(--white);
         }
 
+        .hero-banner-photo {
+            background-color: #2D6A4F;
+            background-size: cover;
+            background-position: center 28%;
+            min-height: clamp(200px, 48vw, 260px);
+            height: clamp(200px, 48vw, 260px);
+        }
+
+        .hero-banner-photo .hero-overlay {
+            background: linear-gradient(
+                180deg,
+                rgba(0, 0, 0, 0.35) 0%,
+                rgba(0, 0, 0, 0.52) 55%,
+                rgba(0, 0, 0, 0.62) 100%
+            );
+        }
+
         .hero-banner-plain {
             background-color: #2D6A4F;
             background-image: none;
@@ -143,36 +160,15 @@
         }
 
         .hero-brand-block {
-            grid-column: 1;
+            grid-column: 1 / -1;
             grid-row: 2;
             display: flex;
             align-items: center;
             gap: 14px;
             min-width: 0;
-            align-self: center;
-            padding-right: 0;
-            max-width: calc(100% - 118px);
-        }
-
-        .hero-sign-photo {
-            grid-column: 2;
-            grid-row: 2;
-            align-self: center;
-            justify-self: end;
-            z-index: 2;
-            flex-shrink: 0;
-        }
-
-        .hero-sign-img {
-            display: block;
-            width: clamp(108px, 30vw, 136px);
-            height: auto;
-            max-height: 92px;
-            object-fit: contain;
-            border-radius: 12px;
-            background: rgba(255, 255, 255, 0.96);
-            padding: 4px 6px;
-            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.22);
+            align-self: end;
+            padding-right: 96px;
+            max-width: 100%;
         }
 
         .hero-logo-ring {
@@ -404,31 +400,15 @@
         }
 
         @media (max-width: 380px) {
-            .hero-sign-img {
-                width: 96px;
-                max-height: 76px;
-            }
-
-            .hero-brand-block {
-                max-width: calc(100% - 104px);
-            }
-
-            .hero-logo-ring {
-                width: 82px;
-                height: 82px;
-            }
-
             .hero-brand-block {
                 gap: 10px;
                 padding-right: 0;
+                max-width: calc(100% - 92px);
+                grid-row: 2;
             }
 
             .hero-inner {
                 grid-template-rows: auto auto auto auto;
-            }
-
-            .hero-brand-block {
-                grid-row: 2;
             }
 
             .hero-badges {

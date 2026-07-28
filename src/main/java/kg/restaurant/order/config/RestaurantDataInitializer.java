@@ -342,7 +342,7 @@ public class RestaurantDataInitializer implements CommandLineRunner {
         if (zs == null) {
             zs = buildRestaurant("MILAN", "zhorolor", "🍽", "#2D6A4F", "JS", "Restaurant");
             zs.setAddress("Базар-Коргон шаары");
-            zs.setBannerUrl("/restaurant/zhorolor/banner.jpg");
+            zs.setBannerUrl("/restaurant/zhorolor/hero-bg.jpg?v=1");
             zs.setLogoUrl("/restaurant/zhorolor/sign-photo.png?v=1");
             restaurantRepository.save(zs);
             return;
@@ -352,7 +352,7 @@ public class RestaurantDataInitializer implements CommandLineRunner {
         zs.setCustomerUrl("/zhorolor");
         zs.setTagline("Restaurant");
         zs.setAddress("Базар-Коргон шаары");
-        zs.setBannerUrl("/restaurant/zhorolor/banner.jpg");
+        zs.setBannerUrl("/restaurant/zhorolor/hero-bg.jpg?v=1");
         zs.setAccentColor("#2D6A4F");
         zs.setLogoUrl("/restaurant/zhorolor/sign-photo.png?v=1");
         restaurantRepository.save(zs);

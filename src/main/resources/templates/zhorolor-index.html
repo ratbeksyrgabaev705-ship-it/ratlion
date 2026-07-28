@@ -21,7 +21,10 @@
 <div class="page">
 
     <div class="hero-section">
-        <header class="hero-banner hero-banner-plain">
+        <header
+                class="hero-banner hero-banner-photo"
+                th:style="|background-image: url('${restaurantBanner != null && !#strings.isEmpty(restaurantBanner) ? restaurantBanner : '/restaurant/zhorolor/hero-bg.jpg?v=1'}');|"
+        >
             <div class="hero-overlay" aria-hidden="true"></div>
 
             <div class="hero-inner">
@@ -56,16 +59,6 @@
                             <span id="workingHoursText">Күн сайын 09:00–20:00</span>
                         </p>
                     </div>
-                </div>
-
-                <div class="hero-sign-photo">
-                    <img
-                            th:src="${restaurantLogo != null && !#strings.isEmpty(restaurantLogo) ? restaurantLogo : '/restaurant/zhorolor/sign-photo.png?v=1'}"
-                            src="/restaurant/zhorolor/sign-photo.png?v=1"
-                            th:alt="${restaurantName}"
-                            alt="MILAN Restaurant"
-                            class="hero-sign-img"
-                    >
                 </div>
 
                 <a th:href="${restaurantBase + '/cart'}" href="/zhorolor/cart" class="hero-cart-glass">

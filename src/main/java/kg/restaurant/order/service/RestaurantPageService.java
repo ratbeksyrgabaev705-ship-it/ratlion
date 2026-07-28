@@ -72,7 +72,12 @@ public class RestaurantPageService {
             model.addAttribute("restaurantEmoji", restaurant.getEmoji());
         }
         model.addAttribute("restaurantColor", restaurant.getAccentColor());
-        model.addAttribute("restaurantBanner", restaurant.getBannerUrl());
+        model.addAttribute(
+                "restaurantBanner",
+                "zhorolor".equals(restaurant.getSlug())
+                        ? "/restaurant/zhorolor/hero-bg.jpg?v=1"
+                        : restaurant.getBannerUrl()
+        );
         model.addAttribute("restaurantBase", publicPath(restaurant));
         model.addAttribute("kitchenBase", kitchenPath(restaurant));
         model.addAttribute("customerTheme", resolveCustomerTheme(restaurant.getSlug()));
@@ -164,7 +169,7 @@ public class RestaurantPageService {
             case "ordo-cafe" -> "/ordo-cafe-customer.css";
             case "mburger" -> "/burger-men-customer.css?v=10";
             case "burger-men" -> "/burger-men-customer.css?v=3";
-            case "zhorolor" -> "/zhorolor-customer.css?v=14";
+            case "zhorolor" -> "/zhorolor-customer.css?v=15";
             default -> "/default-customer.css";
         };
     }
