@@ -985,7 +985,7 @@ public class RestaurantDataInitializer implements CommandLineRunner {
                 buildRestaurant("ОРДО КАФЕ", "ordo-cafe", "🍽", "#c9a227", "OD", "Лагман, плов, самса"),
                 buildRestaurant("FEMILY", "family", "F", "#5C1A1A", "FM", "Даамдуу тамактар"),
                 buildRestaurant("BURGERMAN", "burger-men", "🍔", "#E31837", "BM", "Бургер · Картошка · Комбо · Соус"),
-                buildRestaurant("MILAN", "zhorolor", "🍽", "#2D6A4F", "JS", "Restaurant"),
+                buildRestaurant("MILAN", "zhorolor", "🍽", "#2D6A4F", "JS", "Restaurant")
         );
 
         restaurantRepository.saveAll(defaults);
