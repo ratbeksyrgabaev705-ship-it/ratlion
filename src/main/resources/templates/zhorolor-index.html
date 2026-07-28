@@ -21,10 +21,7 @@
 <div class="page">
 
     <div class="hero-section">
-        <header
-                class="hero-banner"
-                th:style="|background-image: url('${restaurantBanner != null && !#strings.isEmpty(restaurantBanner) ? restaurantBanner : '/restaurant/zhorolor/banner.jpg'}');|"
-        >
+        <header class="hero-banner hero-banner-plain">
             <div class="hero-overlay" aria-hidden="true"></div>
 
             <div class="hero-inner">
@@ -42,20 +39,6 @@
                 </div>
 
                 <div class="hero-brand-block">
-                    <div class="hero-logo-ring hero-logo-milan">
-                        <img
-                                th:if="${restaurantLogo != null && !#strings.isEmpty(restaurantLogo)}"
-                                th:src="${restaurantLogo}"
-                                th:alt="${restaurantName}"
-                                src="/restaurant/zhorolor/logo.png?v=3"
-                                alt="MILAN"
-                                class="hero-logo-img"
-                                onerror="this.style.display='none';this.nextElementSibling.style.display='flex';"
-                        >
-                        <span class="hero-logo-fallback"
-                              th:text="${restaurantEmoji != null && !#strings.isEmpty(restaurantEmoji) ? restaurantEmoji : '🥟'}">🍽</span>
-                    </div>
-
                     <div class="hero-info">
                         <h1 class="hero-title" th:text="${restaurantName}">MILAN</h1>
                         <p class="hero-meta">
