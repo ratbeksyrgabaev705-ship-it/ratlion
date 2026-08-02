@@ -495,6 +495,12 @@
 
         saveCustomerFields();
 
+        const restaurantId = window.RESTAURANT?.id ?? window.restaurantId;
+        if (!restaurantId) {
+            showError('Ресторан табылган жок — бетти жаңыртып кайра аракет кылыңыз', 'errorBoxPay');
+            return;
+        }
+
         const itemName = cart.map(i => (CustomerI18n.getItemName(i) || 'Тамак') + ' x' + formatQty(i.quantity)).join(', ');
         const totalQuantity = cart.reduce((s, i) => s + formatQty(i.quantity), 0);
 

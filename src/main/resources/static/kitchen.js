@@ -17,6 +17,8 @@
     let ordersBootstrapped = false;
     let notifiedOrderIds = new Set();
     let pushEnabled = localStorage.getItem('kitchenPush') !== 'false';
+    let autoPrintEnabled = localStorage.getItem('kitchenAutoPrint') !== 'false';
+    let printedOrderIds = new Set();
 
     function q(id) { return document.getElementById(id); }
     function rid() { return scopeId ? '?restaurantId=' + encodeURIComponent(scopeId) : ''; }
@@ -124,7 +126,11 @@
         loadRestaurant().then(() => {
             refreshOrders();
         });
-        pollTimer = setInterval(refreshOrders, 8000);
+        pollTimer = setInterval(refreshOrders, 3000);
+        document.addEventListener('visibilitychange', function () {
+            if (document.visibilityState === 'visible') refreshOrders();
+        });
+        window.addEventListener('focus', refreshOrders);
         window.addEventListener('hashchange', handleHash);
         handleHash();
     }
@@ -230,9 +236,71 @@
         if (!incoming.length) return;
         playNewOrderSound();
         incoming.forEach(o => showOrderPush(o));
+        if (autoPrintEnabled) {
+            incoming.forEach(o => {
+                if (!printedOrderIds.has(o.id)) {
+                    printedOrderIds.add(o.id);
+                    printKitchenTicket(o);
+                }
+            });
+        }
         const first = incoming[0];
         toast('🆕 Жаңы заказ: ' + (first.displayOrderNumber || '#' + first.id));
     }
+
+    function buildKitchenTicketHtml(order) {
+        const num = esc(order.displayOrderNumber || '#' + order.id);
+        const items = formatOrderItems(order.itemName).replace(/<\/?ul[^>]*>/g, '').replace(/<li>/g, '• ').replace(/<\/li>/g, '<br>');
+        return `<!DOCTYPE html><html><head><meta charset="utf-8"><title>${num}</title>
+<style>
+@page { size: 80mm auto; margin: 4mm; }
+body { font-family: 'Noto Sans', Arial, sans-serif; font-size: 13px; line-height: 1.35; color: #000; margin: 0; padding: 8px; width: 72mm; }
+h1 { font-size: 18px; margin: 0 0 6px; text-align: center; }
+.meta { margin: 4px 0; }
+.items { margin: 10px 0; border-top: 1px dashed #000; border-bottom: 1px dashed #000; padding: 8px 0; }
+.total { font-size: 16px; font-weight: 800; text-align: right; margin-top: 8px; }
+.small { font-size: 11px; color: #333; }
+</style></head><body>
+<h1>${esc(scopeName)}</h1>
+<div class="meta"><strong>${num}</strong> · ${fmtTime(order.acceptedAt || order.createdAt)}</div>
+<div class="meta">👤 ${esc(order.customerName)}</div>
+<div class="meta">📞 ${esc(order.phone)}</div>
+<div class="meta">📍 ${esc(order.address)}</div>
+${order.foodComment ? `<div class="meta">🍽 ${esc(order.foodComment)}</div>` : ''}
+${order.comment ? `<div class="meta small">🚚 ${esc(order.comment)}</div>` : ''}
+<div class="items">${items}</div>
+<div class="total">${money(order.totalPrice)} сом</div>
+<div class="small" style="margin-top:10px;text-align:center">RATLION · ${new Date().toLocaleString('ky-KG')}</div>
+</body></html>`;
+    }
+
+    function printKitchenTicket(order) {
+        if (!order) return;
+        let frame = document.getElementById('kPrintFrame');
+        if (!frame) {
+            frame = document.createElement('iframe');
+            frame.id = 'kPrintFrame';
+            frame.setAttribute('aria-hidden', 'true');
+            frame.style.cssText = 'position:fixed;width:0;height:0;border:0;opacity:0;pointer-events:none';
+            document.body.appendChild(frame);
+        }
+        const win = frame.contentWindow;
+        const doc = win.document;
+        doc.open();
+        doc.write(buildKitchenTicketHtml(order));
+        doc.close();
+        setTimeout(function () {
+            try {
+                win.focus();
+                win.print();
+            } catch (e) { /* ignore */ }
+        }, 250);
+    }
+
+    window.kPrintOrder = function (id) {
+        const order = allOrders.find(o => o.id === id);
+        if (order) printKitchenTicket(order);
+    };
 
     function applyBrand() {
         const logoEl = q('kBrandLogo');
@@ -388,7 +456,12 @@
 
     function cardHtml(o, type, isFresh, isMoved) {
         let btn = '';
-        if (type === 'new') btn = `<button class="kitchen-btn kitchen-btn-primary kitchen-btn-sm" onclick="kAction(${o.id},'cook')">🍳 Даярдоону баштоо</button>`;
+        if (type === 'new') {
+            btn = `<div class="kitchen-order-actions">
+                <button class="kitchen-btn kitchen-btn-outline kitchen-btn-sm" type="button" onclick="kPrintOrder(${o.id})">🖨 Чек</button>
+                <button class="kitchen-btn kitchen-btn-primary kitchen-btn-sm" type="button" onclick="kAction(${o.id},'cook')">🍳 Даярдоону баштоо</button>
+            </div>`;
+        }
         if (type === 'cooking') btn = `<button class="kitchen-btn kitchen-btn-primary kitchen-btn-sm" onclick="kAction(${o.id},'ready')">✅ Даяр</button>`;
         if (type === 'ready') btn = `<button class="kitchen-btn kitchen-btn-outline kitchen-btn-sm" onclick="kAction(${o.id},'courier')">🛵 Курьерге берүү</button>`;
         const waitNote = type === 'ready' ? '<div class="kitchen-order-meta">⏳ Курьер күтүлүүдө</div>' : '';
@@ -398,6 +471,8 @@
         return `<article class="kitchen-order-card${enterCls}" data-order-id="${o.id}">
             <div class="kitchen-order-num">${esc(o.displayOrderNumber || '#' + o.id)}</div>
             <div class="kitchen-order-meta">👤 ${esc(o.customerName)}</div>
+            ${o.address ? `<div class="kitchen-order-meta">📍 ${esc(o.address)}</div>` : ''}
+            ${o.phone ? `<div class="kitchen-order-meta">📞 ${esc(o.phone)}</div>` : ''}
             ${o.foodComment ? `<div class="kitchen-order-meta">🍽 ${esc(o.foodComment)}</div>` : ''}
             ${formatOrderItems(o.itemName)}
             <div class="kitchen-order-time">🕐 ${fmtTime(o.createdAt)} · ${money(o.totalPrice)} сом</div>

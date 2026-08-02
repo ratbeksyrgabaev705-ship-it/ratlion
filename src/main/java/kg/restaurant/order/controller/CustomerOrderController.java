@@ -286,6 +286,14 @@ public class CustomerOrderController {
         order.setQuantity(quantity);
         order.setTotalPrice(totalPrice);
         order.setPaymentAmount(paymentAmount);
+
+        if (restaurantId == null) {
+            return ResponseEntity.badRequest().build();
+        }
+        Restaurant restaurant = restaurantRepository.findById(restaurantId).orElse(null);
+        if (restaurant == null || Boolean.FALSE.equals(restaurant.getActive())) {
+            return ResponseEntity.badRequest().build();
+        }
         order.setRestaurantId(restaurantId);
 
         ensureRestaurantAcceptingOrders(restaurantId);

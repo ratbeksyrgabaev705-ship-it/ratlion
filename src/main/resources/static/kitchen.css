@@ -209,6 +209,13 @@ body.kitchen-body {
 .kitchen-order-card--enter-cooking { animation: kEnterFromLeft 0.45s cubic-bezier(0.22, 1, 0.36, 1); }
 .kitchen-order-card--enter-ready { animation: kEnterFromLeft 0.45s cubic-bezier(0.22, 1, 0.36, 1); }
 
+.kitchen-order-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 10px;
+}
+
 .kitchen-col--pulse .kitchen-col-count { animation: kCountPop 0.45s ease; }
 
 @keyframes kSlideIn {
