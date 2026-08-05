@@ -191,7 +191,7 @@ window.AddressPicker = (function () {
                 showToast(t('mapModuleMissing'));
                 return;
             }
-            MapNavigator.viewAddress({
+            MapNavigator.showLocation({
                 latitude: data.latitude,
                 longitude: data.longitude,
                 address: data.address
