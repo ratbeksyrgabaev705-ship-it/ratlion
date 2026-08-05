@@ -266,6 +266,11 @@ public class PageController {
         return "redirect:/ratlion";
     }
 
+    @GetMapping("/admin-login")
+    public String adminLogin() {
+        return "admin-login";
+    }
+
     @GetMapping("/courier")
     public String courier() {
         return "courier";

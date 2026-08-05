@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="ky">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RATLION — Админ кирүү</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: Inter, system-ui, sans-serif;
+            background: #0f172a;
+            color: #fff;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 24px;
+        }
+        .login-card {
+            width: 100%;
+            max-width: 400px;
+            background: #1e293b;
+            border: 1px solid #334155;
+            border-radius: 16px;
+            padding: 28px 24px;
+        }
+        .login-card h1 { font-size: 22px; margin-bottom: 8px; }
+        .login-card p { color: #94a3b8; font-size: 14px; line-height: 1.5; margin-bottom: 20px; }
+        label { display: block; font-size: 13px; color: #cbd5e1; margin-bottom: 6px; }
+        input {
+            width: 100%;
+            padding: 12px 14px;
+            border-radius: 10px;
+            border: 1px solid #475569;
+            background: #0f172a;
+            color: #fff;
+            font-size: 16px;
+            margin-bottom: 14px;
+        }
+        button {
+            width: 100%;
+            padding: 14px;
+            border: none;
+            border-radius: 10px;
+            background: #dc2626;
+            color: #fff;
+            font-weight: 700;
+            font-size: 15px;
+            cursor: pointer;
+        }
+        button:disabled { opacity: 0.6; cursor: not-allowed; }
+        .error { color: #f87171; font-size: 13px; min-height: 18px; margin-top: 10px; }
+        .back { display: inline-block; margin-top: 16px; color: #94a3b8; text-decoration: none; font-size: 13px; }
+    </style>
+</head>
+<body>
+<div class="login-card">
+    <h1>🔒 RATLION админ</h1>
+    <p>Бул бөлüm тек менеджерлер үчүн. Парольду киргизиңиз.</p>
+    <form id="loginForm">
+        <label for="password">Пароль</label>
+        <input id="password" type="password" autocomplete="current-password" placeholder="••••••" required>
+        <button type="submit" id="submitBtn">Кирүү</button>
+    </form>
+    <p id="error" class="error"></p>
+    <a class="back" href="/">← Заказ берүү бетине</a>
+</div>
+<script>
+(function () {
+    const params = new URLSearchParams(window.location.search);
+    const next = params.get('next') || '/ratlion';
+    const form = document.getElementById('loginForm');
+    const errorEl = document.getElementById('error');
+    const submitBtn = document.getElementById('submitBtn');
+
+    form.addEventListener('submit', async function (e) {
+        e.preventDefault();
+        errorEl.textContent = '';
+        submitBtn.disabled = true;
+        try {
+            const res = await fetch('/api/admin/login', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ password: document.getElementById('password').value })
+            });
+            const data = await res.json().catch(function () { return {}; });
+            if (!res.ok) {
+                errorEl.textContent = data.error || 'Пароль туура эмес';
+                return;
+            }
+            window.location.href = next;
+        } catch (err) {
+            errorEl.textContent = 'Байланыш катасы';
+        } finally {
+            submitBtn.disabled = false;
+        }
+    });
+})();
+</script>
+</body>
+</html>

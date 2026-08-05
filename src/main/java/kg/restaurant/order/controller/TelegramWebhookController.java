@@ -11,7 +11,10 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 @RestController
 @RequestMapping("/api/telegram")
@@ -124,13 +127,45 @@ public class TelegramWebhookController {
     }
 
     private void handleStart(String chatId, String firstName) {
+        Optional<Courier> existingCourier = courierRepository.findByTelegramChatId(chatId);
+        if (existingCourier.isPresent()) {
+            Courier courier = existingCourier.get();
+            if (Boolean.TRUE.equals(courier.getActive())) {
+                String courierUrl = normalizePublicUrl(publicUrl) + "/courier";
+                telegramService.sendMessageWithInlineKeyboard(
+                        chatId,
+                        "Салам" + (firstName.isBlank() ? "!" : ", " + firstName + "!")
+                                + "\n\n"
+                                + "🛵 Сиз RATLION курьерисиз: " + courier.getName() + "\n\n"
+                                + "Жаңы заказдар Telegram'га келет.\n"
+                                + "«Жеткирдим» баскычын басыңыз.",
+                        List.of(List.of(Map.of("text", "🛵 Курьер панели", "url", courierUrl)))
+                );
+            } else {
+                telegramService.sendToCourier(
+                        chatId,
+                        "⏳ Салам" + (firstName.isBlank() ? "!" : ", " + firstName + "!")
+                                + "\n\n"
+                                + "Каттооңуз күтүлүүдө.\n"
+                                + "Менеджер активдештиргенден кийин заказдар келет."
+                );
+            }
+            return;
+        }
+
         String orderUrl = normalizePublicUrl(publicUrl) + "/";
-        String greeting = "Салам" + (firstName.isBlank() ? "!" : ", " + firstName + "!")
-                + "\n\n"
-                + "🔥 RATLION — Базар-Коргон тамак жеткирүү.\n\n"
-                + "🌐 Заказ берүү: " + orderUrl + "\n\n"
-                + "🛵 Курьер болуу: /register Атыңыз";
-        telegramService.sendToCourier(chatId, greeting);
+        List<List<Map<String, String>>> keyboard = new ArrayList<>();
+        keyboard.add(List.of(Map.of("text", "🍽 Заказ берүү", "url", orderUrl)));
+
+        telegramService.sendMessageWithInlineKeyboard(
+                chatId,
+                "Салам" + (firstName.isBlank() ? "!" : ", " + firstName + "!")
+                        + "\n\n"
+                        + "🔥 RATLION — Базар-Коргон тамак жеткирүү.\n\n"
+                        + "Тамак заказ кылуу үчүн төмөнкү баскычты басыңыз.\n\n"
+                        + "🛵 Курьер болуу: /register Атыңыз",
+                keyboard
+        );
     }
 
     private String normalizePublicUrl(String url) {
@@ -161,7 +196,7 @@ public class TelegramWebhookController {
                 telegramService.sendToCourier(
                         chatId,
                         "⏳ Сиздин каттооңуз күтүлүүдө.\n"
-                                + "Менеджер /owner панелинен активдештирет."
+                                + "Менеджер активдештиргенден кийин заказдар келет."
                 );
             }
             return;
@@ -177,7 +212,7 @@ public class TelegramWebhookController {
                 "🛵 ЖАҢЫ КУРЬЕР КАТТОО СУРАМЫ\n\n"
                         + "👤 " + name + "\n"
                         + "Telegram ID: " + chatId + "\n\n"
-                        + "→ /owner панелинен активдештирүү"
+                        + "→ /ratlion панелинен активдештирүү"
         );
 
         telegramService.sendToCourier(

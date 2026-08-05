@@ -20,3 +20,5 @@ services:
         value: "-5465823904"
       - key: APP_PUBLIC_URL
         sync: false
+      - key: RATLION_ADMIN_PASSWORD
+        sync: false
