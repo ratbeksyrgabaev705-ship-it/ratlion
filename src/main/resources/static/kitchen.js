@@ -122,6 +122,7 @@
         applyBrand();
         showApp();
         bindMenuForm();
+        initCategoryNav();
         bindPushControls();
         loadRestaurant().then(() => {
             refreshOrders();
@@ -699,10 +700,26 @@ ${order.comment ? `<div class="meta small">🚚 ${esc(order.comment)}</div>` : '
 
     function scrollToMenuSection(el) {
         if (!el) return;
-        const scrollRoot = document.scrollingElement || document.documentElement;
-        const offset = 112;
-        const top = el.getBoundingClientRect().top + scrollRoot.scrollTop - offset;
-        scrollRoot.scrollTo({ top: Math.max(0, top), behavior: 'smooth' });
+        const container = q('kMenuScroll');
+        if (!container) {
+            el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            return;
+        }
+        const cRect = container.getBoundingClientRect();
+        const eRect = el.getBoundingClientRect();
+        const next = container.scrollTop + (eRect.top - cRect.top) - 8;
+        container.scrollTo({ top: Math.max(0, next), behavior: 'smooth' });
+    }
+
+    function initCategoryNav() {
+        const el = q('kMenuCategories');
+        if (!el || el.dataset.bound) return;
+        el.dataset.bound = '1';
+        el.addEventListener('click', function (e) {
+            const btn = e.target.closest('.k-cat-btn');
+            if (!btn) return;
+            kScrollToCategory(btn.dataset.cat != null ? btn.dataset.cat : '');
+        });
     }
 
     function renderMenuItemCard(item) {
@@ -731,11 +748,11 @@ ${order.comment ? `<div class="meta small">🚚 ${esc(order.comment)}</div>` : '
         const el = q('kMenuCategories');
         if (!el) return;
         const cats = [...new Set(list.map(menuCategory).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'ky'));
-        el.innerHTML = `<button type="button" class="k-cat-btn${activeCategory === '' ? ' active' : ''}" onclick="kScrollToCategory('')">Бардыгы (${list.length})</button>` +
+        el.innerHTML = `<button type="button" class="k-cat-btn${activeCategory === '' ? ' active' : ''}" data-cat="">Бардыгы (${list.length})</button>` +
             cats.map(c => {
                 const count = list.filter(i => menuCategory(i) === c).length;
                 const active = activeCategory === c ? ' active' : '';
-                return `<button type="button" class="k-cat-btn${active}" onclick="kScrollToCategory(${JSON.stringify(c)})">${esc(c)} (${count})</button>`;
+                return `<button type="button" class="k-cat-btn${active}" data-cat=${JSON.stringify(c)}>${esc(c)} (${count})</button>`;
             }).join('');
     }
 
@@ -750,8 +767,9 @@ ${order.comment ? `<div class="meta small">🚚 ${esc(order.comment)}</div>` : '
         }
         requestAnimationFrame(function () {
             requestAnimationFrame(function () {
+                const container = q('kMenuScroll');
                 if (!cat) {
-                    scrollToMenuSection(q('kMenuList')?.querySelector('.k-menu-cat-section') || q('kMenuList'));
+                    if (container) container.scrollTo({ top: 0, behavior: 'smooth' });
                     return;
                 }
                 const normCat = String(cat).trim();

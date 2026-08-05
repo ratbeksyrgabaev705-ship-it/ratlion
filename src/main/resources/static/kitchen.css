@@ -300,10 +300,7 @@ body.kitchen-body {
 .kitchen-customer-link { font-size: 12px; color: #64748b; padding: 12px; text-decoration: none; display: block; }
 
 .k-menu-categories {
-    display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 16px;
-    position: sticky; top: 0; z-index: 20;
-    padding: 10px 0 12px;
-    background: linear-gradient(180deg, #1e293b 0%, #1e293b 85%, rgba(30,41,59,0) 100%);
+    display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px;
 }
 .k-cat-btn {
     padding: 8px 14px; border-radius: 999px; border: 1px solid #334155;
@@ -311,7 +308,7 @@ body.kitchen-body {
 }
 .k-cat-btn.active, .k-cat-btn:hover { border-color: var(--k-accent); color: #fff; background: #14532d; }
 
-.k-menu-cat-section { scroll-margin-top: 120px; }
+.k-menu-cat-section { scroll-margin-top: 12px; }
 .k-menu-cat-head {
     font-size: 15px; font-weight: 800; color: #4ade80;
     padding: 18px 0 10px; margin: 4px 0 10px;
@@ -336,7 +333,24 @@ body.kitchen-body {
     border-radius: 16px;
     padding: 20px;
     box-shadow: none;
+    display: flex;
+    flex-direction: column;
+    max-height: calc(100vh - 110px);
 }
+
+.k-menu-scroll {
+    flex: 1;
+    min-height: 240px;
+    max-height: calc(100vh - 280px);
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    scroll-behavior: smooth;
+    padding-right: 4px;
+    margin-top: 4px;
+}
+.k-menu-scroll::-webkit-scrollbar { width: 8px; }
+.k-menu-scroll::-webkit-scrollbar-thumb { background: #475569; border-radius: 999px; }
+.k-menu-scroll::-webkit-scrollbar-track { background: transparent; }
 
 .kitchen-body .kitchen-menu-search {
     margin-bottom: 16px;
