@@ -10,7 +10,7 @@
     <link rel="stylesheet" href="/family-customer.css">
     <link rel="stylesheet" th:href="${customerCss}" href="/aga-ini-customer.css">
     <link rel="stylesheet" href="/jolchu-success.css?v=6">
-    <link rel="stylesheet" href="/address-picker.css?v=7">
+    <link rel="stylesheet" href="/address-picker.css?v=8">
     <script th:inline="javascript">
         window.RESTAURANT = {
             id: /*[[${restaurantId}]]*/ 3,
@@ -258,8 +258,9 @@
     </button>
 </div>
 
-<script src="/map-navigator.js?v=7"></script>
-<script src="/address-picker.js?v=7"></script>
+<script src="/geolocation.js?v=8"></script>
+<script src="/map-navigator.js?v=8"></script>
+<script src="/address-picker.js?v=8"></script>
 <script>
     const DELIVERY = 0;
     let cart = [];
@@ -463,7 +464,7 @@
         if (nextBtn) nextBtn.disabled = true;
 
         try {
-            if (window.AddressPicker) await AddressPicker.ensureLocation(true);
+            if (window.AddressPicker) await AddressPicker.ensureLocation();
         } catch (e) {
             showError(e.message || CustomerI18n.t('errAddressPick'));
             if (nextBtn) nextBtn.disabled = false;
@@ -522,7 +523,7 @@
         btn.disabled = true;
 
         try {
-            if (window.AddressPicker) await AddressPicker.ensureLocation(true);
+            if (window.AddressPicker) await AddressPicker.ensureLocation();
         } catch (e) {
             showError(e.message || CustomerI18n.t('errAddressPick'), 'errorBoxPay');
             btn.disabled = false;

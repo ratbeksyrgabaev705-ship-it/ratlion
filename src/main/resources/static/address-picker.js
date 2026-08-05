@@ -1,6 +1,5 @@
 /**
  * AddressPicker — GPS + native map apps (Google, 2GIS, Yandex…)
- * Дарек тандоо: телефондогу карта колдонмосун ачат, дарек GPS менен автоматтык толтурат.
  */
 window.AddressPicker = (function () {
     'use strict';
@@ -8,15 +7,17 @@ window.AddressPicker = (function () {
     var TEXT = {
         ky: {
             selectOnMapCheckout: 'Картада көрүү үчүн басыңыз',
+            myLocation: 'Менин жайгашкан жеримди колдонуу',
             locating: 'Дарек табылууда...',
-            gpsOff: 'GPS күйгүзүңүз',
-            gpsDenied: 'Геолокацияга уруксат бериңиз'
+            gpsError: 'GPS күйгүзүңүз же Location уруксатын бериңиз',
+            mapModuleMissing: 'Карта модулу жükтүүрүлгөн жок'
         },
         ru: {
             selectOnMapCheckout: 'Нажмите, чтобы открыть карту',
+            myLocation: 'Использовать моё местоположение',
             locating: 'Определяем адрес...',
-            gpsOff: 'Включите GPS',
-            gpsDenied: 'Разрешите геолокацию'
+            gpsError: 'Включите GPS или разрешите доступ к геолокации',
+            mapModuleMissing: 'Модуль карт не загружен'
         }
     };
 
@@ -26,8 +27,11 @@ window.AddressPicker = (function () {
     var _addressInput = null;
     var _display = null;
     var _fieldBox = null;
+    var _gpsBtn = null;
+    var _toastEl = null;
     var _locating = false;
     var _ensurePromise = null;
+    var _lastCoords = null;
 
     function lang() {
         if (window.CustomerI18n && CustomerI18n.getLang) {
@@ -45,6 +49,24 @@ window.AddressPicker = (function () {
         return 'checkout:' + (_slug || 'default') + ':' + field;
     }
 
+    function ensureToast() {
+        if (_toastEl) return;
+        _toastEl = document.createElement('div');
+        _toastEl.id = 'apGeoToast';
+        _toastEl.className = 'ap-geo-toast hidden';
+        document.body.appendChild(_toastEl);
+    }
+
+    function showToast(msg, durationMs) {
+        ensureToast();
+        _toastEl.textContent = msg;
+        _toastEl.classList.remove('hidden');
+        clearTimeout(showToast._timer);
+        showToast._timer = setTimeout(function () {
+            _toastEl.classList.add('hidden');
+        }, durationMs || 4200);
+    }
+
     function setLocating(on) {
         _locating = !!on;
         if (_display) {
@@ -52,6 +74,10 @@ window.AddressPicker = (function () {
             if (on) _display.textContent = t('locating');
         }
         if (_fieldBox) _fieldBox.classList.toggle('ap-locating', on);
+        if (_gpsBtn) {
+            _gpsBtn.disabled = on;
+            _gpsBtn.classList.toggle('ap-busy', on);
+        }
     }
 
     function updateDisplay(text) {
@@ -62,21 +88,29 @@ window.AddressPicker = (function () {
         if (_addressInput) _addressInput.value = text || '';
     }
 
+    /** Координата алынгandan кийин гана UI жаңыланат */
     function applyLocation(lat, lng, address) {
+        _lastCoords = { latitude: lat, longitude: lng, address: address || '' };
+
         if (_latInput) _latInput.value = lat != null ? String(lat) : '';
         if (_lngInput) _lngInput.value = lng != null ? String(lng) : '';
         updateDisplay(address || '');
+
         try {
             if (address) localStorage.setItem(storageKey('address'), address);
             if (lat != null) localStorage.setItem(storageKey('latitude'), String(lat));
             if (lng != null) localStorage.setItem(storageKey('longitude'), String(lng));
         } catch (e) { /* ignore */ }
-        return { latitude: lat, longitude: lng, address: address || '' };
+
+        return _lastCoords;
     }
 
     function reverseGeocode(lat, lng) {
-        return fetch('/api/geocode/reverse?lat=' + lat + '&lon=' + lng + '&lang=ru')
-            .then(function (r) { return r.json(); })
+        return fetch('/api/geocode/reverse?lat=' + encodeURIComponent(lat) + '&lon=' + encodeURIComponent(lng) + '&lang=ru')
+            .then(function (r) {
+                if (!r.ok) throw new Error('geocode');
+                return r.json();
+            })
             .then(function (data) {
                 var addr = (data && (data.address || data.fullAddress)) || '';
                 if (!addr) addr = lat.toFixed(5) + ', ' + lng.toFixed(5);
@@ -87,46 +121,44 @@ window.AddressPicker = (function () {
             });
     }
 
-    function getGpsPosition(forceFresh) {
-        return new Promise(function (resolve, reject) {
-            if (!navigator.geolocation) {
-                reject(new Error(t('gpsOff')));
-                return;
-            }
-            navigator.geolocation.getCurrentPosition(
-                function (pos) { resolve(pos); },
-                function (err) {
-                    reject(new Error(err && err.code === 1 ? t('gpsDenied') : t('gpsOff')));
-                },
-                {
-                    enableHighAccuracy: true,
-                    timeout: 15000,
-                    maximumAge: forceFresh ? 0 : 120000
-                }
-            );
-        });
-    }
-
-    function locateAndFill(forceFresh) {
-        return getGpsPosition(forceFresh).then(function (pos) {
-            return reverseGeocode(pos.coords.latitude, pos.coords.longitude);
-        });
-    }
-
-    function ensureLocation(forceFresh) {
-        if (_ensurePromise && !forceFresh) return _ensurePromise;
-
-        var hasData = _latInput && _latInput.value && _addressInput && _addressInput.value.trim().length >= 3;
-        if (!forceFresh && hasData) {
-            return Promise.resolve({
-                latitude: parseFloat(_latInput.value),
-                longitude: parseFloat(_lngInput.value),
-                address: _addressInput.value.trim()
-            });
+    function requireGeoModule() {
+        if (!window.GeoLocation) {
+            throw new Error(t('gpsError'));
         }
+        if (!GeoLocation.isSecure()) {
+            throw new Error(GeoLocation.t('insecure', lang()));
+        }
+        if (!GeoLocation.isSupported()) {
+            throw new Error(GeoLocation.t('unsupported', lang()));
+        }
+    }
+
+    function warnIfApproximate(geoResult) {
+        if (window.GeoLocation && GeoLocation.shouldWarnApproximate(geoResult)) {
+            showToast(GeoLocation.getApproximateWarning(lang()), 5500);
+        }
+    }
+
+    /** Жаңы GPS → reverse geocode → дарек */
+    function fetchFreshLocation() {
+        requireGeoModule();
+
+        return GeoLocation.getCurrentPosition({ lang: lang() })
+            .then(function (geo) {
+                warnIfApproximate(geo);
+                return reverseGeocode(geo.latitude, geo.longitude);
+            });
+    }
+
+    function ensureLocation() {
+        if (_ensurePromise) return _ensurePromise;
 
         setLocating(true);
-        _ensurePromise = locateAndFill(!!forceFresh)
+        _ensurePromise = fetchFreshLocation()
+            .catch(function (err) {
+                showToast(err.message || t('gpsError'));
+                throw err;
+            })
             .finally(function () {
                 setLocating(false);
                 _ensurePromise = null;
@@ -135,10 +167,28 @@ window.AddressPicker = (function () {
         return _ensurePromise;
     }
 
+    function useMyLocation() {
+        if (_locating) return Promise.resolve(_lastCoords);
+
+        setLocating(true);
+        return fetchFreshLocation()
+            .then(function (result) {
+                showToast(result.address, 2500);
+                return result;
+            })
+            .catch(function (err) {
+                showToast(err.message || t('gpsError'));
+                throw err;
+            })
+            .finally(function () {
+                setLocating(false);
+            });
+    }
+
     function openNativeMaps() {
         function openWith(data) {
             if (!window.MapNavigator) {
-                alert('Карта модулу жükтүүрүлгөн жок');
+                showToast(t('mapModuleMissing'));
                 return;
             }
             MapNavigator.viewAddress({
@@ -148,22 +198,41 @@ window.AddressPicker = (function () {
             });
         }
 
-        if (_latInput && _latInput.value && _lngInput && _lngInput.value) {
-            openWith({
-                latitude: parseFloat(_latInput.value),
-                longitude: parseFloat(_lngInput.value),
-                address: _addressInput ? _addressInput.value : ''
-            });
-            return;
-        }
-
         setLocating(true);
-        locateAndFill(true)
+        fetchFreshLocation()
             .then(openWith)
             .catch(function (err) {
-                alert(err.message || t('gpsDenied'));
+                showToast(err.message || t('gpsError'));
             })
-            .finally(function () { setLocating(false); });
+            .finally(function () {
+                setLocating(false);
+            });
+    }
+
+    function injectGpsButton() {
+        if (!_fieldBox || _gpsBtn) return;
+
+        _gpsBtn = document.createElement('button');
+        _gpsBtn.type = 'button';
+        _gpsBtn.id = 'apUseMyLocationBtn';
+        _gpsBtn.className = 'ap-use-location-btn';
+        _gpsBtn.innerHTML =
+            '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">' +
+            '<circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.6"/>' +
+            '<circle cx="12" cy="12" r="3" fill="currentColor"/>' +
+            '<line x1="12" y1="2" x2="12" y2="6" stroke="currentColor" stroke-width="1.6"/>' +
+            '<line x1="12" y1="18" x2="12" y2="22" stroke="currentColor" stroke-width="1.6"/>' +
+            '<line x1="2" y1="12" x2="6" y2="12" stroke="currentColor" stroke-width="1.6"/>' +
+            '<line x1="18" y1="12" x2="22" y2="12" stroke="currentColor" stroke-width="1.6"/></svg>' +
+            '<span id="apUseMyLocationText"></span>';
+
+        _fieldBox.insertAdjacentElement('afterend', _gpsBtn);
+        _gpsBtn.querySelector('#apUseMyLocationText').textContent = t('myLocation');
+        _gpsBtn.addEventListener('click', function (e) {
+            e.preventDefault();
+            e.stopPropagation();
+            useMyLocation();
+        });
     }
 
     function bindCheckout(options) {
@@ -182,38 +251,49 @@ window.AddressPicker = (function () {
             updateDisplay('');
         }
 
+        injectGpsButton();
+
         function onAddressTap(e) {
+            if (e.target.closest('#apUseMyLocationBtn')) return;
             e.preventDefault();
             openNativeMaps();
         }
 
         if (_fieldBox) _fieldBox.addEventListener('click', onAddressTap);
-        if (_display) _display.addEventListener('click', onAddressTap);
 
-        if (options.autoLocate !== false && (!_latInput || !_latInput.value)) {
+        if (options.autoLocate !== false) {
             setTimeout(function () {
-                ensureLocation(false).catch(function () { /* user can tap later */ });
-            }, 400);
+                ensureLocation().catch(function () { /* колдонуучу кийинчике басат */ });
+            }, 500);
+        }
+
+        if (window.GeoLocation && !GeoLocation.isSecure()) {
+            showToast(GeoLocation.t('insecure', lang()), 6000);
         }
 
         return {
             openMaps: openNativeMaps,
             ensureLocation: ensureLocation,
+            useMyLocation: useMyLocation,
             updateDisplay: updateDisplay
         };
     }
 
     function refreshI18n() {
-        if (_display && !_locating) {
-            if (!_addressInput || !_addressInput.value) {
-                _display.textContent = t('selectOnMapCheckout');
-            }
+        if (_gpsBtn) {
+            var label = _gpsBtn.querySelector('#apUseMyLocationText');
+            if (label) label.textContent = t('myLocation');
+        }
+        if (_display && !_locating && (!_addressInput || !_addressInput.value)) {
+            _display.textContent = t('selectOnMapCheckout');
         }
     }
 
     return {
         bindCheckout: bindCheckout,
         ensureLocation: ensureLocation,
+        useMyLocation: useMyLocation,
+        locateMe: useMyLocation,
         openMaps: openNativeMaps,
         refreshI18n: refreshI18n,
         t: t

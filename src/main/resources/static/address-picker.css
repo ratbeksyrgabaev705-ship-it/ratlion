@@ -1,4 +1,4 @@
-/* GPS дарек толтуруу — минималдуу стилдер */
+/* GPS дарек */
 .fp-address-display.ap-locating,
 .fp-field-box-link.ap-locating .fp-address-display {
     color: #6b7280;
@@ -7,4 +7,57 @@
 @keyframes apPulseText {
     0%, 100% { opacity: 1; }
     50% { opacity: 0.45; }
+}
+
+.ap-use-location-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    width: calc(100% - 32px);
+    margin: 0 16px 12px;
+    padding: 13px 16px;
+    border: 1px solid rgba(34, 197, 94, 0.35);
+    border-radius: 14px;
+    background: rgba(34, 197, 94, 0.08);
+    color: #16a34a;
+    font-family: inherit;
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+}
+.ap-use-location-btn:active:not(:disabled) {
+    background: rgba(34, 197, 94, 0.16);
+}
+.ap-use-location-btn:disabled,
+.ap-use-location-btn.ap-busy {
+    opacity: 0.55;
+    cursor: wait;
+}
+
+.ap-geo-toast {
+    position: fixed;
+    left: 16px;
+    right: 16px;
+    bottom: calc(88px + env(safe-area-inset-bottom));
+    z-index: 10000;
+    padding: 14px 16px;
+    border-radius: 14px;
+    background: rgba(24, 24, 27, 0.94);
+    color: #f4f4f5;
+    font-size: 13px;
+    font-weight: 600;
+    line-height: 1.45;
+    text-align: center;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.28);
+    pointer-events: none;
+    animation: apToastIn 0.25s ease;
+}
+.ap-geo-toast.hidden {
+    display: none;
+}
+@keyframes apToastIn {
+    from { opacity: 0; transform: translateY(12px); }
+    to { opacity: 1; transform: translateY(0); }
 }
