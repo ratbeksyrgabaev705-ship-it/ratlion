@@ -78,13 +78,11 @@ window.AddressPicker = (function () {
         var sub = t('defaultSub');
         var full = (fullAddr || shortAddr || '').trim();
 
-        if (full) {
-            if (/бишкек|bishkek/i.test(full)) {
-                sub = t('defaultSub');
-            } else {
-                var parts = full.split(',').map(function (s) { return s.trim(); }).filter(Boolean);
-                if (parts.length >= 2) sub = parts.slice(-2).join(', ');
-            }
+        if (/бишкек|bishkek|киргиз|kyrgyz/i.test(full)) {
+            sub = t('defaultSub');
+        } else {
+            var parts = full.split(',').map(function (s) { return s.trim(); }).filter(Boolean);
+            if (parts.length >= 2) sub = parts.slice(-2).join(', ');
         }
         if (!main && full) {
             main = full.split(',')[0].trim();
@@ -121,9 +119,10 @@ window.AddressPicker = (function () {
             '<div class="ap-map-area">' +
             '  <div id="apMap" class="ap-map"></div>' +
             '  <div class="ap-pin-layer" id="apPinLayer">' +
+            '    <div class="ap-center-ring"></div>' +
             '    <div class="ap-pin-shadow"></div>' +
             '    <div class="ap-pin">' +
-            '      <svg viewBox="0 0 38 50" fill="none"><path d="M19 0C9 0 1.5 7.5 1.5 17.5c0 13 17.5 32.5 17.5 32.5S36.5 30.5 36.5 17.5C36.5 7.5 29 0 19 0z" fill="#22c55e" stroke="#fff" stroke-width="1.5"/><circle cx="19" cy="17.5" r="6.5" fill="#fff"/></svg>' +
+            '      <svg viewBox="0 0 48 62" fill="none"><path d="M24 2C12 2 3 11 3 23c0 16 21 37 21 37s21-21 21-37C45 11 36 2 24 2z" fill="#22c55e" stroke="#fff" stroke-width="2.5"/><circle cx="24" cy="22" r="8" fill="#fff"/><circle cx="24" cy="22" r="4" fill="#22c55e"/></svg>' +
             '    </div>' +
             '  </div>' +
             '  <button type="button" class="ap-gps-btn" id="apLocateBtn" onclick="AddressPicker.locateMe()">' +
@@ -422,6 +421,15 @@ window.AddressPicker = (function () {
         showToast._t = setTimeout(function () { el.classList.add('hidden'); }, 3200);
     }
 
+    function pulsePin() {
+        var layer = document.getElementById('apPinLayer');
+        if (!layer) return;
+        layer.classList.remove('ap-pulse');
+        void layer.offsetWidth;
+        layer.classList.add('ap-pulse');
+        setTimeout(function () { layer.classList.remove('ap-pulse'); }, 1300);
+    }
+
     function locateMe() {
         if (!navigator.geolocation) {
             showToast(t('gpsOff'));
@@ -434,6 +442,7 @@ window.AddressPicker = (function () {
             function (pos) {
                 if (btn) btn.classList.remove('ap-busy');
                 setLocation(pos.coords.latitude, pos.coords.longitude, null, { zoom: GPS_ZOOM });
+                pulsePin();
             },
             function (err) {
                 if (btn) btn.classList.remove('ap-busy');
