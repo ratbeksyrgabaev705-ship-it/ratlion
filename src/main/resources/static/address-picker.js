@@ -44,6 +44,32 @@ window.AddressPicker = (function () {
     var _addressInput = null;
     var _display = null;
     var _fieldBox = null;
+    var _pendingGeo = null;
+
+    function showMapError(msg) {
+        var main = document.getElementById('apAddrMain');
+        if (main) main.textContent = msg;
+        var btn = document.getElementById('apConfirmBtn');
+        if (btn) btn.disabled = true;
+    }
+
+    function applyGeoToMap(geo) {
+        if (!_map || !geo) return Promise.resolve();
+        _skipGeocode = true;
+        _map.setView([geo.latitude, geo.longitude], GPS_ZOOM, { animate: true });
+        pulsePin();
+        return reverseGeocode(geo.latitude, geo.longitude).then(function () {
+            if (window.GeoLocation && GeoLocation.shouldWarnApproximate(geo)) {
+                var sub = document.getElementById('apAddrSub');
+                if (sub) sub.textContent = GeoLocation.getApproximateWarning(lang());
+            }
+        });
+    }
+
+    function startGeoCapture() {
+        if (!window.GeoLocation) return null;
+        return GeoLocation.getCurrentPosition({ lang: lang() });
+    }
 
     function lang() {
         if (window.CustomerI18n && CustomerI18n.getLang) {
@@ -209,21 +235,15 @@ window.AddressPicker = (function () {
 
     function locateOnMap() {
         if (!window.GeoLocation) {
-            alert(t('pickOnMap'));
+            showMapError(t('pickOnMap'));
             return;
         }
 
         setMapLoading(true, t('locating'));
-        GeoLocation.getCurrentPosition({ lang: lang() })
-            .then(function (geo) {
-                if (!_map) return;
-                _skipGeocode = true;
-                _map.setView([geo.latitude, geo.longitude], GPS_ZOOM, { animate: true });
-                pulsePin();
-                return reverseGeocode(geo.latitude, geo.longitude);
-            })
+        startGeoCapture()
+            .then(applyGeoToMap)
             .catch(function (err) {
-                alert(err.message || t('pickOnMap'));
+                showMapError(err.message || t('pickOnMap'));
             })
             .finally(function () {
                 setMapLoading(false);
@@ -243,15 +263,31 @@ window.AddressPicker = (function () {
         _state.address = (_addressInput && _addressInput.value) || '';
         updateSheet(_state.address);
 
+        if (hasCoords) {
+            _pendingGeo = null;
+        } else if (!_pendingGeo) {
+            _pendingGeo = startGeoCapture();
+        }
+
         setTimeout(function () {
             if (hasCoords) {
                 initMap([lat, lng], GPS_ZOOM);
                 reverseGeocode(lat, lng);
             } else {
                 initMap(DEFAULT_CENTER, DEFAULT_ZOOM);
-                locateOnMap();
+                setMapLoading(true, t('locating'));
+                var geoPromise = _pendingGeo || startGeoCapture();
+                geoPromise
+                    .then(applyGeoToMap)
+                    .catch(function (err) {
+                        showMapError(err.message || t('pickOnMap'));
+                    })
+                    .finally(function () {
+                        setMapLoading(false);
+                        _pendingGeo = null;
+                    });
             }
-        }, 60);
+        }, 80);
     }
 
     function close() {
@@ -314,6 +350,7 @@ window.AddressPicker = (function () {
         if (_fieldBox) {
             _fieldBox.addEventListener('click', function (e) {
                 e.preventDefault();
+                _pendingGeo = startGeoCapture();
                 open();
             });
         }
