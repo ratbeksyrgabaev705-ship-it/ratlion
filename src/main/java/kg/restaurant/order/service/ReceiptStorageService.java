@@ -8,6 +8,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.Optional;
 
 @Service
 public class ReceiptStorageService {
@@ -56,5 +57,25 @@ public class ReceiptStorageService {
 
     public Path getMenuUploadFolder() {
         return menuUploadFolder;
+    }
+
+    public Optional<Path> resolveReceiptFile(String receiptImagePath) {
+        if (receiptImagePath == null || receiptImagePath.isBlank()) {
+            return Optional.empty();
+        }
+        String fileName = receiptImagePath.trim();
+        if (fileName.startsWith("/uploads/")) {
+            fileName = fileName.substring("/uploads/".length());
+        } else if (fileName.startsWith("uploads/")) {
+            fileName = fileName.substring("uploads/".length());
+        }
+        if (fileName.isBlank() || fileName.contains("..") || fileName.contains("/")) {
+            return Optional.empty();
+        }
+        Path filePath = uploadFolder.resolve(fileName).normalize();
+        if (!filePath.startsWith(uploadFolder) || !Files.isRegularFile(filePath)) {
+            return Optional.empty();
+        }
+        return Optional.of(filePath);
     }
 }

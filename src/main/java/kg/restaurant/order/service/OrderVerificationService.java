@@ -8,7 +8,6 @@ import kg.restaurant.order.repository.CustomerOrderRepository;
 import kg.restaurant.order.repository.RestaurantRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
@@ -30,20 +29,20 @@ public class OrderVerificationService {
     private final RestaurantRepository restaurantRepository;
     private final CourierRepository courierRepository;
     private final TelegramService telegramService;
-
-    @Value("${app.public-url:http://localhost:8080}")
-    private String publicUrl;
+    private final ReceiptStorageService receiptStorageService;
 
     public OrderVerificationService(
             CustomerOrderRepository orderRepository,
             RestaurantRepository restaurantRepository,
             CourierRepository courierRepository,
-            TelegramService telegramService
+            TelegramService telegramService,
+            ReceiptStorageService receiptStorageService
     ) {
         this.orderRepository = orderRepository;
         this.restaurantRepository = restaurantRepository;
         this.courierRepository = courierRepository;
         this.telegramService = telegramService;
+        this.receiptStorageService = receiptStorageService;
     }
 
     /** Жаңы заказ — Ratlion Telegram группасына чек + баскычтар */
@@ -58,25 +57,28 @@ public class OrderVerificationService {
         }
 
         String caption = buildVerificationCaption(order, null);
-        String photoUrl = receiptPhotoUrl(order.getReceiptImagePath());
 
         List<List<Map<String, String>>> keyboard = List.of(List.of(
                 Map.of("text", "✅ Кабыл алуу", "callback_data", "order_accept:" + order.getId()),
                 Map.of("text", "❌ Четке кагуу", "callback_data", "order_reject:" + order.getId())
         ));
 
-        TelegramService.TelegramMessageResult result;
-        if (photoUrl != null) {
-            result = telegramService.sendPhotoWithInlineKeyboard(chatId, photoUrl, caption, keyboard);
-        } else {
-            result = telegramService.sendMessageWithInlineKeyboard(chatId, caption, keyboard);
+        TelegramService.TelegramMessageResult result = receiptStorageService
+                .resolveReceiptFile(order.getReceiptImagePath())
+                .map(path -> telegramService.sendPhotoFileWithInlineKeyboard(chatId, path, caption, keyboard))
+                .orElseGet(() -> telegramService.sendMessageWithInlineKeyboard(chatId, caption, keyboard));
+
+        if (!result.success()) {
+            log.error("Dispatcher группасына чек менен жиберилбedi: {} — текст + баскычтар", result.error());
+            result = telegramService.sendMessageWithInlineKeyboard(
+                    chatId,
+                    caption + "\n\n📸 Чек сүрөтсүз (файл табылган жок)",
+                    keyboard
+            );
         }
 
         if (!result.success()) {
             log.error("Dispatcher группасына заказ жиберилбedi: {}", result.error());
-            telegramService.sendToManager(
-                    "⚠️ Telegram группага жиберилбedi: " + result.error() + "\n\n" + caption
-            );
         }
     }
 
@@ -299,28 +301,6 @@ public class OrderVerificationService {
             }
         }
         return sb.toString();
-    }
-
-    private String receiptPhotoUrl(String receiptPath) {
-        if (receiptPath == null || receiptPath.isBlank()) {
-            return null;
-        }
-        if (receiptPath.startsWith("http://") || receiptPath.startsWith("https://")) {
-            return receiptPath;
-        }
-        String base = normalizePublicUrl(publicUrl);
-        return receiptPath.startsWith("/") ? base + receiptPath : base + "/" + receiptPath;
-    }
-
-    private String normalizePublicUrl(String url) {
-        if (url == null || url.isBlank()) {
-            return "https://ratlion.onrender.com";
-        }
-        String trimmed = url.trim();
-        if (trimmed.endsWith("/")) {
-            return trimmed.substring(0, trimmed.length() - 1);
-        }
-        return trimmed;
     }
 
     private String orderLabel(CustomerOrder order) {

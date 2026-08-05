@@ -111,22 +111,13 @@ public class TelegramWebhookController {
     }
 
     private void handleStart(String chatId, String firstName) {
+        String orderUrl = normalizePublicUrl(publicUrl) + "/";
         String greeting = "Салам" + (firstName.isBlank() ? "!" : ", " + firstName + "!")
                 + "\n\n"
                 + "🔥 RATLION — Базар-Коргон тамак жеткирүү.\n\n"
-                + "Төмөнкү баскыч менен ресторан тандап, заказ бериңиз.\n\n"
-                + "🛵 Курьер болуу үчүн: /register Атыңыз";
-
-        String orderUrl = normalizePublicUrl(publicUrl) + "/";
-        var result = telegramService.sendWithWebAppButton(
-                chatId,
-                greeting,
-                "🍔 Заказ берүү",
-                orderUrl
-        );
-        if (!result.success()) {
-            telegramService.sendToCourier(chatId, greeting + "\n\n🌐 " + orderUrl);
-        }
+                + "🌐 Заказ берүү: " + orderUrl + "\n\n"
+                + "🛵 Курьер болуу: /register Атыңыз";
+        telegramService.sendToCourier(chatId, greeting);
     }
 
     private String normalizePublicUrl(String url) {

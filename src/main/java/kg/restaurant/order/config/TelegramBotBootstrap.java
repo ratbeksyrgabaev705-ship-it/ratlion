@@ -29,14 +29,13 @@ public class TelegramBotBootstrap implements ApplicationRunner {
         }
 
         String base = normalizeUrl(publicUrl);
-        String menuUrl = base + "/";
         String webhookUrl = base + "/api/telegram/webhook";
 
-        var menuResult = telegramService.setMenuButton("🍔 Заказ берүү", menuUrl);
+        var menuResult = telegramService.clearMenuButton();
         if (menuResult.success()) {
-            log.info("Telegram menu button орнотулду: {}", menuUrl);
+            log.info("Telegram menu button өчürүлдү (default)");
         } else {
-            log.warn("Telegram menu button орнотулган жок: {}", menuResult.error());
+            log.warn("Telegram menu button өчürүлбөдү: {}", menuResult.error());
         }
 
         var webhookResult = telegramService.setWebhook(webhookUrl);

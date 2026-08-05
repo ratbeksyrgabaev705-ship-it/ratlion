@@ -2,13 +2,18 @@ package kg.restaurant.order.service;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.io.FileSystemResource;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
+import org.springframework.util.LinkedMultiValueMap;
+import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.RestTemplate;
 
+import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -21,6 +26,7 @@ public class TelegramService {
     private static final Logger log = LoggerFactory.getLogger(TelegramService.class);
 
     private final RestTemplate restTemplate = new RestTemplate();
+    private final ObjectMapper objectMapper = new ObjectMapper();
 
     @Value("${telegram.bot.token:}")
     private String botToken;
@@ -142,6 +148,42 @@ public class TelegramService {
         return callApiWithMessage("sendPhoto", body);
     }
 
+    /** Чек файлын түз Telegram'га жиберет (URL кerek эмес) */
+    public TelegramMessageResult sendPhotoFileWithInlineKeyboard(
+            String targetChatId,
+            Path photoFile,
+            String caption,
+            List<List<Map<String, String>>> keyboard
+    ) {
+        if (botToken == null || botToken.isBlank()) {
+            return TelegramMessageResult.ofFailure("Telegram бот орнотулган эмес");
+        }
+        try {
+            String url = "https://api.telegram.org/bot" + botToken + "/sendPhoto";
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.MULTIPART_FORM_DATA);
+
+            MultiValueMap<String, Object> body = new LinkedMultiValueMap<>();
+            body.add("chat_id", targetChatId);
+            body.add("caption", caption);
+            body.add("photo", new FileSystemResource(photoFile.toFile()));
+            body.add("reply_markup", objectMapper.writeValueAsString(
+                    Map.of("inline_keyboard", keyboard)
+            ));
+
+            HttpEntity<MultiValueMap<String, Object>> request = new HttpEntity<>(body, headers);
+            String response = restTemplate.postForObject(url, request, String.class);
+            if (response != null && response.contains("\"ok\":false")) {
+                log.error("Telegram sendPhoto file катасы: {}", response);
+                return TelegramMessageResult.ofFailure(humanizeTelegramError(response));
+            }
+            return TelegramMessageResult.ofSuccess(extractMessageId(response));
+        } catch (Exception e) {
+            log.error("Telegram sendPhoto file катасы: {}", e.getMessage());
+            return TelegramMessageResult.ofFailure("Чек жиберилбedi: " + e.getMessage());
+        }
+    }
+
     public TelegramMessageResult sendMessageWithInlineKeyboard(
             String targetChatId,
             String text,
@@ -226,14 +268,11 @@ public class TelegramService {
         return callApi("sendMessage", body);
     }
 
-    /** Боттун меню баскычы — Telegram ичинде сайт ачуу */
-    public TelegramSendResult setMenuButton(String buttonText, String webAppUrl) {
-        Map<String, Object> menuButton = Map.of(
-                "type", "web_app",
-                "text", buttonText,
-                "web_app", Map.of("url", webAppUrl)
-        );
-        return callApi("setChatMenuButton", Map.of("menu_button", menuButton));
+    /** «Заказ берүү» меню баскычын өчүрүү */
+    public TelegramSendResult clearMenuButton() {
+        return callApi("setChatMenuButton", Map.of(
+                "menu_button", Map.of("type", "default")
+        ));
     }
 
     /** Webhook — Telegram боттон /start алуу үчүн */
