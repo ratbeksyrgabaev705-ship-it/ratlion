@@ -1,30 +1,31 @@
 /**
- * AddressPicker — Google / Yandex Maps деңгээлinde дарек тандоо.
- * GPS · издөө · карта синхрондуу.
+ * AddressPicker — Google / Yandex Maps UI
  */
 window.AddressPicker = (function () {
     'use strict';
 
     var DEFAULT_CENTER = [42.8746, 74.5698];
-    var DEFAULT_ZOOM = 16;
+    var DEFAULT_ZOOM = 17;
     var GPS_ZOOM = 18;
 
     var TEXT = {
         ky: {
+            pickTitle: 'Даректи тандоо',
             searchPlaceholder: 'Даректи жазыңыз...',
             myLocation: 'Менин жайгашкан жерим',
             confirmAddress: 'Бул даректи тандоо',
             selectOnMapCheckout: 'Даректи тандаңыз',
-            errAddressPick: 'Алгач дарегиңизди тандаңыз',
+            defaultSub: 'Бишкек, Кыргызстан',
             gpsOff: 'GPS күйгүзүңүз',
             gpsDenied: 'Геолокацияга уруксат бериңиз'
         },
         ru: {
+            pickTitle: 'Выбор адреса',
             searchPlaceholder: 'Введите адрес...',
             myLocation: 'Моё местоположение',
             confirmAddress: 'Выбрать этот адрес',
             selectOnMapCheckout: 'Выберите адрес',
-            errAddressPick: 'Сначала выберите адрес',
+            defaultSub: 'Бишкек, Кыргызстан',
             gpsOff: 'Включите GPS',
             gpsDenied: 'Разрешите геолокацию'
         }
@@ -38,9 +39,10 @@ window.AddressPicker = (function () {
     var _searchReq = 0;
     var _skipGeocode = false;
     var _searchFocused = false;
-    var _state = { lat: null, lng: null, address: '' };
+    var _state = { lat: null, lng: null, address: '', fullAddress: '' };
     var _onConfirm = null;
     var _slug = '';
+    var _speech = null;
 
     function lang() {
         if (window.CustomerI18n && CustomerI18n.getLang) {
@@ -71,6 +73,25 @@ window.AddressPicker = (function () {
         return String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
     }
 
+    function parseLines(shortAddr, fullAddr) {
+        var main = (shortAddr || '').trim();
+        var sub = t('defaultSub');
+        var full = (fullAddr || shortAddr || '').trim();
+
+        if (full) {
+            if (/бишкек|bishkek/i.test(full)) {
+                sub = t('defaultSub');
+            } else {
+                var parts = full.split(',').map(function (s) { return s.trim(); }).filter(Boolean);
+                if (parts.length >= 2) sub = parts.slice(-2).join(', ');
+            }
+        }
+        if (!main && full) {
+            main = full.split(',')[0].trim();
+        }
+        return { main: main, sub: sub };
+    }
+
     function ensureOverlay() {
         if (_overlay) return;
 
@@ -78,54 +99,113 @@ window.AddressPicker = (function () {
         _overlay.id = 'addressPickerOverlay';
         _overlay.className = 'ap-overlay';
         _overlay.innerHTML =
-            '<header class="ap-header">' +
+            '<div class="ap-topbar">' +
             '  <button type="button" class="ap-back" onclick="AddressPicker.close()" aria-label="Артка">' +
             '    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M15 18l-6-6 6-6"/></svg>' +
             '  </button>' +
+            '  <h1 class="ap-topbar-title" id="apTitle"></h1>' +
+            '  <span></span>' +
+            '</div>' +
+            '<div class="ap-search-row">' +
             '  <div class="ap-search-wrap">' +
-            '    <svg class="ap-search-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#9aa0a6" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3-3"/></svg>' +
-            '    <input type="search" id="apSearchInput" class="ap-search-input" autocomplete="off" enterkeyhint="search">' +
+            '    <div class="ap-search-box">' +
+            '      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#9aa0a6" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3-3"/></svg>' +
+            '      <input type="search" id="apSearchInput" class="ap-search-input" autocomplete="off" enterkeyhint="search">' +
+            '      <button type="button" class="ap-mic-btn" id="apMicBtn" aria-label="Үн">' +
+            '        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1a3 3 0 00-3 3v8a3 3 0 006 0V4a3 3 0 00-3-3z"/><path d="M19 10v2a7 7 0 01-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/></svg>' +
+            '      </button>' +
+            '    </div>' +
             '    <div id="apSuggestions" class="ap-suggestions hidden"></div>' +
             '  </div>' +
-            '</header>' +
+            '</div>' +
             '<div class="ap-map-area">' +
             '  <div id="apMap" class="ap-map"></div>' +
             '  <div class="ap-pin-layer" id="apPinLayer">' +
             '    <div class="ap-pin-shadow"></div>' +
             '    <div class="ap-pin">' +
-            '      <svg viewBox="0 0 40 52" fill="none"><path d="M20 0C9.5 0 1 8.5 1 19c0 14 19 33 19 33s19-19 19-33C39 8.5 30.5 0 20 0z" fill="#22c55e" stroke="#fff" stroke-width="2"/><circle cx="20" cy="19" r="7" fill="#fff"/></svg>' +
+            '      <svg viewBox="0 0 38 50" fill="none"><path d="M19 0C9 0 1.5 7.5 1.5 17.5c0 13 17.5 32.5 17.5 32.5S36.5 30.5 36.5 17.5C36.5 7.5 29 0 19 0z" fill="#22c55e" stroke="#fff" stroke-width="1.5"/><circle cx="19" cy="17.5" r="6.5" fill="#fff"/></svg>' +
             '    </div>' +
             '  </div>' +
-            '  <div class="ap-controls">' +
-            '    <button type="button" class="ap-ctrl ap-locate" id="apLocateBtn" onclick="AddressPicker.locateMe()">' +
-            '      <span class="ap-locate-icon">◎</span>' +
-            '      <span id="apLocateText"></span>' +
-            '    </button>' +
-            '    <div class="ap-zoom">' +
-            '      <button type="button" onclick="AddressPicker.zoomIn()">+</button>' +
-            '      <button type="button" onclick="AddressPicker.zoomOut()">−</button>' +
-            '    </div>' +
+            '  <button type="button" class="ap-gps-btn" id="apLocateBtn" onclick="AddressPicker.locateMe()">' +
+            '    <span class="ap-gps-icon"><svg width="24" height="24" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="#4285F4" stroke-width="1.5"/><circle cx="12" cy="12" r="3" fill="#4285F4"/><line x1="12" y1="2" x2="12" y2="6" stroke="#4285F4" stroke-width="1.5"/><line x1="12" y1="18" x2="12" y2="22" stroke="#4285F4" stroke-width="1.5"/><line x1="2" y1="12" x2="6" y2="12" stroke="#4285F4" stroke-width="1.5"/><line x1="18" y1="12" x2="22" y2="12" stroke="#4285F4" stroke-width="1.5"/></svg></span>' +
+            '    <span class="ap-gps-label" id="apLocateText"></span>' +
+            '  </button>' +
+            '  <div class="ap-zoom">' +
+            '    <button type="button" onclick="AddressPicker.zoomIn()">+</button>' +
+            '    <button type="button" onclick="AddressPicker.zoomOut()">−</button>' +
             '  </div>' +
             '  <div id="apGpsToast" class="ap-toast hidden"></div>' +
             '</div>' +
             '<div class="ap-sheet" id="apSheet">' +
             '  <div class="ap-sheet-grab" id="apSheetGrab"></div>' +
-            '  <div class="ap-sheet-addr" id="apAddressText">&nbsp;</div>' +
+            '  <div class="ap-sheet-row" id="apSheetRow">' +
+            '    <div class="ap-addr-icon">' +
+            '      <svg viewBox="0 0 24 24" fill="none"><path d="M12 21s7-4.5 7-10a7 7 0 10-14 0c0 5.5 7 10 7 10z" fill="#22c55e"/><circle cx="12" cy="11" r="2.5" fill="#fff"/></svg>' +
+            '    </div>' +
+            '    <div class="ap-addr-texts">' +
+            '      <div class="ap-addr-main ap-empty" id="apAddrMain">&nbsp;</div>' +
+            '      <div class="ap-addr-sub" id="apAddrSub"></div>' +
+            '    </div>' +
+            '  </div>' +
             '  <button type="button" class="ap-confirm" id="apConfirmBtn" onclick="AddressPicker.confirm()" disabled></button>' +
             '</div>';
 
         document.body.appendChild(_overlay);
         bindSearch();
+        bindMic();
         bindSheetDrag();
     }
 
     function applyLabels() {
+        var title = document.getElementById('apTitle');
+        if (title) title.textContent = t('pickTitle');
         var inp = document.getElementById('apSearchInput');
         if (inp) inp.placeholder = t('searchPlaceholder');
         var loc = document.getElementById('apLocateText');
         if (loc) loc.textContent = t('myLocation');
         var btn = document.getElementById('apConfirmBtn');
         if (btn) btn.textContent = t('confirmAddress');
+        var sub = document.getElementById('apAddrSub');
+        if (sub && !sub.textContent) sub.textContent = t('defaultSub');
+    }
+
+    function bindMic() {
+        var btn = document.getElementById('apMicBtn');
+        if (!btn) return;
+        var SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+        if (!SR) {
+            btn.style.display = 'none';
+            return;
+        }
+        btn.addEventListener('click', function () {
+            if (_speech) {
+                _speech.stop();
+                return;
+            }
+            _speech = new SR();
+            _speech.lang = lang() === 'ru' ? 'ru-RU' : 'ky-KG';
+            _speech.interimResults = false;
+            _speech.maxAlternatives = 1;
+            btn.classList.add('ap-recording');
+            _speech.onresult = function (e) {
+                var text = e.results[0][0].transcript;
+                var input = document.getElementById('apSearchInput');
+                if (input) {
+                    input.value = text;
+                    runSearch(text.trim());
+                    input.focus();
+                }
+            };
+            _speech.onend = function () {
+                btn.classList.remove('ap-recording');
+                _speech = null;
+            };
+            _speech.onerror = function () {
+                btn.classList.remove('ap-recording');
+                _speech = null;
+            };
+            _speech.start();
+        });
     }
 
     function bindSearch() {
@@ -145,11 +225,8 @@ window.AddressPicker = (function () {
         input.addEventListener('input', function () {
             var q = input.value.trim();
             clearTimeout(_debounceSearch);
-            if (q.length < 2) {
-                hideSuggestions();
-                return;
-            }
-            _debounceSearch = setTimeout(function () { runSearch(q); }, 320);
+            if (q.length < 2) { hideSuggestions(); return; }
+            _debounceSearch = setTimeout(function () { runSearch(q); }, 300);
         });
     }
 
@@ -174,7 +251,6 @@ window.AddressPicker = (function () {
         }
         box.innerHTML = list.map(function (item, i) {
             return '<button type="button" class="ap-sug-item" data-i="' + i + '">' +
-                '<span class="ap-sug-pin">📍</span>' +
                 '<span class="ap-sug-text">' + esc(item.label || item.address) + '</span></button>';
         }).join('');
         box.classList.remove('hidden');
@@ -182,18 +258,14 @@ window.AddressPicker = (function () {
         box.querySelectorAll('.ap-sug-item').forEach(function (el) {
             el.addEventListener('mousedown', function (e) {
                 e.preventDefault();
-                var idx = parseInt(el.getAttribute('data-i'), 10);
-                selectSearchResult(box._items[idx]);
+                selectSearchResult(box._items[parseInt(el.getAttribute('data-i'), 10)]);
             });
         });
     }
 
     function hideSuggestions() {
         var box = document.getElementById('apSuggestions');
-        if (box) {
-            box.classList.add('hidden');
-            box.innerHTML = '';
-        }
+        if (box) { box.classList.add('hidden'); box.innerHTML = ''; }
     }
 
     function selectSearchResult(item) {
@@ -205,20 +277,23 @@ window.AddressPicker = (function () {
             input.value = item.address || item.label || '';
             input.blur();
         }
+        _state.fullAddress = item.label || item.address || '';
         setLocation(parseFloat(item.lat), parseFloat(item.lng), item.address || item.label, {
             zoom: GPS_ZOOM,
             skipGeocode: true
         });
+        updateSheet(item.address || item.label, _state.fullAddress);
     }
 
-    /** Бардыk каналдар үчүн бир синхрон точка */
     function setLocation(lat, lng, address, opts) {
         opts = opts || {};
         _state.lat = lat;
         _state.lng = lng;
         if (address) _state.address = address;
 
-        updateSheet(address || _state.address);
+        if (!opts.skipGeocode) {
+            updateSheet(address || '', _state.fullAddress);
+        }
         setConfirmEnabled(!!(address || _state.address));
 
         if (!_searchFocused) {
@@ -231,21 +306,28 @@ window.AddressPicker = (function () {
             _map.setView([lat, lng], opts.zoom || _map.getZoom() || GPS_ZOOM, { animate: true });
         }
 
-        if (!opts.skipGeocode) {
-            reverseGeocode(lat, lng);
-        }
+        if (!opts.skipGeocode) reverseGeocode(lat, lng);
     }
 
-    function updateSheet(text) {
-        var el = document.getElementById('apAddressText');
-        if (!el) return;
-        el.textContent = text || '\u00a0';
-        el.classList.toggle('ap-empty', !text);
+    function updateSheet(shortAddr, fullAddr) {
+        var lines = parseLines(shortAddr || _state.address, fullAddr || _state.fullAddress);
+        var main = document.getElementById('apAddrMain');
+        var sub = document.getElementById('apAddrSub');
+        if (main) {
+            main.textContent = lines.main || '\u00a0';
+            main.classList.toggle('ap-empty', !lines.main);
+        }
+        if (sub) sub.textContent = lines.sub;
     }
 
     function setConfirmEnabled(on) {
         var btn = document.getElementById('apConfirmBtn');
         if (btn) btn.disabled = !on;
+    }
+
+    function setSheetDim(on) {
+        var row = document.getElementById('apSheetRow');
+        if (row) row.classList.toggle('ap-dim', !!on);
     }
 
     function initMap(center, zoom) {
@@ -266,21 +348,19 @@ window.AddressPicker = (function () {
             attributionControl: false
         });
 
-        L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
-            maxZoom: 20,
-            subdomains: 'abcd'
+        /* OpenStreetMap — актуалдуу маалымат, жаңы имараттар */
+        L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            maxZoom: 19,
+            maxNativeZoom: 19
         }).addTo(_map);
 
         _map.on('movestart', function () {
-            var pin = document.getElementById('apPinLayer');
-            if (pin) pin.classList.add('ap-lift');
-            var sheet = document.getElementById('apAddressText');
-            if (sheet) sheet.classList.add('ap-dim');
+            document.getElementById('apPinLayer').classList.add('ap-lift');
+            setSheetDim(true);
         });
 
         _map.on('moveend', function () {
-            var pin = document.getElementById('apPinLayer');
-            if (pin) pin.classList.remove('ap-lift');
+            document.getElementById('apPinLayer').classList.remove('ap-lift');
             onMapStop();
         });
 
@@ -291,11 +371,9 @@ window.AddressPicker = (function () {
         if (!_map) return;
         if (_skipGeocode) {
             _skipGeocode = false;
-            var sheet = document.getElementById('apAddressText');
-            if (sheet) sheet.classList.remove('ap-dim');
+            setSheetDim(false);
             return;
         }
-
         clearTimeout(_debounceGeo);
         _debounceGeo = setTimeout(function () {
             var c = _map.getCenter();
@@ -314,22 +392,24 @@ window.AddressPicker = (function () {
             .then(function (data) {
                 if (req !== _geocodeReq) return;
                 _state.address = data.address || data.fullAddress || '';
+                _state.fullAddress = data.fullAddress || _state.address;
                 _state.lat = lat;
                 _state.lng = lng;
-                updateSheet(_state.address);
+                updateSheet(_state.address, _state.fullAddress);
                 setConfirmEnabled(!!_state.address);
                 if (!_searchFocused) {
                     var input = document.getElementById('apSearchInput');
                     if (input) input.value = _state.address;
                 }
-                var sheet = document.getElementById('apAddressText');
-                if (sheet) sheet.classList.remove('ap-dim');
+                setSheetDim(false);
             })
             .catch(function () {
                 if (req !== _geocodeReq) return;
                 _state.address = lat.toFixed(5) + ', ' + lng.toFixed(5);
-                updateSheet(_state.address);
+                _state.fullAddress = _state.address;
+                updateSheet(_state.address, _state.fullAddress);
                 setConfirmEnabled(true);
+                setSheetDim(false);
             });
     }
 
@@ -367,10 +447,8 @@ window.AddressPicker = (function () {
         var grab = document.getElementById('apSheetGrab');
         var sheet = document.getElementById('apSheet');
         if (!grab || !sheet) return;
-        var expanded = false;
         grab.addEventListener('click', function () {
-            expanded = !expanded;
-            sheet.classList.toggle('ap-expanded', expanded);
+            sheet.classList.toggle('ap-expanded');
         });
     }
 
@@ -418,11 +496,12 @@ window.AddressPicker = (function () {
             _state.lat = options.latitude;
             _state.lng = options.longitude;
             _state.address = options.address || '';
-            updateSheet(_state.address);
+            _state.fullAddress = options.address || '';
+            updateSheet(_state.address, _state.fullAddress);
             setConfirmEnabled(!!_state.address);
         } else {
-            _state = { lat: null, lng: null, address: '' };
-            updateSheet('');
+            _state = { lat: null, lng: null, address: '', fullAddress: '' };
+            updateSheet('', '');
             setConfirmEnabled(false);
         }
 
@@ -440,6 +519,7 @@ window.AddressPicker = (function () {
         if (_overlay) _overlay.classList.remove('ap-open');
         document.body.style.overflow = '';
         hideSuggestions();
+        if (_speech) { try { _speech.stop(); } catch (e) { /* ignore */ } }
     }
 
     function bindCheckout(options) {
@@ -453,9 +533,8 @@ window.AddressPicker = (function () {
         var addressInput = document.getElementById('address');
 
         function updateDisplay(text) {
-            var label = text || t('selectOnMapCheckout');
             if (display) {
-                display.textContent = label;
+                display.textContent = text || t('selectOnMapCheckout');
                 display.classList.toggle('ap-empty', !text);
             }
             if (addressInput) addressInput.value = text || '';
