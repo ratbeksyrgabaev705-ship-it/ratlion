@@ -2,7 +2,6 @@ package kg.restaurant.order.service;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.FileSystemResource;
 import org.springframework.http.HttpEntity;
@@ -26,7 +25,6 @@ public class TelegramService {
     private static final Logger log = LoggerFactory.getLogger(TelegramService.class);
 
     private final RestTemplate restTemplate = new RestTemplate();
-    private final ObjectMapper objectMapper = new ObjectMapper();
 
     @Value("${telegram.bot.token:}")
     private String botToken;
@@ -167,9 +165,7 @@ public class TelegramService {
             body.add("chat_id", targetChatId);
             body.add("caption", caption);
             body.add("photo", new FileSystemResource(photoFile.toFile()));
-            body.add("reply_markup", objectMapper.writeValueAsString(
-                    Map.of("inline_keyboard", keyboard)
-            ));
+            body.add("reply_markup", toInlineKeyboardJson(keyboard));
 
             HttpEntity<MultiValueMap<String, Object>> request = new HttpEntity<>(body, headers);
             String response = restTemplate.postForObject(url, request, String.class);
@@ -319,6 +315,39 @@ public class TelegramService {
             return Integer.parseInt(matcher.group(1));
         }
         return null;
+    }
+
+    private String toInlineKeyboardJson(List<List<Map<String, String>>> keyboard) {
+        StringBuilder sb = new StringBuilder("{\"inline_keyboard\":[");
+        for (int r = 0; r < keyboard.size(); r++) {
+            sb.append("[");
+            List<Map<String, String>> row = keyboard.get(r);
+            for (int c = 0; c < row.size(); c++) {
+                Map<String, String> btn = row.get(c);
+                sb.append("{\"text\":\"").append(jsonEscape(btn.get("text")))
+                        .append("\",\"callback_data\":\"").append(jsonEscape(btn.get("callback_data")))
+                        .append("\"}");
+                if (c + 1 < row.size()) {
+                    sb.append(",");
+                }
+            }
+            sb.append("]");
+            if (r + 1 < keyboard.size()) {
+                sb.append(",");
+            }
+        }
+        sb.append("]}");
+        return sb.toString();
+    }
+
+    private String jsonEscape(String value) {
+        if (value == null) {
+            return "";
+        }
+        return value.replace("\\", "\\\\")
+                .replace("\"", "\\\"")
+                .replace("\n", "\\n")
+                .replace("\r", "\\r");
     }
 
     private String resolveManagerChatId() {
