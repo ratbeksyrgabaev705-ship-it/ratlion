@@ -9,7 +9,8 @@
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" th:href="${customerCss}" href="/family-customer.css">
     <link rel="stylesheet" href="/jolchu-success.css?v=6">
-    <link rel="stylesheet" href="/address-picker.css?v=11">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="">
+    <link rel="stylesheet" href="/address-picker.css?v=12">
     <script th:inline="javascript">
         window.RESTAURANT = {
             id: /*[[${restaurantId}]]*/ 2,
@@ -89,7 +90,7 @@
                 </div>
                 <div class="fp-field-body">
                     <div class="fp-field-label" id="addressLabel">Дарегиңиз</div>
-                    <div id="addressDisplay" class="fp-address-display ap-empty">Даректи тандаңыз</div>
+                    <div id="addressDisplay" class="fp-address-display ap-empty">Даректи жазуу</div>
                     <input type="hidden" id="address">
                     <input type="hidden" id="latitude">
                     <input type="hidden" id="longitude">
@@ -257,9 +258,9 @@
     </button>
 </div>
 
-<script src="/geolocation.js?v=11"></script>
-<script src="/map-navigator.js?v=11"></script>
-<script src="/address-picker.js?v=11"></script>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
+<script src="/geolocation.js?v=12"></script>
+<script src="/address-picker.js?v=12"></script>
 <script>
     const DELIVERY = 0;
     let cart = [];

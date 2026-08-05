@@ -1,39 +1,49 @@
 /**
- * AddressPicker — GPS + native map apps
+ * AddressPicker — карта + ортодогу пин + GPS
  */
 window.AddressPicker = (function () {
     'use strict';
 
-    var GEOCODE_TIMEOUT_MS = 8000;
-    var SAFETY_TIMEOUT_MS = 18000;
+    var DEFAULT_CENTER = [42.8746, 74.5698];
+    var DEFAULT_ZOOM = 16;
+    var GPS_ZOOM = 18;
 
     var TEXT = {
         ky: {
-            selectOnMapCheckout: 'Картада көрүү үчүн басыңыз',
-            myLocation: 'Менин жайгашкан жеримди колдонуу',
-            locating: 'Дарек табылууда...',
-            gpsError: 'GPS күйгүзүңүз же Location уруксатын бериңиз',
-            mapModuleMissing: 'Карта модулу жükтүүрүлгөн жок'
+            pickOnMap: 'Даректи картадан тандаңыз',
+            writeAddress: 'Даректи жазуу',
+            title: 'Даректи тандоо',
+            myLocation: 'Менин жерим',
+            confirm: 'Бул даректи тандоо',
+            locating: 'GPS...',
+            geocoding: 'Дарек табылууда...',
+            pickOnMapCheckout: 'Даректи жазуу'
         },
         ru: {
-            selectOnMapCheckout: 'Нажмите, чтобы открыть карту',
-            myLocation: 'Использовать моё местоположение',
-            locating: 'Определяем адрес...',
-            gpsError: 'Включите GPS или разрешите доступ к гeолокации',
-            mapModuleMissing: 'Модуль карт не загружен'
+            pickOnMap: 'Выберите адрес на карте',
+            writeAddress: 'Указать адрес',
+            title: 'Выбор адреса',
+            myLocation: 'Моё место',
+            confirm: 'Выбрать этот адрес',
+            locating: 'GPS...',
+            geocoding: 'Определяем адрес...',
+            pickOnMapCheckout: 'Указать адрес'
         }
     };
 
+    var _map = null;
+    var _overlay = null;
+    var _debounceGeo = null;
+    var _geocodeReq = 0;
+    var _skipGeocode = false;
+    var _state = { lat: null, lng: null, address: '' };
+    var _onConfirm = null;
     var _slug = '';
     var _latInput = null;
     var _lngInput = null;
     var _addressInput = null;
     var _display = null;
     var _fieldBox = null;
-    var _gpsBtn = null;
-    var _toastEl = null;
-    var _locating = false;
-    var _lastCoords = null;
 
     function lang() {
         if (window.CustomerI18n && CustomerI18n.getLang) {
@@ -47,226 +57,250 @@ window.AddressPicker = (function () {
         return (TEXT[L] && TEXT[L][key]) || TEXT.ky[key] || key;
     }
 
-    function storageKey(field) {
-        return 'checkout:' + (_slug || 'default') + ':' + field;
+    function storageKey(f) {
+        return 'checkout:' + (_slug || 'default') + ':' + f;
     }
 
-    function ensureToast() {
-        if (_toastEl) return;
-        _toastEl = document.createElement('div');
-        _toastEl.id = 'apGeoToast';
-        _toastEl.className = 'ap-geo-toast hidden';
-        document.body.appendChild(_toastEl);
+    function ensureOverlay() {
+        if (_overlay) return;
+
+        _overlay = document.createElement('div');
+        _overlay.id = 'addressPickerOverlay';
+        _overlay.className = 'ap-overlay';
+        _overlay.innerHTML =
+            '<div class="ap-topbar">' +
+            '  <button type="button" class="ap-back" id="apBackBtn" aria-label="Артка">' +
+            '    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M15 18l-6-6 6-6"/></svg>' +
+            '  </button>' +
+            '  <h1 class="ap-topbar-title" id="apTitle"></h1>' +
+            '  <span class="ap-topbar-spacer"></span>' +
+            '</div>' +
+            '<div class="ap-map-area">' +
+            '  <div id="apMap" class="ap-map"></div>' +
+            '  <div class="ap-pin-layer" id="apPinLayer">' +
+            '    <div class="ap-pin-shadow"></div>' +
+            '    <div class="ap-pin">' +
+            '      <svg viewBox="0 0 48 62" fill="none"><path d="M24 2C12 2 3 11 3 23c0 16 21 37 21 37s21-21 21-37C45 11 36 2 24 2z" fill="#22c55e" stroke="#fff" stroke-width="2.5"/><circle cx="24" cy="22" r="8" fill="#fff"/><circle cx="24" cy="22" r="4" fill="#22c55e"/></svg>' +
+            '    </div>' +
+            '  </div>' +
+            '  <button type="button" class="ap-gps-btn" id="apGpsBtn" title="GPS">' +
+            '    <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="#4285F4" stroke-width="1.6"/><circle cx="12" cy="12" r="3" fill="#4285F4"/><line x1="12" y1="2" x2="12" y2="6" stroke="#4285F4" stroke-width="1.6"/><line x1="12" y1="18" x2="12" y2="22" stroke="#4285F4" stroke-width="1.6"/><line x1="2" y1="12" x2="6" y2="12" stroke="#4285F4" stroke-width="1.6"/><line x1="18" y1="12" x2="22" y2="12" stroke="#4285F4" stroke-width="1.6"/></svg>' +
+            '  </button>' +
+            '  <div class="ap-map-loader hidden" id="apMapLoader"><div class="ap-spinner"></div><span id="apLoaderText"></span></div>' +
+            '</div>' +
+            '<div class="ap-sheet">' +
+            '  <div class="ap-addr-main" id="apAddrMain">&nbsp;</div>' +
+            '  <div class="ap-addr-sub" id="apAddrSub">Бишкек, Кыргызстан</div>' +
+            '  <button type="button" class="ap-confirm" id="apConfirmBtn"></button>' +
+            '</div>';
+
+        document.body.appendChild(_overlay);
+
+        document.getElementById('apBackBtn').addEventListener('click', close);
+        document.getElementById('apGpsBtn').addEventListener('click', locateOnMap);
+        document.getElementById('apConfirmBtn').addEventListener('click', confirm);
+
+        applyLabels();
     }
 
-    function showToast(msg, durationMs) {
-        ensureToast();
-        _toastEl.textContent = msg;
-        _toastEl.classList.remove('hidden');
-        clearTimeout(showToast._timer);
-        showToast._timer = setTimeout(function () {
-            _toastEl.classList.add('hidden');
-        }, durationMs || 4200);
+    function applyLabels() {
+        var title = document.getElementById('apTitle');
+        if (title) title.textContent = t('title');
+        var btn = document.getElementById('apConfirmBtn');
+        if (btn) btn.textContent = t('confirm');
     }
 
-    function currentAddressText() {
-        return (_addressInput && _addressInput.value.trim()) || '';
+    function setMapLoading(on, text) {
+        var el = document.getElementById('apMapLoader');
+        var txt = document.getElementById('apLoaderText');
+        if (el) el.classList.toggle('hidden', !on);
+        if (txt) txt.textContent = text || t('locating');
+        var gps = document.getElementById('apGpsBtn');
+        if (gps) gps.disabled = !!on;
     }
 
-    function setLocating(on) {
-        _locating = !!on;
-        if (_display) {
-            _display.classList.toggle('ap-locating', on);
-            if (on) {
-                _display.textContent = t('locating');
+    function pulsePin() {
+        var layer = document.getElementById('apPinLayer');
+        if (!layer) return;
+        layer.classList.remove('ap-pulse');
+        void layer.offsetWidth;
+        layer.classList.add('ap-pulse');
+        setTimeout(function () { layer.classList.remove('ap-pulse'); }, 900);
+    }
+
+    function initMap(center, zoom) {
+        if (typeof L === 'undefined') return;
+        var el = document.getElementById('apMap');
+        if (!el) return;
+
+        center = center || DEFAULT_CENTER;
+        zoom = zoom || DEFAULT_ZOOM;
+
+        if (_map) {
+            _map.setView(center, zoom, { animate: false });
+            setTimeout(function () { _map.invalidateSize(); }, 80);
+            return;
+        }
+
+        _map = L.map(el, { center: center, zoom: zoom, zoomControl: false, attributionControl: false });
+
+        L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            maxZoom: 19,
+            maxNativeZoom: 19
+        }).addTo(_map);
+
+        L.control.zoom({ position: 'bottomright' }).addTo(_map);
+
+        _map.on('movestart', function () {
+            document.getElementById('apPinLayer').classList.add('ap-lift');
+        });
+        _map.on('moveend', onMapStop);
+
+        setTimeout(function () { _map.invalidateSize(); }, 100);
+    }
+
+    function onMapStop() {
+        if (!_map) return;
+        document.getElementById('apPinLayer').classList.remove('ap-lift');
+        if (_skipGeocode) {
+            _skipGeocode = false;
+            return;
+        }
+        clearTimeout(_debounceGeo);
+        _debounceGeo = setTimeout(function () {
+            var c = _map.getCenter();
+            _state.lat = c.lat;
+            _state.lng = c.lng;
+            reverseGeocode(c.lat, c.lng);
+        }, 350);
+    }
+
+    function reverseGeocode(lat, lng) {
+        var req = ++_geocodeReq;
+        setMapLoading(true, t('geocoding'));
+
+        return fetch('/api/geocode/reverse?lat=' + encodeURIComponent(lat) + '&lon=' + encodeURIComponent(lng) + '&lang=ru')
+            .then(function (r) { return r.json(); })
+            .then(function (data) {
+                if (req !== _geocodeReq) return;
+                _state.lat = lat;
+                _state.lng = lng;
+                _state.address = (data && (data.address || data.fullAddress)) || (lat.toFixed(5) + ', ' + lng.toFixed(5));
+                updateSheet(_state.address);
+            })
+            .catch(function () {
+                if (req !== _geocodeReq) return;
+                _state.lat = lat;
+                _state.lng = lng;
+                _state.address = lat.toFixed(5) + ', ' + lng.toFixed(5);
+                updateSheet(_state.address);
+            })
+            .finally(function () {
+                if (req === _geocodeReq) setMapLoading(false);
+            });
+    }
+
+    function updateSheet(addr) {
+        var main = document.getElementById('apAddrMain');
+        var btn = document.getElementById('apConfirmBtn');
+        if (main) main.textContent = addr || '\u00a0';
+        if (btn) btn.disabled = !addr;
+    }
+
+    function locateOnMap() {
+        if (!window.GeoLocation) {
+            alert(t('pickOnMap'));
+            return;
+        }
+
+        setMapLoading(true, t('locating'));
+        GeoLocation.getCurrentPosition({ lang: lang() })
+            .then(function (geo) {
+                if (!_map) return;
+                _skipGeocode = true;
+                _map.setView([geo.latitude, geo.longitude], GPS_ZOOM, { animate: true });
+                pulsePin();
+                return reverseGeocode(geo.latitude, geo.longitude);
+            })
+            .catch(function (err) {
+                alert(err.message || t('pickOnMap'));
+            })
+            .finally(function () {
+                setMapLoading(false);
+            });
+    }
+
+    function open() {
+        ensureOverlay();
+        applyLabels();
+        _overlay.classList.add('ap-open');
+        document.body.style.overflow = 'hidden';
+
+        var lat = _latInput && parseFloat(_latInput.value);
+        var lng = _lngInput && parseFloat(_lngInput.value);
+        var hasCoords = !isNaN(lat) && !isNaN(lng);
+
+        _state.address = (_addressInput && _addressInput.value) || '';
+        updateSheet(_state.address);
+
+        setTimeout(function () {
+            if (hasCoords) {
+                initMap([lat, lng], GPS_ZOOM);
+                reverseGeocode(lat, lng);
             } else {
-                var saved = currentAddressText();
-                updateDisplay(saved);
+                initMap(DEFAULT_CENTER, DEFAULT_ZOOM);
+                locateOnMap();
             }
+        }, 60);
+    }
+
+    function close() {
+        if (_overlay) _overlay.classList.remove('ap-open');
+        document.body.style.overflow = '';
+        setMapLoading(false);
+    }
+
+    function confirm() {
+        if (!_state.lat || !_state.address) return;
+
+        if (_latInput) _latInput.value = String(_state.lat);
+        if (_lngInput) _lngInput.value = String(_state.lng);
+        if (_addressInput) _addressInput.value = _state.address;
+        updateDisplay(_state.address);
+
+        try {
+            localStorage.setItem(storageKey('address'), _state.address);
+            localStorage.setItem(storageKey('latitude'), String(_state.lat));
+            localStorage.setItem(storageKey('longitude'), String(_state.lng));
+        } catch (e) { /* ignore */ }
+
+        if (_onConfirm) {
+            _onConfirm({ address: _state.address, latitude: _state.lat, longitude: _state.lng });
         }
-        if (_fieldBox) _fieldBox.classList.toggle('ap-locating', on);
-        if (_gpsBtn) {
-            _gpsBtn.disabled = on;
-            _gpsBtn.classList.toggle('ap-busy', on);
-        }
+        close();
     }
 
     function updateDisplay(text) {
         if (_display) {
-            _display.textContent = text || t('selectOnMapCheckout');
+            _display.textContent = text || t('pickOnMapCheckout');
             _display.classList.toggle('ap-empty', !text);
         }
-        if (_addressInput) _addressInput.value = text || '';
-    }
-
-    function applyLocation(lat, lng, address) {
-        _lastCoords = { latitude: lat, longitude: lng, address: address || '' };
-        if (_latInput) _latInput.value = lat != null ? String(lat) : '';
-        if (_lngInput) _lngInput.value = lng != null ? String(lng) : '';
-        updateDisplay(address || '');
-        try {
-            if (address) localStorage.setItem(storageKey('address'), address);
-            if (lat != null) localStorage.setItem(storageKey('latitude'), String(lat));
-            if (lng != null) localStorage.setItem(storageKey('longitude'), String(lng));
-        } catch (e) { /* ignore */ }
-        return _lastCoords;
-    }
-
-    function reverseGeocode(lat, lng) {
-        var controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
-        var timer = controller ? setTimeout(function () { controller.abort(); }, GEOCODE_TIMEOUT_MS) : null;
-
-        return fetch('/api/geocode/reverse?lat=' + encodeURIComponent(lat) + '&lon=' + encodeURIComponent(lng) + '&lang=ru', {
-            signal: controller ? controller.signal : undefined
-        })
-            .then(function (r) {
-                if (!r.ok) throw new Error('geocode');
-                return r.json();
-            })
-            .then(function (data) {
-                var addr = (data && (data.address || data.fullAddress)) || '';
-                if (!addr) addr = lat.toFixed(5) + ', ' + lng.toFixed(5);
-                return applyLocation(lat, lng, addr);
-            })
-            .catch(function () {
-                return applyLocation(lat, lng, lat.toFixed(5) + ', ' + lng.toFixed(5));
-            })
-            .finally(function () {
-                if (timer) clearTimeout(timer);
-            });
-    }
-
-    function withSafetyTimeout(promise, ms, message) {
-        return new Promise(function (resolve, reject) {
-            var done = false;
-            var timer = setTimeout(function () {
-                if (done) return;
-                done = true;
-                if (window.GeoLocation) GeoLocation.cancel();
-                reject(new Error(message || t('gpsError')));
-            }, ms);
-
-            promise.then(function (v) {
-                if (done) return;
-                done = true;
-                clearTimeout(timer);
-                resolve(v);
-            }).catch(function (e) {
-                if (done) return;
-                done = true;
-                clearTimeout(timer);
-                reject(e);
-            });
-        });
-    }
-
-    function clearStoredCoords() {
-        if (_latInput) _latInput.value = '';
-        if (_lngInput) _lngInput.value = '';
-        _lastCoords = null;
-        try {
-            localStorage.removeItem(storageKey('latitude'));
-            localStorage.removeItem(storageKey('longitude'));
-        } catch (e) { /* ignore */ }
-    }
-
-    function fetchFreshLocation() {
-        if (!window.GeoLocation) throw new Error(t('gpsError'));
-        if (!GeoLocation.isSecure()) throw new Error(GeoLocation.t('insecure', lang()));
-        if (!GeoLocation.isSupported()) throw new Error(GeoLocation.t('unsupported', lang()));
-
-        var chain = GeoLocation.getCurrentPosition({ lang: lang() })
-            .then(function (geo) {
-                if (GeoLocation.shouldWarnApproximate(geo)) {
-                    showToast(GeoLocation.getApproximateWarning(lang()), 5000);
-                }
-                return reverseGeocode(geo.latitude, geo.longitude);
-            })
-            .catch(function (err) {
-                if (GeoLocation.isTelegramWebView()) {
-                    showToast(GeoLocation.getTelegramHint(lang()), 6500);
-                }
-                throw err;
-            });
-
-        return withSafetyTimeout(chain, SAFETY_TIMEOUT_MS, GeoLocation.t('timeout', lang()));
-    }
-
-    function runLocationTask(task) {
-        if (_locating) {
-            return Promise.reject(new Error(t('locating')));
-        }
-
-        setLocating(true);
-        return task()
-            .catch(function (err) {
-                showToast(err.message || t('gpsError'));
-                throw err;
-            })
-            .finally(function () {
-                setLocating(false);
-            });
     }
 
     function ensureLocation() {
-        return runLocationTask(fetchFreshLocation);
-    }
-
-    function useMyLocation() {
-        return runLocationTask(function () {
-            return fetchFreshLocation().then(function (result) {
-                if (result.address) showToast(result.address, 2500);
-                return result;
-            });
-        });
-    }
-
-    function openNativeMaps() {
-        runLocationTask(function () {
-            return fetchFreshLocation().then(function (data) {
-                if (!window.MapNavigator) {
-                    showToast(t('mapModuleMissing'));
-                    return data;
-                }
-                MapNavigator.showLocation({
-                    latitude: parseFloat(_latInput.value),
-                    longitude: parseFloat(_lngInput.value),
-                    address: data.address
-                });
-                return data;
-            });
-        });
-    }
-
-    function injectGpsButton() {
-        if (!_fieldBox || _gpsBtn) return;
-
-        _gpsBtn = document.createElement('button');
-        _gpsBtn.type = 'button';
-        _gpsBtn.id = 'apUseMyLocationBtn';
-        _gpsBtn.className = 'ap-use-location-btn';
-        _gpsBtn.innerHTML =
-            '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">' +
-            '<circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.6"/>' +
-            '<circle cx="12" cy="12" r="3" fill="currentColor"/>' +
-            '<line x1="12" y1="2" x2="12" y2="6" stroke="currentColor" stroke-width="1.6"/>' +
-            '<line x1="12" y1="18" x2="12" y2="22" stroke="currentColor" stroke-width="1.6"/>' +
-            '<line x1="2" y1="12" x2="6" y2="12" stroke="currentColor" stroke-width="1.6"/>' +
-            '<line x1="18" y1="12" x2="22" y2="12" stroke="currentColor" stroke-width="1.6"/></svg>' +
-            '<span id="apUseMyLocationText"></span>';
-
-        _fieldBox.insertAdjacentElement('afterend', _gpsBtn);
-        _gpsBtn.querySelector('#apUseMyLocationText').textContent = t('myLocation');
-        _gpsBtn.addEventListener('click', function (e) {
-            e.preventDefault();
-            e.stopPropagation();
-            useMyLocation();
-        });
+        var lat = _latInput && parseFloat(_latInput.value);
+        var lng = _lngInput && parseFloat(_lngInput.value);
+        var addr = (_addressInput && _addressInput.value.trim()) || '';
+        if (addr.length >= 3 && !isNaN(lat) && !isNaN(lng)) {
+            return Promise.resolve({ address: addr, latitude: lat, longitude: lng });
+        }
+        return Promise.reject(new Error(t('pickOnMap')));
     }
 
     function bindCheckout(options) {
         options = options || {};
         _slug = options.slug || window.restaurantSlug || (window.RESTAURANT && window.RESTAURANT.slug) || 'default';
+        _onConfirm = options.onConfirm || null;
 
         _fieldBox = document.getElementById('addressFieldBox');
         _display = document.getElementById('addressDisplay');
@@ -274,52 +308,33 @@ window.AddressPicker = (function () {
         _lngInput = document.getElementById('longitude');
         _addressInput = document.getElementById('address');
 
-        clearStoredCoords();
-
-        if (_display && _addressInput && _addressInput.value) {
-            updateDisplay(_addressInput.value);
-        } else if (_display) {
-            updateDisplay('');
-        }
-
-        injectGpsButton();
+        var saved = (_addressInput && _addressInput.value.trim()) || '';
+        updateDisplay(saved);
 
         if (_fieldBox) {
             _fieldBox.addEventListener('click', function (e) {
-                if (e.target.closest('#apUseMyLocationBtn')) return;
                 e.preventDefault();
-                openNativeMaps();
+                open();
             });
         }
 
-        if (window.GeoLocation && !GeoLocation.isSecure()) {
-            showToast(GeoLocation.t('insecure', lang()), 6000);
-        }
-
-        return {
-            openMaps: openNativeMaps,
-            ensureLocation: ensureLocation,
-            useMyLocation: useMyLocation,
-            updateDisplay: updateDisplay
-        };
+        return { open: open, ensureLocation: ensureLocation, updateDisplay: updateDisplay };
     }
 
     function refreshI18n() {
-        if (_gpsBtn) {
-            var label = _gpsBtn.querySelector('#apUseMyLocationText');
-            if (label) label.textContent = t('myLocation');
-        }
-        if (_display && !_locating) {
-            updateDisplay(currentAddressText());
+        applyLabels();
+        if (_display && (!_addressInput || !_addressInput.value)) {
+            updateDisplay('');
         }
     }
 
     return {
+        open: open,
+        close: close,
+        confirm: confirm,
         bindCheckout: bindCheckout,
         ensureLocation: ensureLocation,
-        useMyLocation: useMyLocation,
-        locateMe: useMyLocation,
-        openMaps: openNativeMaps,
+        locateMe: locateOnMap,
         refreshI18n: refreshI18n,
         t: t
     };

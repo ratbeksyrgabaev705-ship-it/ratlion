@@ -1,63 +1,175 @@
-/* GPS дарек */
-.fp-address-display.ap-locating,
-.fp-field-box-link.ap-locating .fp-address-display {
-    color: #6b7280;
-    animation: apPulseText 1.2s ease-in-out infinite;
+/* Address picker — fullscreen map */
+.ap-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 99999;
+    background: #fff;
+    display: none;
+    flex-direction: column;
+    font-family: 'Noto Sans', system-ui, sans-serif;
 }
-@keyframes apPulseText {
-    0%, 100% { opacity: 1; }
-    50% { opacity: 0.45; }
+.ap-overlay.ap-open {
+    display: flex;
 }
 
-.ap-use-location-btn {
+.ap-topbar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 12px;
+    padding-top: calc(10px + env(safe-area-inset-top));
+    background: #fff;
+    border-bottom: 1px solid #e5e7eb;
+    flex-shrink: 0;
+}
+.ap-back {
+    width: 40px;
+    height: 40px;
+    border: none;
+    border-radius: 50%;
+    background: #f3f4f6;
+    color: #111;
+    cursor: pointer;
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 8px;
-    width: calc(100% - 32px);
-    margin: 0 16px 12px;
-    padding: 13px 16px;
-    border: 1px solid rgba(34, 197, 94, 0.35);
-    border-radius: 14px;
-    background: rgba(34, 197, 94, 0.08);
-    color: #16a34a;
-    font-family: inherit;
-    font-size: 14px;
+}
+.ap-topbar-title {
+    flex: 1;
+    margin: 0;
+    font-size: 17px;
     font-weight: 700;
-    cursor: pointer;
-    -webkit-tap-highlight-color: transparent;
+    text-align: center;
+    color: #111;
 }
-.ap-use-location-btn:active:not(:disabled) {
-    background: rgba(34, 197, 94, 0.16);
+.ap-topbar-spacer { width: 40px; flex-shrink: 0; }
+
+.ap-map-area {
+    flex: 1;
+    position: relative;
+    min-height: 0;
+    isolation: isolate;
 }
-.ap-use-location-btn:disabled,
-.ap-use-location-btn.ap-busy {
-    opacity: 0.55;
-    cursor: wait;
+.ap-map {
+    width: 100%;
+    height: 100%;
+    z-index: 1 !important;
+}
+.ap-map-area .leaflet-container { z-index: 1 !important; }
+
+.ap-pin-layer {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -100%);
+    z-index: 9999 !important;
+    pointer-events: none;
+    transition: transform 0.15s ease;
+}
+.ap-pin-layer.ap-lift { transform: translate(-50%, calc(-100% - 12px)); }
+.ap-pin-layer.ap-pulse { animation: apPinPulse 0.45s ease; }
+@keyframes apPinPulse {
+    0%, 100% { transform: translate(-50%, -100%) scale(1); }
+    50% { transform: translate(-50%, -100%) scale(1.12); }
+}
+.ap-pin-shadow {
+    position: absolute;
+    width: 16px;
+    height: 7px;
+    left: -8px;
+    top: 4px;
+    background: rgba(0,0,0,0.3);
+    border-radius: 50%;
+}
+.ap-pin svg {
+    width: 44px;
+    height: 56px;
+    filter: drop-shadow(0 3px 8px rgba(0,0,0,0.35));
+    display: block;
 }
 
-.ap-geo-toast {
-    position: fixed;
-    left: 16px;
-    right: 16px;
-    bottom: calc(88px + env(safe-area-inset-bottom));
+.ap-gps-btn {
+    position: absolute;
+    top: 14px;
+    right: 14px;
+    z-index: 9999 !important;
+    width: 48px;
+    height: 48px;
+    border: none;
+    border-radius: 50%;
+    background: #fff;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.18);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.ap-gps-btn:disabled { opacity: 0.5; }
+
+.ap-map-loader {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
     z-index: 10000;
-    padding: 14px 16px;
+    background: rgba(255,255,255,0.95);
+    padding: 16px 20px;
     border-radius: 14px;
-    background: rgba(24, 24, 27, 0.94);
-    color: #f4f4f5;
-    font-size: 13px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-size: 14px;
     font-weight: 600;
-    line-height: 1.45;
-    text-align: center;
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.28);
-    pointer-events: none;
-    animation: apToastIn 0.25s ease;
+    color: #374151;
 }
-.ap-geo-toast.hidden {
-    display: none;
+.ap-map-loader.hidden { display: none; }
+.ap-spinner {
+    width: 22px;
+    height: 22px;
+    border: 3px solid #e5e7eb;
+    border-top-color: #22c55e;
+    border-radius: 50%;
+    animation: apSpin 0.7s linear infinite;
 }
-@keyframes apToastIn {
-    from { opacity: 0; transform: translateY(12px); }
-    to { opacity: 1; transform: translateY(0); }
+@keyframes apSpin { to { transform: rotate(360deg); } }
+
+.ap-sheet {
+    flex-shrink: 0;
+    padding: 16px 16px calc(16px + env(safe-area-inset-bottom));
+    background: #fff;
+    border-top: 1px solid #e5e7eb;
+    box-shadow: 0 -4px 20px rgba(0,0,0,0.06);
+}
+.ap-addr-main {
+    font-size: 16px;
+    font-weight: 700;
+    color: #111;
+    line-height: 1.35;
+    margin-bottom: 4px;
+}
+.ap-addr-sub {
+    font-size: 13px;
+    color: #6b7280;
+    margin-bottom: 14px;
+}
+.ap-confirm {
+    width: 100%;
+    padding: 16px;
+    border: none;
+    border-radius: 14px;
+    background: #22c55e;
+    color: #fff;
+    font-family: inherit;
+    font-size: 16px;
+    font-weight: 800;
+    cursor: pointer;
+}
+.ap-confirm:disabled {
+    background: #d1d5db;
+    cursor: not-allowed;
+}
+
+.fp-address-display.ap-empty {
+    color: #9ca3af;
 }
