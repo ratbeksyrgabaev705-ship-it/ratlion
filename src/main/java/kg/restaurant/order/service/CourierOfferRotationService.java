@@ -120,8 +120,8 @@ public class CourierOfferRotationService {
 
     /** Бош курьерлер алга — линияда турган, ресторандагы тарыхы барлар жакынкы */
     private List<Courier> buildCourierPool(CustomerOrder order) {
-        List<Courier> couriers = courierRepository.findByActiveTrueAndOnlineTrueOrderByNameAsc().stream()
-                .filter(c -> c.getPhone() != null && !c.getPhone().isBlank())
+        List<Courier> couriers = courierRepository.findByActiveTrueOrderByNameAsc().stream()
+                .filter(Courier::hasTelegramBot)
                 .toList();
         if (couriers.isEmpty()) {
             return List.of();

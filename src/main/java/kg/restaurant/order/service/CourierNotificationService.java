@@ -99,57 +99,55 @@ public class CourierNotificationService {
         String rest = restaurantName(order);
         String text = CourierTelegramService.buildReadyMessage(order, rest);
 
-        if (order.getCourierId() != null) {
-            Courier courier = courierRepository.findById(order.getCourierId()).orElse(null);
-            if (courier != null) {
-                saveInApp(courier.getId(), order, "READY", text);
-                notificationRepository.dismissWaitingForOrder(order.getId(), courier.getId());
-                sendExternalWithKeyboard(courier, text, order.getId());
-                return;
-            }
+        var couriers = courierRepository.findByActiveTrueOrderByNameAsc().stream()
+                .filter(Courier::hasTelegramBot)
+                .toList();
+
+        if (couriers.isEmpty()) {
+            log.warn("Order {} ready — no Telegram couriers", order.getId());
+            telegramService.sendToManager(
+                    "⚠️ ДАЯР, КУРЬЕР ЖОК!\n\n"
+                            + "🏷 " + orderNumber(order) + "\n"
+                            + "👤 " + safe(order.getCustomerName()) + "\n"
+                            + "📞 " + safe(order.getPhone()) + "\n"
+                            + "📍 " + safe(order.getAddress()) + "\n\n"
+                            + "Курьер @ratlionbot → /courier жазсын"
+            );
+            return;
         }
 
-        log.warn("Order {} ready without assigned courier — broadcasting", order.getId());
-        telegramService.sendToManager(
-                "⚠️ ДАЯР, КУРЬЕР ЖОК!\n\n"
-                        + "🏷 " + orderNumber(order) + "\n"
-                        + "👤 " + safe(order.getCustomerName()) + "\n"
-                        + "📞 " + safe(order.getPhone()) + "\n"
-                        + "📍 " + safe(order.getAddress()) + "\n\n"
-                        + "Курьер /courier'ден онлайн болуп заказды алсын"
-        );
-
-        String fallback = text + "\n\n⚠️ /courier кир — заказды ал!";
         int sent = 0;
-        for (Courier courier : courierRepository.findByActiveTrueOrderByNameAsc()) {
-            if (!hasRealTelegram(courier)) {
-                continue;
-            }
-            saveInApp(courier.getId(), order, "READY", fallback);
-            if (sendExternal(courier, fallback)) {
+        for (Courier courier : couriers) {
+            saveInApp(courier.getId(), order, "READY", text);
+            notificationRepository.dismissWaitingForOrder(order.getId(), courier.getId());
+            if (sendExternalWithKeyboard(courier, text, order.getId())) {
                 sent++;
             }
         }
         log.info("Ready alert sent to {} courier(s) for order {}", sent, order.getId());
+
+        telegramService.sendToManager(
+                "🛵 ДАЯР → " + sent + " курьerge жиберildi\n"
+                        + "🏷 " + orderNumber(order) + " — " + safe(order.getCustomerName())
+        );
     }
 
-    private void sendExternalWithKeyboard(Courier courier, String text, Long orderId) {
-        String chatId = courier.getTelegramChatId();
-        if (hasRealTelegram(courier)) {
-            List<List<Map<String, String>>> keyboard = List.of(
-                    List.of(Map.of(
-                            "text", "✅ Жеткирдим",
-                            "callback_data", "courier_deliver:" + orderId
-                    ))
-            );
-            var result = telegramService.sendMessageWithInlineKeyboard(chatId, text, keyboard);
-            if (!result.success()) {
-                log.warn("Telegram READY keyboard fail courier {}: {}", courier.getId(), result.error());
-            }
-        } else {
-            log.warn("Courier {} has no Telegram ID (phone: placeholder?) — message skipped", courier.getId());
+    private boolean sendExternalWithKeyboard(Courier courier, String text, Long orderId) {
+        if (!courier.hasTelegramBot()) {
+            return false;
         }
-        logSmsPlaceholder(courier, text);
+        List<List<Map<String, String>>> keyboard = List.of(
+                List.of(Map.of(
+                        "text", "✅ Жеткирдим",
+                        "callback_data", "courier_deliver:" + orderId
+                ))
+        );
+        var result = telegramService.sendMessageWithInlineKeyboard(courier.getTelegramChatId(), text, keyboard);
+        if (!result.success()) {
+            log.warn("Telegram READY fail courier {}: {}", courier.getId(), result.error());
+            return false;
+        }
+        return true;
     }
 
     /** «Курьерге берүү» — акыркы эскертүү */
@@ -213,30 +211,16 @@ public class CourierNotificationService {
     }
 
     private boolean sendExternal(Courier courier, String text) {
-        String chatId = courier.getTelegramChatId();
-        if (hasRealTelegram(courier)) {
-            var result = telegramService.sendToChatWithResult(chatId, text);
-            if (!result.success()) {
-                log.warn("Telegram fail courier {} (chat {}): {}", courier.getId(), chatId, result.error());
-                return false;
-            }
-            return true;
+        if (!courier.hasTelegramBot()) {
+            log.warn("Courier {} has no Telegram bot — skipped", courier.getId());
+            return false;
         }
-        log.warn("Courier {} has no real Telegram ID — only SMS log", courier.getId());
-        logSmsPlaceholder(courier, text);
-        return false;
-    }
-
-    private boolean hasRealTelegram(Courier courier) {
-        String chatId = courier.getTelegramChatId();
-        return chatId != null && !chatId.isBlank() && !chatId.startsWith("phone:");
-    }
-
-    private void logSmsPlaceholder(Courier courier, String text) {
-        String phone = courier.getPhone();
-        if (phone != null && !phone.isBlank()) {
-            log.info("SMS placeholder → {} : {}", phone, text.replace('\n', ' '));
+        var result = telegramService.sendToChatWithResult(courier.getTelegramChatId(), text);
+        if (!result.success()) {
+            log.warn("Telegram fail courier {}: {}", courier.getId(), result.error());
+            return false;
         }
+        return true;
     }
 
     private String restaurantName(CustomerOrder order) {

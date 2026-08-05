@@ -73,7 +73,7 @@ public class CourierTelegramService {
         }
 
         if (order.getCourierId() != null && !order.getCourierId().equals(courier.getId())) {
-            telegramService.answerCallbackQuery(callbackId, "Бул заказ сизге таандык эмес", true);
+            telegramService.answerCallbackQuery(callbackId, "Бул заказ башка курьerde", true);
             return;
         }
 
@@ -91,10 +91,7 @@ public class CourierTelegramService {
         order.setOrderStatus("DELIVERED");
         order.setDeliveredAt(LocalDateTime.now(BISHKEK));
         order.setCourierId(courier.getId());
-        if ("GIVEN_TO_COURIER".equals(status) && order.getCourierAt() == null) {
-            order.setCourierAt(LocalDateTime.now(BISHKEK));
-        }
-        if ("READY".equals(status) && order.getCourierAt() == null) {
+        if (order.getCourierAt() == null) {
             order.setCourierAt(LocalDateTime.now(BISHKEK));
         }
         if ("WAITING_PAYMENT".equals(order.getPaymentStatus()) || "WAITING".equals(order.getPaymentStatus())) {

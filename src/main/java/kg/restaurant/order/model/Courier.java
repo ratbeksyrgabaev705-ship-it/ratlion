@@ -129,4 +129,11 @@ public class Courier {
     public void setCreatedAt(LocalDateTime createdAt) {
         this.createdAt = createdAt;
     }
+
+    /** Чыныгы Telegram ID (бот аркылуу катталган) */
+    public boolean hasTelegramBot() {
+        return telegramChatId != null
+                && !telegramChatId.isBlank()
+                && !telegramChatId.startsWith("phone:");
+    }
 }

@@ -2,6 +2,7 @@ package kg.restaurant.order.controller;
 
 import kg.restaurant.order.model.Courier;
 import kg.restaurant.order.repository.CourierRepository;
+import kg.restaurant.order.service.CourierBotRegistrationService;
 import kg.restaurant.order.service.CourierTelegramService;
 import kg.restaurant.order.service.OrderVerificationService;
 import kg.restaurant.order.service.TelegramService;
@@ -11,7 +12,6 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -25,6 +25,8 @@ public class TelegramWebhookController {
     private final OrderVerificationService orderVerificationService;
     private final CourierTelegramService courierTelegramService;
 
+    private final CourierBotRegistrationService courierBotRegistrationService;
+
     @Value("${app.public-url:http://localhost:8080}")
     private String publicUrl;
 
@@ -32,12 +34,14 @@ public class TelegramWebhookController {
             CourierRepository courierRepository,
             TelegramService telegramService,
             OrderVerificationService orderVerificationService,
-            CourierTelegramService courierTelegramService
+            CourierTelegramService courierTelegramService,
+            CourierBotRegistrationService courierBotRegistrationService
     ) {
         this.courierRepository = courierRepository;
         this.telegramService = telegramService;
         this.orderVerificationService = orderVerificationService;
         this.courierTelegramService = courierTelegramService;
+        this.courierBotRegistrationService = courierBotRegistrationService;
     }
 
     @PostMapping("/webhook")
@@ -49,6 +53,10 @@ public class TelegramWebhookController {
         Map<String, Object> callback = asMap(update.get("callback_query"));
         if (callback != null) {
             String data = asString(callback.get("data")).trim();
+            if (data.equals("courier_signup")) {
+                handleCourierSignupCallback(callback);
+                return;
+            }
             if (data.startsWith("courier_deliver:")) {
                 courierTelegramService.handleDeliverCallback(callback);
                 return;
@@ -109,8 +117,8 @@ public class TelegramWebhookController {
             return;
         }
 
-        if (text.startsWith("/register")) {
-            handleRegister(chatId, text, firstName);
+        if (text.startsWith("/register") || text.startsWith("/courier")) {
+            handleCourierSignup(chatId, text, firstName);
         }
     }
 
@@ -129,41 +137,24 @@ public class TelegramWebhookController {
     private void handleStart(String chatId, String firstName) {
         Optional<Courier> existingCourier = courierRepository.findByTelegramChatId(chatId);
         if (existingCourier.isPresent()) {
-            Courier courier = existingCourier.get();
-            if (Boolean.TRUE.equals(courier.getActive())) {
-                String courierUrl = normalizePublicUrl(publicUrl) + "/courier";
-                telegramService.sendMessageWithInlineKeyboard(
-                        chatId,
-                        "Салам" + (firstName.isBlank() ? "!" : ", " + firstName + "!")
-                                + "\n\n"
-                                + "🛵 Сиз RATLION курьерисиз: " + courier.getName() + "\n\n"
-                                + "Жаңы заказдар Telegram'га келет.\n"
-                                + "«Жеткирдим» баскычын басыңыз.",
-                        List.of(List.of(Map.of("text", "🛵 Курьер панели", "url", courierUrl)))
-                );
-            } else {
-                telegramService.sendToCourier(
-                        chatId,
-                        "⏳ Салам" + (firstName.isBlank() ? "!" : ", " + firstName + "!")
-                                + "\n\n"
-                                + "Каттооңуз күтүлүүдө.\n"
-                                + "Менеджер активдештиргенден кийин заказдар келет."
-                );
-            }
+            Courier courier = courierBotRegistrationService.ensureActive(existingCourier.get());
+            courierBotRegistrationService.sendWelcome(chatId, courier, false);
             return;
         }
 
         String orderUrl = normalizePublicUrl(publicUrl) + "/";
-        List<List<Map<String, String>>> keyboard = new ArrayList<>();
-        keyboard.add(List.of(Map.of("text", "🍽 Заказ берүү", "url", orderUrl)));
+        List<List<Map<String, String>>> keyboard = List.of(
+                List.of(Map.of("text", "🍽 Заказ берүү", "url", orderUrl)),
+                List.of(Map.of("text", "🛵 Курьер болуу", "callback_data", "courier_signup"))
+        );
 
         telegramService.sendMessageWithInlineKeyboard(
                 chatId,
                 "Салам" + (firstName.isBlank() ? "!" : ", " + firstName + "!")
                         + "\n\n"
                         + "🔥 RATLION — Базар-Коргон тамак жеткирүү.\n\n"
-                        + "Тамак заказ кылуу үчүн төмөнкү баскычты басыңыз.\n\n"
-                        + "🛵 Курьер болуу: /register Атыңыз",
+                        + "🍽 Заказ — төмөнкү баскыч\n"
+                        + "🛵 Курьер — /courier Атыңыз",
                 keyboard
         );
     }
@@ -179,48 +170,35 @@ public class TelegramWebhookController {
         return trimmed;
     }
 
-    private void handleRegister(String chatId, String text, String firstName) {
-        String name = text.replace("/register", "").trim();
+    private void handleCourierSignupCallback(Map<String, Object> callback) {
+        String callbackId = asString(callback.get("id"));
+        Map<String, Object> from = asMap(callback.get("from"));
+        String chatId = from == null ? "" : asString(from.get("id"));
+        String firstName = from == null ? "" : asString(from.get("first_name"));
+        if (chatId.isBlank()) {
+            telegramService.answerCallbackQuery(callbackId, "Кайра /courier Атыңыз", true);
+            return;
+        }
+        handleCourierSignup(chatId, "/courier " + firstName, firstName);
+        telegramService.answerCallbackQuery(callbackId, "✅ Курьер катталдыңыз!", false);
+    }
+
+    private void handleCourierSignup(String chatId, String text, String firstName) {
+        String name = text.replace("/register", "").replace("/courier", "").trim();
         if (name.isBlank()) {
             name = firstName.isBlank() ? "Курьер" : firstName;
         }
 
-        if (courierRepository.existsByTelegramChatId(chatId)) {
-            Courier existing = courierRepository.findByTelegramChatId(chatId).orElse(null);
-            if (existing != null && Boolean.TRUE.equals(existing.getActive())) {
-                telegramService.sendToCourier(
-                        chatId,
-                        "✅ Сиз мурунтан эле катталгансыз: " + existing.getName()
-                );
-            } else {
-                telegramService.sendToCourier(
-                        chatId,
-                        "⏳ Сиздин каттооңуз күтүлүүдө.\n"
-                                + "Менеджер активдештиргенден кийин заказдар келет."
-                );
-            }
-            return;
+        boolean isNew = !courierRepository.existsByTelegramChatId(chatId);
+        Courier courier = courierBotRegistrationService.registerOrActivate(chatId, name);
+        courierBotRegistrationService.sendWelcome(chatId, courier, isNew);
+
+        if (isNew) {
+            telegramService.sendToManager(
+                    "🛵 ЖАҢЫ КУРЬЕР (авто-актив)\n\n"
+                            + "👤 " + courier.getName() + "\n"
+                            + "Telegram ID: " + chatId
+            );
         }
-
-        Courier courier = new Courier();
-        courier.setName(name);
-        courier.setTelegramChatId(chatId);
-        courier.setActive(false);
-        courierRepository.save(courier);
-
-        telegramService.sendToManager(
-                "🛵 ЖАҢЫ КУРЬЕР КАТТОО СУРАМЫ\n\n"
-                        + "👤 " + name + "\n"
-                        + "Telegram ID: " + chatId + "\n\n"
-                        + "→ /ratlion панелинен активдештирүү"
-        );
-
-        telegramService.sendToCourier(
-                chatId,
-                "✅ Каттоо суроо жөнөтүлдү!\n\n"
-                        + "Атыңыз: " + name + "\n"
-                        + "Telegram ID: " + chatId + "\n\n"
-                        + "Менеджер активдештиргенден кийин жеткирүү заказдары келет."
-        );
     }
 }
