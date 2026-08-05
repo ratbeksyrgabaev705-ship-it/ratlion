@@ -33,19 +33,22 @@ public class OrderVerificationService {
     private final CourierRepository courierRepository;
     private final TelegramService telegramService;
     private final ReceiptStorageService receiptStorageService;
+    private final CourierNotificationService courierNotificationService;
 
     public OrderVerificationService(
             CustomerOrderRepository orderRepository,
             RestaurantRepository restaurantRepository,
             CourierRepository courierRepository,
             TelegramService telegramService,
-            ReceiptStorageService receiptStorageService
+            ReceiptStorageService receiptStorageService,
+            CourierNotificationService courierNotificationService
     ) {
         this.orderRepository = orderRepository;
         this.restaurantRepository = restaurantRepository;
         this.courierRepository = courierRepository;
         this.telegramService = telegramService;
         this.receiptStorageService = receiptStorageService;
+        this.courierNotificationService = courierNotificationService;
     }
 
     /** Жаңы заказ — Ratlion Telegram группасына чек + баскычтар */
@@ -155,6 +158,87 @@ public class OrderVerificationService {
         if (data.startsWith("order_reject:")) {
             handleRejectCallback(callbackId, data, operator, chatId, messageId);
         }
+    }
+
+    /** Ресторан Telegram группасында «Даяр — курьerge берилди» */
+    @SuppressWarnings("unchecked")
+    public void handleRestaurantReadyCallback(Map<String, Object> callback) {
+        String callbackId = asString(callback.get("id"));
+        String data = asString(callback.get("data")).trim();
+        if (!data.startsWith("rest_ready_courier:")) {
+            return;
+        }
+
+        Long orderId = parseOrderId(data, "rest_ready_courier:");
+        Map<String, Object> message = asMap(callback.get("message"));
+        Map<String, Object> chat = message == null ? null : asMap(message.get("chat"));
+        String chatId = chat == null ? "" : asString(chat.get("id"));
+        Integer messageId = message == null ? null : asInteger(message.get("message_id"));
+        Map<String, Object> from = asMap(callback.get("from"));
+        String operator = buildOperatorName(from);
+
+        if (orderId == null || chatId.isBlank()) {
+            telegramService.answerCallbackQuery(callbackId, "Заказ табылган жок", true);
+            return;
+        }
+
+        CustomerOrder order = orderRepository.findById(orderId).orElse(null);
+        if (order == null) {
+            telegramService.answerCallbackQuery(callbackId, "Заказ табылган жок", true);
+            return;
+        }
+
+        Restaurant restaurant = order.getRestaurantId() == null
+                ? restaurantRepository.findByTelegramChatId(chatId).orElse(null)
+                : restaurantRepository.findById(order.getRestaurantId()).orElse(null);
+
+        if (restaurant == null || restaurant.getTelegramChatId() == null
+                || !chatId.equals(restaurant.getTelegramChatId().trim())) {
+            telegramService.answerCallbackQuery(callbackId, "Бул ресторан группасы эмес", true);
+            return;
+        }
+
+        String status = order.getOrderStatus();
+        if ("CANCELLED".equals(status)) {
+            telegramService.answerCallbackQuery(callbackId, "Заказ жокко чыгарылган", true);
+            return;
+        }
+        if ("DELIVERED".equals(status)) {
+            telegramService.answerCallbackQuery(callbackId, "✅ Мурунтан жеткирилген", false);
+            return;
+        }
+        if ("GIVEN_TO_COURIER".equals(status)) {
+            telegramService.answerCallbackQuery(callbackId, "✅ Курьerge мурунтан берилген", false);
+            courierNotificationService.notifyOrderReady(order);
+            return;
+        }
+
+        LocalDateTime now = LocalDateTime.now(BISHKEK);
+        if (order.getReadyAt() == null) {
+            order.setReadyAt(now);
+        }
+        order.setCourierAt(now);
+        order.setOrderStatus("GIVEN_TO_COURIER");
+        CustomerOrder saved = orderRepository.save(order);
+
+        courierNotificationService.notifyOrderReady(saved);
+
+        telegramService.answerCallbackQuery(callbackId, "✅ Курьerge билдирилди!", false);
+
+        if (messageId != null) {
+            String updated = buildRestaurantGroupMessage(saved, restaurant)
+                    + "\n\n✅ <b>Курьerge берилди</b>";
+            if (operator != null && !operator.isBlank()) {
+                updated += "\n👤 " + htmlEscape(operator);
+            }
+            telegramService.editMessageHtml(chatId, messageId, updated);
+            telegramService.editMessageReplyMarkup(chatId, messageId, Map.of("inline_keyboard", List.of()));
+        }
+
+        telegramService.sendToManager(
+                "🛵 " + safe(restaurant.getName()) + " — курьerge берилди\n"
+                        + orderLabel(saved) + " — " + safe(saved.getCustomerName())
+        );
     }
 
     private void handleAcceptCallback(
@@ -348,10 +432,21 @@ public class OrderVerificationService {
                             return;
                         }
                         String message = buildRestaurantGroupMessage(order, restaurant);
-                        TelegramService.TelegramSendResult result = telegramService.sendHtmlToChat(chatId, message);
+                        List<List<Map<String, String>>> keyboard = List.of(
+                                List.of(Map.of(
+                                        "text", "✅ Даяр — курьerge берилди",
+                                        "callback_data", "rest_ready_courier:" + order.getId()
+                                ))
+                        );
+                        TelegramService.TelegramMessageResult result =
+                                telegramService.sendHtmlWithInlineKeyboard(chatId, message, keyboard);
                         if (!result.success()) {
                             log.warn("Ресторан группасына жиберилбedi ({}): {}", restaurant.getName(), result.error());
-                            telegramService.sendToChat(chatId, stripHtml(message));
+                            var plain = telegramService.sendMessageWithInlineKeyboard(
+                                    chatId, stripHtml(message), keyboard);
+                            if (!plain.success()) {
+                                telegramService.sendToChat(chatId, stripHtml(message));
+                            }
                         }
                     });
         }

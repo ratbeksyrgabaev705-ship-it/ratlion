@@ -50,6 +50,10 @@ public class TelegramWebhookController {
                 courierTelegramService.handleDeliverCallback(callback);
                 return;
             }
+            if (data.startsWith("rest_ready_courier:")) {
+                orderVerificationService.handleRestaurantReadyCallback(callback);
+                return;
+            }
             orderVerificationService.handleTelegramCallback(callback);
             return;
         }

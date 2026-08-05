@@ -224,6 +224,19 @@ public class TelegramService {
         return callApiWithMessage("sendMessage", body);
     }
 
+    public TelegramMessageResult sendHtmlWithInlineKeyboard(
+            String targetChatId,
+            String htmlText,
+            List<List<Map<String, String>>> keyboard
+    ) {
+        Map<String, Object> body = new HashMap<>();
+        body.put("chat_id", targetChatId);
+        body.put("text", htmlText);
+        body.put("parse_mode", "HTML");
+        body.put("reply_markup", Map.of("inline_keyboard", keyboard));
+        return callApiWithMessage("sendMessage", body);
+    }
+
     public TelegramSendResult answerCallbackQuery(String callbackQueryId, String text, boolean showAlert) {
         Map<String, Object> body = new HashMap<>();
         body.put("callback_query_id", callbackQueryId);
@@ -254,6 +267,18 @@ public class TelegramService {
                 "message_id", messageId,
                 "text", text == null ? "" : text
         ));
+    }
+
+    public TelegramSendResult editMessageHtml(String chatId, Integer messageId, String htmlText) {
+        if (chatId == null || chatId.isBlank() || messageId == null) {
+            return TelegramSendResult.ofFailure("Message ID жок");
+        }
+        Map<String, Object> body = new HashMap<>();
+        body.put("chat_id", chatId);
+        body.put("message_id", messageId);
+        body.put("text", htmlText == null ? "" : htmlText);
+        body.put("parse_mode", "HTML");
+        return callApi("editMessageText", body);
     }
 
     public TelegramSendResult editMessageReplyMarkup(String chatId, Integer messageId, Object replyMarkup) {

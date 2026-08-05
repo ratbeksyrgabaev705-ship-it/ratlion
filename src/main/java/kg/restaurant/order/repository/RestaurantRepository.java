@@ -13,4 +13,6 @@ public interface RestaurantRepository extends JpaRepository<Restaurant, Long> {
     boolean existsBySlug(String slug);
 
     List<Restaurant> findByActiveTrueOrderByNameAsc();
+
+    Optional<Restaurant> findByTelegramChatId(String telegramChatId);
 }
