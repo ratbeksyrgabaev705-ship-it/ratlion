@@ -51,6 +51,37 @@ public class TelegramService {
         sendToChatWithResult(targetChatId, text);
     }
 
+    public TelegramSendResult sendHtmlToChat(String targetChatId, String htmlText) {
+        if (botToken == null || botToken.isBlank()) {
+            return TelegramSendResult.ofFailure("Telegram бот орнотулган эмес (TELEGRAM_BOT_TOKEN)");
+        }
+        if (targetChatId == null || targetChatId.isBlank()) {
+            return TelegramSendResult.ofFailure("Telegram chat ID бош");
+        }
+        try {
+            String url = "https://api.telegram.org/bot" + botToken + "/sendMessage";
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.APPLICATION_JSON);
+            HttpEntity<Map<String, String>> request = new HttpEntity<>(
+                    Map.of(
+                            "chat_id", targetChatId,
+                            "text", htmlText,
+                            "parse_mode", "HTML"
+                    ),
+                    headers
+            );
+            String response = restTemplate.postForObject(url, request, String.class);
+            if (response != null && response.contains("\"ok\":false")) {
+                log.error("Telegram HTML API катасы: {}", response);
+                return TelegramSendResult.ofFailure(humanizeTelegramError(response));
+            }
+            return TelegramSendResult.ofSuccess();
+        } catch (Exception e) {
+            log.error("Telegram HTML катасы: {}", e.getMessage());
+            return TelegramSendResult.ofFailure("Telegram байланыш катасы: " + e.getMessage());
+        }
+    }
+
     /** Telegram жиберүү натыйжасы — админ панелине ката көрсөтүү үчүн */
     public TelegramSendResult sendToChatWithResult(String targetChatId, String text) {
         if (botToken == null || botToken.isBlank()) {

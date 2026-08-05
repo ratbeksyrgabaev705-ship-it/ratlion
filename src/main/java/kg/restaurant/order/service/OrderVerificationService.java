@@ -12,6 +12,7 @@ import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
 import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -24,6 +25,8 @@ public class OrderVerificationService {
 
     private static final Logger log = LoggerFactory.getLogger(OrderVerificationService.class);
     private static final ZoneId BISHKEK = ZoneId.of("Asia/Bishkek");
+    private static final DateTimeFormatter ORDER_TIME = DateTimeFormatter.ofPattern("HH:mm");
+    private static final DateTimeFormatter ORDER_DATE = DateTimeFormatter.ofPattern("dd.MM.yyyy");
 
     private final CustomerOrderRepository orderRepository;
     private final RestaurantRepository restaurantRepository;
@@ -336,29 +339,84 @@ public class OrderVerificationService {
     }
 
     private void notifyOrderAccepted(CustomerOrder order) {
-        String kitchenPath = adminPathFor(order);
-        String restName = restaurantLabel(order);
-
         if (order.getRestaurantId() != null) {
             restaurantRepository.findById(order.getRestaurantId())
                     .ifPresent(restaurant -> {
                         String chatId = restaurant.getTelegramChatId();
-                        String text = "🆕 ЖАҢЫ ЗАКАЗ — " + restName + "\n\n"
-                                + "🏷 " + order.getDisplayOrderNumber() + "\n"
-                                + "👤 " + safe(order.getCustomerName()) + "\n"
-                                + "📞 " + safe(order.getPhone()) + "\n"
-                                + "🍽 " + safe(order.getItemName()) + "\n"
-                                + (order.getFoodComment() != null && !order.getFoodComment().isBlank()
-                                ? "💬 " + safe(order.getFoodComment()) + "\n"
-                                : "")
-                                + "💰 " + formatAmount(order.getTotalPrice()) + " сом\n\n"
-                                + "👉 Ашкана панели: " + kitchenPath;
-                        if (chatId != null && !chatId.isBlank()) {
-                            telegramService.sendToChat(chatId, text);
+                        if (chatId == null || chatId.isBlank()) {
+                            log.warn("Ресторан Telegram ID жок: {}", restaurant.getName());
+                            return;
+                        }
+                        String message = buildRestaurantGroupMessage(order, restaurant);
+                        TelegramService.TelegramSendResult result = telegramService.sendHtmlToChat(chatId, message);
+                        if (!result.success()) {
+                            log.warn("Ресторан группасына жиберилбedi ({}): {}", restaurant.getName(), result.error());
+                            telegramService.sendToChat(chatId, stripHtml(message));
                         }
                     });
         }
         notifyCouriersWaiting(order);
+    }
+
+    /** Ресторан Telegram группасы — ашпозчу/админ көрөт */
+    private String buildRestaurantGroupMessage(CustomerOrder order, Restaurant restaurant) {
+        Double amount = order.getPaymentAmount() != null ? order.getPaymentAmount() : order.getTotalPrice();
+        LocalDateTime when = order.getAcceptedAt() != null ? order.getAcceptedAt() : order.getCreatedAt();
+        if (when == null) {
+            when = LocalDateTime.now(BISHKEK);
+        }
+
+        StringBuilder sb = new StringBuilder();
+        sb.append("🟢 <b>ЖАҢЫ ЗАКАЗ</b>\n");
+        sb.append("<b>№ ").append(htmlEscape(formatDisplayNumber(order, restaurant))).append("</b>\n");
+        sb.append("⏰ ").append(when.format(ORDER_TIME)).append(" | ").append(when.format(ORDER_DATE)).append("\n\n");
+        sb.append("<b>👤 Кардар:</b> ").append(htmlEscape(order.getCustomerName())).append("\n");
+        sb.append("<b>📞 Телефон:</b> ").append(htmlEscape(order.getPhone())).append("\n");
+        sb.append("<b>📍 Дарек:</b> ").append(htmlEscape(order.getAddress())).append("\n\n");
+        sb.append("<b>📝 ЗАКАЗ СОСТАВЫ:</b>\n");
+        sb.append(formatItems(order.getItemName())).append("\n");
+        if (order.getFoodComment() != null && !order.getFoodComment().isBlank()) {
+            sb.append("\n<b>💬 Тамакка:</b> ").append(htmlEscape(order.getFoodComment())).append("\n");
+        }
+        if (order.getComment() != null && !order.getComment().isBlank()) {
+            sb.append("<b>💬 Жеткирүү:</b> ").append(htmlEscape(order.getComment())).append("\n");
+        }
+        sb.append("\n<b>💰 Жалпы сумма:</b> ").append(formatAmount(amount)).append(" сом");
+        return sb.toString();
+    }
+
+    private String formatDisplayNumber(CustomerOrder order, Restaurant restaurant) {
+        String num = order.getDisplayOrderNumber();
+        if (num == null || num.isBlank()) {
+            return String.valueOf(order.getId());
+        }
+        String prefix = restaurant != null && restaurant.getOrderPrefix() != null
+                ? restaurant.getOrderPrefix().trim()
+                : "";
+        if (!prefix.isBlank() && num.startsWith(prefix)) {
+            String suffix = num.substring(prefix.length());
+            try {
+                int n = Integer.parseInt(suffix);
+                return prefix + "-" + String.format("%04d", n);
+            } catch (NumberFormatException ignored) {
+                return prefix + "-" + suffix;
+            }
+        }
+        return num;
+    }
+
+    private String htmlEscape(String value) {
+        if (value == null || value.isBlank()) {
+            return "—";
+        }
+        return value.trim()
+                .replace("&", "&amp;")
+                .replace("<", "&lt;")
+                .replace(">", "&gt;");
+    }
+
+    private String stripHtml(String html) {
+        return html.replaceAll("<[^>]+>", "");
     }
 
     private void notifyCouriersWaiting(CustomerOrder order) {
@@ -378,15 +436,6 @@ public class OrderVerificationService {
     private boolean courierHasTelegram(Courier courier) {
         String id = courier.getTelegramChatId();
         return id != null && !id.isBlank() && !id.startsWith("phone:");
-    }
-
-    private String adminPathFor(CustomerOrder order) {
-        if (order.getRestaurantId() == null) {
-            return "/kitchen";
-        }
-        return restaurantRepository.findById(order.getRestaurantId())
-                .map(r -> "/kitchen/" + r.getSlug())
-                .orElse("/kitchen");
     }
 
     private Long parseOrderId(String data, String prefix) {
