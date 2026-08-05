@@ -9,8 +9,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" th:href="${customerCss}" href="/family-customer.css">
     <link rel="stylesheet" href="/jolchu-success.css?v=6">
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="">
-    <link rel="stylesheet" href="/address-picker.css?v=6">
+    <link rel="stylesheet" href="/address-picker.css?v=7">
     <script th:inline="javascript">
         window.RESTAURANT = {
             id: /*[[${restaurantId}]]*/ 2,
@@ -258,8 +257,8 @@
     </button>
 </div>
 
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
-<script src="/address-picker.js?v=6"></script>
+<script src="/map-navigator.js?v=7"></script>
+<script src="/address-picker.js?v=7"></script>
 <script>
     const DELIVERY = 0;
     let cart = [];
@@ -451,14 +450,28 @@
         }
     }
 
-    function goToPayment() {
+    async function goToPayment() {
         hideErrors();
         const customerName = document.getElementById('customerName').value.trim();
         const phone = document.getElementById('phone').value.trim();
-        const address = document.getElementById('address').value.trim();
 
         if (customerName.length < 2) { showError(CustomerI18n.t('errName')); return; }
         if (phone.replace(/\D/g, '').length < 9) { showError(CustomerI18n.t('errPhone')); return; }
+
+        const nextBtn = document.getElementById('nextButton');
+        if (nextBtn) nextBtn.disabled = true;
+
+        try {
+            if (window.AddressPicker) await AddressPicker.ensureLocation(true);
+        } catch (e) {
+            showError(e.message || CustomerI18n.t('errAddressPick'));
+            if (nextBtn) nextBtn.disabled = false;
+            return;
+        }
+
+        if (nextBtn) nextBtn.disabled = false;
+
+        const address = document.getElementById('address').value.trim();
         const lat = document.getElementById('latitude').value;
         if (address.length < 3 || !lat) { showError(CustomerI18n.t('errAddressPick')); return; }
 
@@ -504,16 +517,27 @@
 
     async function submitOrder() {
         hideErrors();
+        const btn = document.getElementById('submitButton');
+        btn.disabled = true;
+
+        try {
+            if (window.AddressPicker) await AddressPicker.ensureLocation(true);
+        } catch (e) {
+            showError(e.message || CustomerI18n.t('errAddressPick'), 'errorBoxPay');
+            btn.disabled = false;
+            return;
+        }
+
         const customerName = document.getElementById('customerName').value.trim();
         const phone = document.getElementById('phone').value.trim();
         const address = document.getElementById('address').value.trim();
         const comment = document.getElementById('comment').value.trim();
         const foodComment = getStoredFoodComment();
         const receiptInput = document.getElementById('receipt');
-        const btn = document.getElementById('submitButton');
 
         if (!receiptInput.files.length) {
             showError(CustomerI18n.t('errReceipt'), 'errorBoxPay');
+            btn.disabled = false;
             return;
         }
 
@@ -522,6 +546,7 @@
         const restaurantId = window.RESTAURANT?.id ?? window.restaurantId;
         if (!restaurantId) {
             showError('Ресторан табылган жок — бетти жаңыртып кайра аракет кылыңыз', 'errorBoxPay');
+            btn.disabled = false;
             return;
         }
 
@@ -545,7 +570,6 @@
         formData.append('restaurantId', String(restaurantId));
         formData.append('receipt', receiptInput.files[0]);
 
-        btn.disabled = true;
         btn.querySelector('span').textContent = CustomerI18n.t('submitting');
 
         try {
@@ -570,7 +594,7 @@
     CustomerI18n.updatePillUi();
     applyReceiptLanguage();
     if (window.AddressPicker) {
-        AddressPicker.bindCheckout({ slug: restaurantSlug, autoOpen: true });
+        AddressPicker.bindCheckout({ slug: restaurantSlug, autoLocate: true });
     }
 </script>
 </body>
