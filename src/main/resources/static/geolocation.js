@@ -4,8 +4,12 @@
 window.GeoLocation = (function () {
     'use strict';
 
+    /** ≤50м — дароо кабыл алуу */
     var ACCURACY_GOOD_M = 50;
-    var ACCURACY_APPROXIMATE_M = 500;
+    /** ≤120м — кабыл алуу (debounce кийин) */
+    var ACCURACY_ACCEPT_M = 120;
+    /** >2000м — баш калаadan башка жер — чыгарып салуу */
+    var ACCURACY_REJECT_M = 2000;
 
     var TEXT = {
         ky: {
@@ -13,16 +17,20 @@ window.GeoLocation = (function () {
             insecure: 'Геолокация HTTPS аркылуу гана иштейт.',
             denied: 'GPS күйгүзүңүз же Location уруксатын бериңиз',
             unavailable: 'GPS сигналы табылган жок. Ачык абада кайра аракет кылыңыз.',
-            timeout: 'GPS күтүү убактысы аяктады. «Менин жайгашкан жерим» баскычын кайра басыңыз.',
-            approximate: 'Так дарек үчүн «Так жайгашкан жер» (Precise Location) күйгүзүңүз.'
+            timeout: 'GPS күтүү убактысы аяктады. Кайра аракет кылыңыз.',
+            inaccurate: 'GPS так эмес. Telegram эмес — Safari же Chrome\'ден ачыңыз, «Так жайгашкан жер» күйгүзүңүз.',
+            approximate: 'Так дарек үчүн «Так жайгашкан жер» (Precise Location) күйгүзүңүз.',
+            telegramHint: 'Telegram\'да GPS туура эмес болушу мүмкүн. Safari/Chrome\'ден ачыңыз.'
         },
         ru: {
             unsupported: 'Включите GPS или разрешите доступ к геолокации',
             insecure: 'Геолокация работает только по HTTPS.',
-            denied: 'Включите GPS или разрешите доступ к гeолокации',
+            denied: 'Включите GPS или разрешите доступ к геолокации',
             unavailable: 'GPS-сигнал не найден. Попробуйте на открытом месте.',
-            timeout: 'Время ожидания GPS истекло. Нажмите кнопку местоположения ещё раз.',
-            approximate: 'Для точного адреса включите «Точное местоположение» (Precise Location).'
+            timeout: 'Время ожидания GPS истекло. Попробуйте снова.',
+            inaccurate: 'GPS неточный. Откройте сайт в Safari или Chrome, включите «Точное местоположение».',
+            approximate: 'Для точного адреса включите «Точное местоположение» (Precise Location).',
+            telegramHint: 'В Telegram GPS может быть неточным. Откройте сайт в Safari/Chrome.'
         }
     };
 
@@ -56,7 +64,11 @@ window.GeoLocation = (function () {
     }
 
     function getTimeoutMs() {
-        return isTelegramWebView() ? 10000 : 15000;
+        return 15000;
+    }
+
+    function getDebounceMs() {
+        return isTelegramWebView() ? 6000 : 4000;
     }
 
     function getGeoOptions() {
@@ -77,16 +89,24 @@ window.GeoLocation = (function () {
         };
     }
 
+    function isValidReading(pos) {
+        if (!pos || !pos.coords) return false;
+        var lat = pos.coords.latitude;
+        var lng = pos.coords.longitude;
+        if (typeof lat !== 'number' || typeof lng !== 'number' || isNaN(lat) || isNaN(lng)) return false;
+        if (lat < -90 || lat > 90 || lng < -180 || lng > 180) return false;
+        var acc = pos.coords.accuracy;
+        if (typeof acc === 'number' && acc > ACCURACY_REJECT_M) return false;
+        return true;
+    }
+
     function mapError(err, lang) {
+        if (err && err.inaccurate) return new Error(t('inaccurate', lang));
         var code = err && err.code;
         if (code === 1) return new Error(t('denied', lang));
         if (code === 2) return new Error(t('unavailable', lang));
         if (code === 3) return new Error(t('timeout', lang));
         return new Error(t('unsupported', lang));
-    }
-
-    function isApproximateAccuracy(m) {
-        return typeof m === 'number' && m > ACCURACY_APPROXIMATE_M;
     }
 
     function cleanup() {
@@ -122,7 +142,7 @@ window.GeoLocation = (function () {
             var bestRaw = null;
             var permissionApproximate = false;
             var geoOpts = getGeoOptions();
-            var debounceMs = isTelegramWebView() ? 1200 : 2500;
+            var debounceMs = getDebounceMs();
 
             if (navigator.permissions && navigator.permissions.query) {
                 navigator.permissions.query({ name: 'geolocation' }).then(function (r) {
@@ -132,11 +152,16 @@ window.GeoLocation = (function () {
 
             function finish(raw) {
                 if (settled) return;
+                var acc = raw.coords.accuracy;
+                if (typeof acc === 'number' && acc > ACCURACY_ACCEPT_M) {
+                    fail({ inaccurate: true });
+                    return;
+                }
                 settled = true;
                 cleanup();
 
                 var normalized = normalizePosition(raw);
-                normalized.approximate = isApproximateAccuracy(normalized.accuracy) || permissionApproximate;
+                normalized.approximate = (typeof acc === 'number' && acc > ACCURACY_GOOD_M) || permissionApproximate;
                 normalized.permissionApproximate = permissionApproximate;
                 normalized.accuracyMeters = normalized.accuracy;
                 resolve(normalized);
@@ -144,38 +169,46 @@ window.GeoLocation = (function () {
 
             function fail(err) {
                 if (settled) return;
-                if (bestRaw) {
-                    finish(bestRaw);
-                    return;
-                }
                 settled = true;
                 cleanup();
                 reject(mapError(err, lang));
             }
 
+            function tryFinishBest() {
+                if (!bestRaw) {
+                    fail({ code: 3 });
+                    return;
+                }
+                finish(bestRaw);
+            }
+
             function scheduleFinish() {
                 if (_debounceTimer) clearTimeout(_debounceTimer);
                 _debounceTimer = setTimeout(function () {
-                    if (bestRaw) finish(bestRaw);
+                    if (!bestRaw) return;
+                    var acc = bestRaw.coords.accuracy;
+                    if (typeof acc === 'number' && acc <= ACCURACY_ACCEPT_M) {
+                        finish(bestRaw);
+                    }
                 }, debounceMs);
             }
 
             function onSuccess(pos) {
-                if (settled || !pos || !pos.coords) return;
-                var lat = pos.coords.latitude;
-                var lng = pos.coords.longitude;
-                if (typeof lat !== 'number' || typeof lng !== 'number' || isNaN(lat) || isNaN(lng)) return;
+                if (settled || !isValidReading(pos)) return;
 
                 if (!bestRaw || pos.coords.accuracy < bestRaw.coords.accuracy) {
                     bestRaw = pos;
                 }
 
-                if (typeof pos.coords.accuracy === 'number' && pos.coords.accuracy <= ACCURACY_GOOD_M) {
+                var acc = pos.coords.accuracy;
+                if (typeof acc === 'number' && acc <= ACCURACY_GOOD_M) {
                     finish(pos);
                     return;
                 }
 
-                scheduleFinish();
+                if (typeof acc === 'number' && acc <= ACCURACY_ACCEPT_M) {
+                    scheduleFinish();
+                }
             }
 
             function onError(err) {
@@ -183,15 +216,11 @@ window.GeoLocation = (function () {
             }
 
             _hardTimer = setTimeout(function () {
-                if (bestRaw) finish(bestRaw);
-                else fail({ code: 3 });
-            }, geoOpts.timeout + 1000);
+                tryFinishBest();
+            }, geoOpts.timeout + 500);
 
             _activeWatchId = navigator.geolocation.watchPosition(onSuccess, onError, geoOpts);
-
-            navigator.geolocation.getCurrentPosition(onSuccess, function () {
-                /* watchPosition улантат */
-            }, geoOpts);
+            navigator.geolocation.getCurrentPosition(onSuccess, function () { /* watch уланат */ }, geoOpts);
         });
     }
 
@@ -202,16 +231,20 @@ window.GeoLocation = (function () {
     function shouldWarnApproximate(result) {
         if (!result) return false;
         if (result.permissionApproximate) return true;
-        return isApproximateAccuracy(result.accuracyMeters);
+        return typeof result.accuracyMeters === 'number' && result.accuracyMeters > ACCURACY_GOOD_M;
     }
 
     function getApproximateWarning(lang) {
         return t('approximate', lang);
     }
 
+    function getTelegramHint(lang) {
+        return t('telegramHint', lang);
+    }
+
     return {
         ACCURACY_GOOD_M: ACCURACY_GOOD_M,
-        ACCURACY_APPROXIMATE_M: ACCURACY_APPROXIMATE_M,
+        ACCURACY_ACCEPT_M: ACCURACY_ACCEPT_M,
         isSupported: isSupported,
         isSecure: isSecure,
         isTelegramWebView: isTelegramWebView,
@@ -219,6 +252,7 @@ window.GeoLocation = (function () {
         cancel: cancel,
         shouldWarnApproximate: shouldWarnApproximate,
         getApproximateWarning: getApproximateWarning,
+        getTelegramHint: getTelegramHint,
         t: t
     };
 })();

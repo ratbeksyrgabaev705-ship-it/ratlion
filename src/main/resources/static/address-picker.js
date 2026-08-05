@@ -160,6 +160,16 @@ window.AddressPicker = (function () {
         });
     }
 
+    function clearStoredCoords() {
+        if (_latInput) _latInput.value = '';
+        if (_lngInput) _lngInput.value = '';
+        _lastCoords = null;
+        try {
+            localStorage.removeItem(storageKey('latitude'));
+            localStorage.removeItem(storageKey('longitude'));
+        } catch (e) { /* ignore */ }
+    }
+
     function fetchFreshLocation() {
         if (!window.GeoLocation) throw new Error(t('gpsError'));
         if (!GeoLocation.isSecure()) throw new Error(GeoLocation.t('insecure', lang()));
@@ -171,6 +181,12 @@ window.AddressPicker = (function () {
                     showToast(GeoLocation.getApproximateWarning(lang()), 5000);
                 }
                 return reverseGeocode(geo.latitude, geo.longitude);
+            })
+            .catch(function (err) {
+                if (GeoLocation.isTelegramWebView()) {
+                    showToast(GeoLocation.getTelegramHint(lang()), 6500);
+                }
+                throw err;
             });
 
         return withSafetyTimeout(chain, SAFETY_TIMEOUT_MS, GeoLocation.t('timeout', lang()));
@@ -213,8 +229,8 @@ window.AddressPicker = (function () {
                     return data;
                 }
                 MapNavigator.showLocation({
-                    latitude: data.latitude,
-                    longitude: data.longitude,
+                    latitude: parseFloat(_latInput.value),
+                    longitude: parseFloat(_lngInput.value),
                     address: data.address
                 });
                 return data;
@@ -257,6 +273,8 @@ window.AddressPicker = (function () {
         _latInput = document.getElementById('latitude');
         _lngInput = document.getElementById('longitude');
         _addressInput = document.getElementById('address');
+
+        clearStoredCoords();
 
         if (_display && _addressInput && _addressInput.value) {
             updateDisplay(_addressInput.value);
