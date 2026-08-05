@@ -10,7 +10,16 @@ window.ReportsUI = (function () {
     }
     function fmtTime(iso) {
         if (!iso) return '—';
-        return new Date(iso).toLocaleString('ky-KG', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
+        return new Date(iso).toLocaleString('ky-KG', {
+            day: '2-digit', month: '2-digit', year: 'numeric',
+            hour: '2-digit', minute: '2-digit'
+        });
+    }
+
+    function paymentLabel(status) {
+        if (status === 'PAID') return 'Төлөндү';
+        if (status === 'WAITING_PAYMENT' || status === 'WAITING') return 'Күтүлүүдө';
+        return status || '—';
     }
 
     function soldItemsList(data) {
@@ -42,70 +51,68 @@ window.ReportsUI = (function () {
         return { title, date };
     }
 
-    function renderBarChart(items, labelKey, valueKey, maxBars, valueIsMoney) {
-        if (!items || !items.length) return '<p class="rep-empty">Маалымат жок</p>';
-        const slice = items.slice(0, maxBars || 12);
-        const max = Math.max(...slice.map(i => Number(i[valueKey] || 0)), 1);
-        return '<div class="rep-chart">' + slice.map(i => {
-            const val = Number(i[valueKey] || 0);
-            const pct = Math.round((val / max) * 100);
-            const label = i[labelKey] || i.monthName || i.date || '';
-            const valText = valueIsMoney ? money(val) + ' с' : val + ' даана';
-            return '<div class="rep-chart-row">' +
-                '<span class="rep-chart-label" title="' + esc(label) + '">' + esc(label) + '</span>' +
-                '<div class="rep-chart-bar-wrap"><div class="rep-chart-bar" style="width:' + pct + '%"></div></div>' +
-                '<span class="rep-chart-val">' + valText + '</span>' +
-                '</div>';
+    function sortOrdersChronological(orders) {
+        return orders.slice().sort(function (a, b) {
+            const ta = new Date(a.deliveredAt || a.createdAt).getTime();
+            const tb = new Date(b.deliveredAt || b.createdAt).getTime();
+            return ta - tb;
+        });
+    }
+
+    function formatOrderItems(itemName) {
+        if (!itemName || !String(itemName).trim()) {
+            return '<p class="rep-muted">Состав жок</p>';
+        }
+        return String(itemName).split(',').map(function (part) {
+            const t = part.trim();
+            return t ? '<div class="rep-order-item-line">' + esc(t) + '</div>' : '';
+        }).join('');
+    }
+
+    function renderOrdersList(orders) {
+        const sorted = sortOrdersChronological(orders);
+        if (!sorted.length) {
+            return '<p class="rep-empty">Бул мезгилде жеткирилген заказ жок</p>';
+        }
+        return '<div class="rep-orders-list">' + sorted.map(function (o, i) {
+            const domId = 'rep-ord-' + (o.id != null ? o.id : i);
+            const sum = money(o.paymentAmount != null ? o.paymentAmount : o.totalPrice);
+            const payOk = o.paymentStatus === 'PAID';
+            return '<div class="rep-order-row">' +
+                '<button type="button" class="rep-order-head" onclick="ReportsUI.toggleOrderDetail(\'' + domId + '\', this)">' +
+                    '<div class="rep-order-head-left">' +
+                        '<span class="rep-order-name">' + esc(o.customerName || '—') + '</span>' +
+                        '<span class="rep-order-phone">' + esc(o.phone || '—') + '</span>' +
+                    '</div>' +
+                    '<div class="rep-order-head-right">' +
+                        '<span class="rep-order-sum">' + sum + ' с</span>' +
+                        '<span class="rep-order-pay' + (payOk ? ' rep-pay-ok' : '') + '">' + esc(paymentLabel(o.paymentStatus)) + '</span>' +
+                        '<span class="rep-order-time">' + fmtTime(o.deliveredAt || o.createdAt) + '</span>' +
+                        '<span class="rep-order-chevron">›</span>' +
+                    '</div>' +
+                '</button>' +
+                '<div id="' + domId + '" class="rep-order-detail" hidden>' +
+                    '<div class="rep-order-detail-box">' +
+                        '<div class="rep-order-detail-head">Заказ № ' + esc(o.displayOrderNumber || o.id) + '</div>' +
+                        '<div class="rep-order-detail-label">Состав:</div>' +
+                        formatOrderItems(o.itemName) +
+                        (o.comment ? '<div class="rep-order-comment">💬 ' + esc(o.comment) + '</div>' : '') +
+                    '</div>' +
+                '</div>' +
+            '</div>';
         }).join('') + '</div>';
     }
 
-    function renderTopFoods(items) {
-        if (!items.length) {
-            return '<p class="rep-empty">Бул мезгилде тамак сатылган жок</p>';
-        }
-        const chartItems = items.slice(0, 10).map(f => ({ name: f.name, quantity: f.quantity }));
-        return renderBarChart(chartItems, 'name', 'quantity', 10, false);
-    }
-
-    function renderSoldItemsTable(items) {
+    function renderSoldPositions(items) {
         if (!items.length) {
             return '<p class="rep-empty">Сатылган тамак жок</p>';
         }
-        const total = totalSoldQty(items);
-        return '<table class="rep-table">' +
-            '<thead><tr><th>№</th><th>Тамак</th><th class="rep-num">Саны</th></tr></thead>' +
-            '<tbody>' + items.map((f, i) => '<tr>' +
-                '<td class="rep-muted">' + (i + 1) + '</td>' +
-                '<td><strong>' + esc(f.name) + '</strong></td>' +
-                '<td class="rep-num"><strong>' + f.quantity + '</strong></td>' +
-            '</tr>').join('') + '</tbody>' +
-            '<tfoot><tr>' +
-                '<td colspan="2"><strong>Жалпы</strong></td>' +
-                '<td class="rep-num"><strong>' + total + '</strong></td>' +
-            '</tr></tfoot></table>';
-    }
-
-    function renderOrdersTable(orders) {
-        if (!orders.length) {
-            return '<p class="rep-empty">Бул мезгилде жеткирилген заказ жок</p>';
-        }
-        const totalSum = orders.reduce((s, o) => s + Number(o.totalPrice || 0), 0);
-        return '<table class="rep-table rep-table-orders">' +
-            '<thead><tr>' +
-                '<th>№</th><th>Кардар</th><th>Тамактар</th><th class="rep-num">Сумма</th><th>Убакыт</th>' +
-            '</tr></thead>' +
-            '<tbody>' + orders.map(o => '<tr>' +
-                '<td><span class="rep-order-badge rep-order-badge-sm">' + esc(o.displayOrderNumber || o.id) + '</span></td>' +
-                '<td><strong>' + esc(o.customerName || '—') + '</strong><br><span class="rep-muted">' + esc(o.phone || '') + '</span></td>' +
-                '<td class="rep-items-cell">' + esc(o.itemName || '—') + '</td>' +
-                '<td class="rep-num"><strong>' + money(o.totalPrice) + '</strong></td>' +
-                '<td class="rep-muted">' + fmtTime(o.deliveredAt || o.createdAt) + '</td>' +
-            '</tr>').join('') + '</tbody>' +
-            '<tfoot><tr>' +
-                '<td colspan="3"><strong>Жалпы (' + orders.length + ' заказ)</strong></td>' +
-                '<td class="rep-num"><strong>' + money(totalSum) + ' сом</strong></td>' +
-                '<td></td>' +
-            '</tr></tfoot></table>';
+        return '<div class="rep-pos-list">' + items.map(function (f) {
+            return '<div class="rep-pos-row">' +
+                '<span class="rep-pos-name">' + esc(f.name) + '</span>' +
+                '<span class="rep-pos-qty">— ' + f.quantity + '×</span>' +
+            '</div>';
+        }).join('') + '</div>';
     }
 
     function renderReport(data) {
@@ -149,55 +156,40 @@ window.ReportsUI = (function () {
 
                 (cancelled > 0 ? '<div class="rep-note rep-note-warn">⚠️ Бул мезгилде <strong>' + cancelled + '</strong> заказ жокко чыгарылган (киреше эсептелбейт)</div>' : '') +
 
-                '<div class="rep-grid-2">' +
-                    '<div class="rep-block">' +
-                        '<h3 class="rep-title">🏆 Эң көп сатылган тамактар</h3>' +
-                        '<p class="rep-sub">Топ-10 — канча дана сатылган</p>' +
-                        renderTopFoods(sold) +
-                    '</div>' +
-                    '<div class="rep-block">' +
-                        '<h3 class="rep-title">📋 Толук тизме</h3>' +
-                        '<p class="rep-sub">Бардык тамактар жана саны</p>' +
-                        renderSoldItemsTable(sold) +
-                    '</div>' +
+                '<div class="rep-tabs">' +
+                    '<button type="button" class="rep-tab active" onclick="ReportsUI.switchTab(this, \'orders\')">📦 Буйрутмалардын тизмеси</button>' +
+                    '<button type="button" class="rep-tab" onclick="ReportsUI.switchTab(this, \'positions\')">🍽 Сатылган позициялар</button>' +
                 '</div>' +
 
-                '<div class="rep-block rep-block-full">' +
-                    '<h3 class="rep-title">📦 Заказдар (' + orders.length + ')</h3>' +
-                    '<p class="rep-sub">Ар бир жеткирилген заказ — кардар, тамак, сумма</p>' +
-                    renderOrdersTable(orders) +
-                '</div>' +
-
-                ((data.topCustomers && data.topCustomers.length) ? (
-                    '<div class="rep-block rep-block-full">' +
-                        '<h3 class="rep-title">👥 Кайра заказ берген кардарлар</h3>' +
-                        '<p class="rep-sub">Бир нече жолу заказ бергендер</p>' +
-                        '<table class="rep-table">' +
-                            '<thead><tr><th>Кардар / Телефон</th><th class="rep-num">Заказ саны</th></tr></thead>' +
-                            '<tbody>' + data.topCustomers.map(c => '<tr>' +
-                                '<td>' + esc(c.customer) + '</td>' +
-                                '<td class="rep-num"><strong>' + c.orders + '</strong></td>' +
-                            '</tr>').join('') + '</tbody>' +
-                        '</table>' +
-                    '</div>'
-                ) : '') +
-
-                (data.dailyChart ? (
-                    '<div class="rep-block rep-block-full">' +
-                        '<h3 class="rep-title">📈 Күн сайын киреше</h3>' +
-                        '<p class="rep-sub">Ай ичинде ар бир күн канча сом түштү</p>' +
-                        renderBarChart(data.dailyChart, 'date', 'totalRevenue', 31, true) +
-                    '</div>'
-                ) : '') +
-
-                (data.monthlyChart ? (
-                    '<div class="rep-block rep-block-full">' +
-                        '<h3 class="rep-title">📈 Ай сайын киреше</h3>' +
-                        '<p class="rep-sub">Жыл ичинде ар бир ай канча сом түштү</p>' +
-                        renderBarChart(data.monthlyChart, 'monthName', 'totalRevenue', 12, true) +
-                    '</div>'
-                ) : '') +
+                '<div class="rep-tab-panel" id="repTabOrders">' + renderOrdersList(orders) + '</div>' +
+                '<div class="rep-tab-panel" id="repTabPositions" hidden>' + renderSoldPositions(sold) + '</div>' +
             '</div>';
+    }
+
+    function switchTab(btn, tab) {
+        document.querySelectorAll('#kRepResult .rep-tab').forEach(function (b) {
+            b.classList.toggle('active', b === btn);
+        });
+        const ordersPanel = document.getElementById('repTabOrders');
+        const posPanel = document.getElementById('repTabPositions');
+        if (ordersPanel) ordersPanel.hidden = tab !== 'orders';
+        if (posPanel) posPanel.hidden = tab !== 'positions';
+    }
+
+    function toggleOrderDetail(domId, btn) {
+        const detail = document.getElementById(domId);
+        if (!detail) return;
+        const willOpen = detail.hidden;
+        document.querySelectorAll('#kRepResult .rep-order-detail').forEach(function (el) {
+            el.hidden = true;
+        });
+        document.querySelectorAll('#kRepResult .rep-order-head').forEach(function (el) {
+            el.classList.remove('open');
+        });
+        if (willOpen) {
+            detail.hidden = false;
+            if (btn) btn.classList.add('open');
+        }
     }
 
     async function fetchSummary(preset, restaurantId, from, to) {
@@ -237,5 +229,8 @@ window.ReportsUI = (function () {
         return res.json();
     }
 
-    return { renderReport, fetchSummary, fetchYears, fetchMonthly, fetchDaily, fetchCalendar, money, esc, fmtTime };
+    return {
+        renderReport, fetchSummary, fetchYears, fetchMonthly, fetchDaily, fetchCalendar,
+        switchTab, toggleOrderDetail, money, esc, fmtTime
+    };
 })();
