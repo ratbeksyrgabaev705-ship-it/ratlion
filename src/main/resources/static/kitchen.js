@@ -685,22 +685,62 @@ ${order.comment ? `<div class="meta small">🚚 ${esc(order.comment)}</div>` : '
     function menuCategory(item) { return item.categoryKg || item.category || item.categoryRu || '—'; }
     function menuDesc(item) { return item.descriptionKg || item.descriptionRu || ''; }
 
+    function categoryDomId(cat) {
+        return 'kMenuCat-' + String(cat).replace(/\s+/g, '-').replace(/[^\w\u0400-\u04FF-]/gi, '');
+    }
+
+    function renderMenuItemCard(item) {
+        const avail = item.available !== false;
+        const img = item.image
+            ? `<img src="${esc(item.image)}" alt="">`
+            : '<div class="adm-menu-ph">🍽</div>';
+        return `<article class="adm-menu-item">
+            ${img}
+            <div>
+                <strong style="font-size:16px">${esc(menuName(item))}</strong>
+                <div style="font-size:12px;color:var(--adm-muted);margin-top:4px">${esc(menuCategory(item))}</div>
+                <div style="font-size:13px;margin-top:6px;color:var(--adm-muted)">${esc(menuDesc(item).slice(0, 80))}</div>
+                <div style="font-size:18px;font-weight:800;color:var(--adm-green-dark);margin-top:8px">${money(item.price)} сом</div>
+                <span class="adm-badge ${avail ? 'adm-badge-delivered' : 'adm-badge-cancelled'}" style="margin-top:8px">${avail ? 'Көрүнөт' : 'Жашырылган'}</span>
+            </div>
+            <div class="adm-menu-actions">
+                <button class="adm-btn adm-btn-outline adm-btn-sm" onclick="kEditMenu(${item.id})">Түзөтүү</button>
+                <button class="adm-btn adm-btn-outline adm-btn-sm" onclick="kToggleMenu(${item.id}, ${avail})">${avail ? 'Жашыруу' : 'Көрсөтүү'}</button>
+                <button class="adm-btn adm-btn-danger adm-btn-sm" onclick="kDeleteMenu(${item.id})">Өчүрүү</button>
+            </div>
+        </article>`;
+    }
+
     function renderCategoryFilters(list) {
         const el = q('kMenuCategories');
         if (!el) return;
         const cats = [...new Set(list.map(menuCategory).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'ky'));
-        el.innerHTML = `<button type="button" class="k-cat-btn${activeCategory === '' ? ' active' : ''}" onclick="kFilterCategory('')">Бардыгы (${list.length})</button>` +
+        el.innerHTML = `<button type="button" class="k-cat-btn${activeCategory === '' ? ' active' : ''}" onclick="kScrollToCategory('')">Бардыгы (${list.length})</button>` +
             cats.map(c => {
                 const count = list.filter(i => menuCategory(i) === c).length;
                 const active = activeCategory === c ? ' active' : '';
-                return `<button type="button" class="k-cat-btn${active}" onclick="kFilterCategory(${JSON.stringify(c)})">${esc(c)} (${count})</button>`;
+                return `<button type="button" class="k-cat-btn${active}" onclick="kScrollToCategory(${JSON.stringify(c)})">${esc(c)} (${count})</button>`;
             }).join('');
     }
 
-    window.kFilterCategory = function (cat) {
+    window.kScrollToCategory = function (cat) {
         activeCategory = cat || '';
-        renderMenuList();
+        renderCategoryFilters(menuItems);
+        const listEl = q('kMenuList');
+        if (!listEl) return;
+        if (!cat) {
+            listEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            window.scrollTo({ top: Math.max(0, listEl.getBoundingClientRect().top + window.scrollY - 100), behavior: 'smooth' });
+            return;
+        }
+        const target = document.getElementById(categoryDomId(cat));
+        if (target) {
+            const top = target.getBoundingClientRect().top + window.scrollY - 96;
+            window.scrollTo({ top: Math.max(0, top), behavior: 'smooth' });
+        }
     };
+
+    window.kFilterCategory = window.kScrollToCategory;
 
     function renderMenuList() {
         const searchEl = q('kMenuSearch');
@@ -709,35 +749,24 @@ ${order.comment ? `<div class="meta small">🚚 ${esc(order.comment)}</div>` : '
         if (search) {
             list = list.filter(i => [i.nameKg, i.nameRu, i.name, i.categoryKg, i.category].join(' ').toLowerCase().includes(search));
         }
-        if (activeCategory) {
-            list = list.filter(i => menuCategory(i) === activeCategory);
-        }
         renderCategoryFilters(menuItems);
         const el = q('kMenuList');
         if (!list.length) {
             el.innerHTML = '<div class="adm-empty">Тамак жок</div>';
             return;
         }
-        el.innerHTML = list.map(item => {
-            const avail = item.available !== false;
-            const img = item.image
-                ? `<img src="${esc(item.image)}" alt="">`
-                : '<div class="adm-menu-ph">🍽</div>';
-            return `<article class="adm-menu-item">
-                ${img}
-                <div>
-                    <strong style="font-size:16px">${esc(menuName(item))}</strong>
-                    <div style="font-size:12px;color:var(--adm-muted);margin-top:4px">${esc(menuCategory(item))}</div>
-                    <div style="font-size:13px;margin-top:6px;color:var(--adm-muted)">${esc(menuDesc(item).slice(0, 80))}</div>
-                    <div style="font-size:18px;font-weight:800;color:var(--adm-green-dark);margin-top:8px">${money(item.price)} сом</div>
-                    <span class="adm-badge ${avail ? 'adm-badge-delivered' : 'adm-badge-cancelled'}" style="margin-top:8px">${avail ? 'Көрүнөт' : 'Жашырылган'}</span>
-                </div>
-                <div class="adm-menu-actions">
-                    <button class="adm-btn adm-btn-outline adm-btn-sm" onclick="kEditMenu(${item.id})">Түзөтүү</button>
-                    <button class="adm-btn adm-btn-outline adm-btn-sm" onclick="kToggleMenu(${item.id}, ${avail})">${avail ? 'Жашыруу' : 'Көрсөтүү'}</button>
-                    <button class="adm-btn adm-btn-danger adm-btn-sm" onclick="kDeleteMenu(${item.id})">Өчүрүү</button>
-                </div>
-            </article>`;
+        if (search) {
+            el.innerHTML = list.map(renderMenuItemCard).join('');
+            return;
+        }
+        const cats = [...new Set(list.map(menuCategory).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'ky'));
+        el.innerHTML = cats.map(function (cat) {
+            const items = list.filter(function (i) { return menuCategory(i) === cat; });
+            if (!items.length) return '';
+            return '<section class="k-menu-cat-section" id="' + categoryDomId(cat) + '">' +
+                '<h3 class="k-menu-cat-head">' + esc(cat) + ' <span class="k-menu-cat-count">(' + items.length + ')</span></h3>' +
+                '<div class="k-menu-cat-items">' + items.map(renderMenuItemCard).join('') + '</div>' +
+            '</section>';
         }).join('');
     }
 
