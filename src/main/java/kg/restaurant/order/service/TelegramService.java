@@ -245,6 +245,17 @@ public class TelegramService {
         ));
     }
 
+    public TelegramSendResult editMessageText(String chatId, Integer messageId, String text) {
+        if (chatId == null || chatId.isBlank() || messageId == null) {
+            return TelegramSendResult.ofFailure("Message ID жок");
+        }
+        return callApi("editMessageText", Map.of(
+                "chat_id", chatId,
+                "message_id", messageId,
+                "text", text == null ? "" : text
+        ));
+    }
+
     public TelegramSendResult editMessageReplyMarkup(String chatId, Integer messageId, Object replyMarkup) {
         if (chatId == null || chatId.isBlank() || messageId == null) {
             return TelegramSendResult.ofFailure("Message ID жок");

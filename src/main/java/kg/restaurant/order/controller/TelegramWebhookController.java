@@ -2,6 +2,7 @@ package kg.restaurant.order.controller;
 
 import kg.restaurant.order.model.Courier;
 import kg.restaurant.order.repository.CourierRepository;
+import kg.restaurant.order.service.CourierTelegramService;
 import kg.restaurant.order.service.OrderVerificationService;
 import kg.restaurant.order.service.TelegramService;
 import org.springframework.beans.factory.annotation.Value;
@@ -19,6 +20,7 @@ public class TelegramWebhookController {
     private final CourierRepository courierRepository;
     private final TelegramService telegramService;
     private final OrderVerificationService orderVerificationService;
+    private final CourierTelegramService courierTelegramService;
 
     @Value("${app.public-url:http://localhost:8080}")
     private String publicUrl;
@@ -26,11 +28,13 @@ public class TelegramWebhookController {
     public TelegramWebhookController(
             CourierRepository courierRepository,
             TelegramService telegramService,
-            OrderVerificationService orderVerificationService
+            OrderVerificationService orderVerificationService,
+            CourierTelegramService courierTelegramService
     ) {
         this.courierRepository = courierRepository;
         this.telegramService = telegramService;
         this.orderVerificationService = orderVerificationService;
+        this.courierTelegramService = courierTelegramService;
     }
 
     @PostMapping("/webhook")
@@ -41,6 +45,11 @@ public class TelegramWebhookController {
 
         Map<String, Object> callback = asMap(update.get("callback_query"));
         if (callback != null) {
+            String data = asString(callback.get("data")).trim();
+            if (data.startsWith("courier_deliver:")) {
+                courierTelegramService.handleDeliverCallback(callback);
+                return;
+            }
             orderVerificationService.handleTelegramCallback(callback);
             return;
         }

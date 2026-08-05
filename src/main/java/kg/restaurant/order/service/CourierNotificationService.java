@@ -13,6 +13,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Map;
 
 @Service
 public class CourierNotificationService {
@@ -42,10 +43,12 @@ public class CourierNotificationService {
         String num = orderNumber(order);
         String text = "🔔 " + rest + " — ЖАНЫ ЗАКАЗ\n\n"
                 + "🏷 " + num + "\n"
+                + "👤 " + safe(order.getCustomerName()) + "\n"
+                + "📞 " + safe(order.getPhone()) + "\n"
                 + "📍 " + safe(order.getAddress()) + "\n"
                 + "💰 " + formatAmount(order.getTotalPrice()) + " сом\n\n"
-                + "⏱ " + secondsLeft + " сек ичинде жооп бер\n\n"
-                + "Жеткирүүгө даярсызбы?";
+                + "⏱ " + secondsLeft + " сек ичинде жооп бер\n"
+                + "→ ratlion.onrender.com/courier";
         saveInApp(courier.getId(), order, "OFFER", text);
         sendExternal(courier, text);
     }
@@ -91,24 +94,62 @@ public class CourierNotificationService {
         sendExternal(courier, text);
     }
 
-    /** Ашкана «Даяр» басканда — кабыл алган курьерге гана */
+    /** Ашкана «Даяр» басканда — кабыл алган курьерге, жок болсо бардык активдүү курьerlerge */
     public void notifyOrderReady(CustomerOrder order) {
-        if (order.getCourierId() == null) {
-            return;
-        }
-        Courier courier = courierRepository.findById(order.getCourierId()).orElse(null);
-        if (courier == null) {
-            return;
-        }
         String rest = restaurantName(order);
-        String num = orderNumber(order);
-        String text = "✅ " + rest + " — ЗАКАЗ ДАЯР!\n\n"
-                + "🏷 " + num + "\n"
-                + "📍 " + safe(order.getAddress()) + "\n"
-                + "🛵 Азыр алып кет!";
-        saveInApp(courier.getId(), order, "READY", text);
-        notificationRepository.dismissWaitingForOrder(order.getId(), courier.getId());
-        sendExternal(courier, text);
+        String text = CourierTelegramService.buildReadyMessage(order, rest);
+
+        if (order.getCourierId() != null) {
+            Courier courier = courierRepository.findById(order.getCourierId()).orElse(null);
+            if (courier != null) {
+                saveInApp(courier.getId(), order, "READY", text);
+                notificationRepository.dismissWaitingForOrder(order.getId(), courier.getId());
+                sendExternalWithKeyboard(courier, text, order.getId());
+                return;
+            }
+        }
+
+        log.warn("Order {} ready without assigned courier — broadcasting", order.getId());
+        telegramService.sendToManager(
+                "⚠️ ДАЯР, КУРЬЕР ЖОК!\n\n"
+                        + "🏷 " + orderNumber(order) + "\n"
+                        + "👤 " + safe(order.getCustomerName()) + "\n"
+                        + "📞 " + safe(order.getPhone()) + "\n"
+                        + "📍 " + safe(order.getAddress()) + "\n\n"
+                        + "Курьер /courier'ден онлайн болуп заказды алсын"
+        );
+
+        String fallback = text + "\n\n⚠️ /courier кир — заказды ал!";
+        int sent = 0;
+        for (Courier courier : courierRepository.findByActiveTrueOrderByNameAsc()) {
+            if (!hasRealTelegram(courier)) {
+                continue;
+            }
+            saveInApp(courier.getId(), order, "READY", fallback);
+            if (sendExternal(courier, fallback)) {
+                sent++;
+            }
+        }
+        log.info("Ready alert sent to {} courier(s) for order {}", sent, order.getId());
+    }
+
+    private void sendExternalWithKeyboard(Courier courier, String text, Long orderId) {
+        String chatId = courier.getTelegramChatId();
+        if (hasRealTelegram(courier)) {
+            List<List<Map<String, String>>> keyboard = List.of(
+                    List.of(Map.of(
+                            "text", "✅ Жеткирдим",
+                            "callback_data", "courier_deliver:" + orderId
+                    ))
+            );
+            var result = telegramService.sendMessageWithInlineKeyboard(chatId, text, keyboard);
+            if (!result.success()) {
+                log.warn("Telegram READY keyboard fail courier {}: {}", courier.getId(), result.error());
+            }
+        } else {
+            log.warn("Courier {} has no Telegram ID (phone: placeholder?) — message skipped", courier.getId());
+        }
+        logSmsPlaceholder(courier, text);
     }
 
     /** «Курьерге берүү» — акыркы эскертүү */
@@ -171,14 +212,30 @@ public class CourierNotificationService {
         notificationRepository.save(n);
     }
 
-    private void sendExternal(Courier courier, String text) {
+    private boolean sendExternal(Courier courier, String text) {
         String chatId = courier.getTelegramChatId();
-        if (chatId != null && !chatId.isBlank() && !chatId.startsWith("phone:")) {
-            telegramService.sendToCourier(chatId, text);
+        if (hasRealTelegram(courier)) {
+            var result = telegramService.sendToChatWithResult(chatId, text);
+            if (!result.success()) {
+                log.warn("Telegram fail courier {} (chat {}): {}", courier.getId(), chatId, result.error());
+                return false;
+            }
+            return true;
         }
+        log.warn("Courier {} has no real Telegram ID — only SMS log", courier.getId());
+        logSmsPlaceholder(courier, text);
+        return false;
+    }
+
+    private boolean hasRealTelegram(Courier courier) {
+        String chatId = courier.getTelegramChatId();
+        return chatId != null && !chatId.isBlank() && !chatId.startsWith("phone:");
+    }
+
+    private void logSmsPlaceholder(Courier courier, String text) {
         String phone = courier.getPhone();
         if (phone != null && !phone.isBlank()) {
-            log.info("SMS → {} : {}", phone, text.replace('\n', ' '));
+            log.info("SMS placeholder → {} : {}", phone, text.replace('\n', ' '));
         }
     }
 

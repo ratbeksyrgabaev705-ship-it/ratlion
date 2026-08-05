@@ -426,11 +426,18 @@ public class OrderVerificationService {
                 : "#" + order.getId();
         String text = "📦 " + rest + " — заказ кабыл алынды\n\n"
                 + "🏷 " + num + "\n"
+                + "👤 " + safe(order.getCustomerName()) + "\n"
+                + "📞 " + safe(order.getPhone()) + "\n"
+                + "📍 " + safe(order.getAddress()) + "\n\n"
                 + "⏳ Ресторан «Даярдоону баштоо» басса — сунуш келет\n"
-                + "→ /courier";
+                + "→ /courier онлайн бол";
         courierRepository.findByActiveTrueOrderByNameAsc().stream()
                 .filter(this::courierHasTelegram)
                 .forEach(c -> telegramService.sendToCourier(c.getTelegramChatId(), text));
+    }
+
+    private String safe(String value) {
+        return value == null || value.isBlank() ? "—" : value.trim();
     }
 
     private boolean courierHasTelegram(Courier courier) {
@@ -461,10 +468,6 @@ public class OrderVerificationService {
             return "@" + username;
         }
         return "Диспетчер";
-    }
-
-    private String safe(String value) {
-        return value == null || value.isBlank() ? "—" : value.trim();
     }
 
     private String formatAmount(Double amount) {
