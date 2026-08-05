@@ -1,6 +1,7 @@
 /**
- * MapNavigator — карта колдонмолорун ачуу
- * mode: 'view' = чекитти көрсөтүү (карта), 'navigate' = маршрут (курьер)
+ * MapNavigator — курьер үчүн карта колдонмолорун ачуу (Android Intent Chooser / iOS sheet).
+ *
+ * Жаңы карта кошуу: MAP_PROVIDERS массивине объект кошуу жетиштүү.
  */
 window.MapNavigator = (function () {
     'use strict';
@@ -11,18 +12,6 @@ window.MapNavigator = (function () {
             name: 'Google Maps',
             icon: '🗺️',
             androidPackage: 'com.google.android.apps.maps',
-            viewUrl: function (d) {
-                if (d.hasCoords) {
-                    return 'https://www.google.com/maps/search/?api=1&query=' + d.lat + ',' + d.lng;
-                }
-                return 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(d.address);
-            },
-            viewScheme: function (d) {
-                if (d.hasCoords) {
-                    return 'comgooglemaps://?q=' + d.lat + ',' + d.lng + '&center=' + d.lat + ',' + d.lng + '&zoom=17';
-                }
-                return 'comgooglemaps://?q=' + encodeURIComponent(d.address);
-            },
             navigationUrl: function (d) {
                 if (d.hasCoords) {
                     return 'https://www.google.com/maps/dir/?api=1&destination=' + d.lat + ',' + d.lng + '&travelmode=driving';
@@ -41,18 +30,6 @@ window.MapNavigator = (function () {
             name: 'Yandex Maps',
             icon: '🟡',
             androidPackage: 'ru.yandex.yandexmaps',
-            viewUrl: function (d) {
-                if (d.hasCoords) {
-                    return 'https://yandex.ru/maps/?ll=' + d.lng + ',' + d.lat + '&z=17&pt=' + d.lng + ',' + d.lat + ',pm2rdm&l=map';
-                }
-                return 'https://yandex.ru/maps/?text=' + encodeURIComponent(d.address);
-            },
-            viewScheme: function (d) {
-                if (d.hasCoords) {
-                    return 'yandexmaps://maps.yandex.ru/?pt=' + d.lng + ',' + d.lat + '&z=17&l=map';
-                }
-                return 'yandexmaps://maps.yandex.ru/?text=' + encodeURIComponent(d.address);
-            },
             navigationUrl: function (d) {
                 if (d.hasCoords) {
                     return 'https://yandex.ru/maps/?rtext=~' + d.lat + ',' + d.lng + '&rtt=auto';
@@ -71,18 +48,6 @@ window.MapNavigator = (function () {
             name: '2GIS',
             icon: '📍',
             androidPackage: 'ru.dublgis.dgismobile',
-            viewUrl: function (d) {
-                if (d.hasCoords) {
-                    return 'https://2gis.ru/bishkek/geo/' + d.lng + ',' + d.lat + '?m=' + d.lng + ',' + d.lat + '%2F17';
-                }
-                return 'https://2gis.ru/bishkek/search/' + encodeURIComponent(d.address);
-            },
-            viewScheme: function (d) {
-                if (d.hasCoords) {
-                    return 'dgis://2gis.ru/bishkek/geo/' + d.lng + ',' + d.lat;
-                }
-                return 'dgis://2gis.ru/bishkek/search/' + encodeURIComponent(d.address);
-            },
             navigationUrl: function (d) {
                 if (d.hasCoords) {
                     return 'https://2gis.ru/bishkek/directions/points/%7C' + d.lat + '%2C' + d.lng;
@@ -101,18 +66,6 @@ window.MapNavigator = (function () {
             name: 'MAPS.ME',
             icon: '🧭',
             androidPackage: 'com.mapswithme.maps.pro',
-            viewUrl: function (d) {
-                if (d.hasCoords) {
-                    return 'https://maps.me/map?v=1&ll=' + d.lat + ',' + d.lng + '&n=' + encodeURIComponent(d.label || 'Location') + '&scale=17';
-                }
-                return 'https://maps.me/search?query=' + encodeURIComponent(d.address);
-            },
-            viewScheme: function (d) {
-                if (d.hasCoords) {
-                    return 'mapsme://map?v=1&ll=' + d.lat + ',' + d.lng + '&n=' + encodeURIComponent(d.label || 'Location') + '&scale=17';
-                }
-                return 'mapsme://search?query=' + encodeURIComponent(d.address);
-            },
             navigationUrl: function (d) {
                 if (d.hasCoords) {
                     return 'https://maps.me/route?sll=' + d.lat + ',' + d.lng + '&dll=' + d.lat + ',' + d.lng + '&type=vehicle';
@@ -131,18 +84,6 @@ window.MapNavigator = (function () {
             name: 'Waze',
             icon: '🚗',
             androidPackage: 'com.waze',
-            viewUrl: function (d) {
-                if (d.hasCoords) {
-                    return 'https://waze.com/ul?ll=' + d.lat + ',' + d.lng + '&navigate=no';
-                }
-                return 'https://waze.com/ul?q=' + encodeURIComponent(d.address) + '&navigate=no';
-            },
-            viewScheme: function (d) {
-                if (d.hasCoords) {
-                    return 'waze://?ll=' + d.lat + ',' + d.lng + '&navigate=no';
-                }
-                return 'waze://?q=' + encodeURIComponent(d.address) + '&navigate=no';
-            },
             navigationUrl: function (d) {
                 if (d.hasCoords) {
                     return 'https://waze.com/ul?ll=' + d.lat + ',' + d.lng + '&navigate=yes';
@@ -161,7 +102,6 @@ window.MapNavigator = (function () {
     var _sheetEl = null;
     var _noAppEl = null;
     var _pendingDest = null;
-    var _pendingMode = 'navigate';
 
     function isAndroid() {
         return /Android/i.test(navigator.userAgent);
@@ -189,19 +129,8 @@ window.MapNavigator = (function () {
             lng: lng,
             address: address,
             label: address || (hasCoords ? lat + ',' + lng : ''),
-            hasCoords: hasCoords,
-            mode: data.mode === 'view' ? 'view' : 'navigate'
+            hasCoords: hasCoords
         };
-    }
-
-    function providerWebUrl(provider, dest) {
-        if (dest.mode === 'view' && provider.viewUrl) return provider.viewUrl(dest);
-        return provider.navigationUrl(dest);
-    }
-
-    function providerAppScheme(provider, dest) {
-        if (dest.mode === 'view' && provider.viewScheme) return provider.viewScheme(dest);
-        return provider.iosScheme(dest);
     }
 
     function buildGeoUri(dest) {
@@ -213,8 +142,7 @@ window.MapNavigator = (function () {
     }
 
     function browserFallbackUrl(dest) {
-        var google = MAP_PROVIDERS[0];
-        return providerWebUrl(google, dest);
+        return MAP_PROVIDERS[0].navigationUrl(dest);
     }
 
     function buildAndroidChooserIntent(dest) {
@@ -223,10 +151,6 @@ window.MapNavigator = (function () {
         var geoPath = geo.replace(/^geo:/, '');
         return 'intent://geo:' + geoPath + '#Intent;scheme=geo;action=android.intent.action.VIEW;S.browser_fallback_url='
             + encodeURIComponent(fallback) + ';end';
-    }
-
-    function sheetTitle(mode) {
-        return mode === 'view' ? 'Картада көрүү' : 'Карта колдонмосун тандаңыз';
     }
 
     function ensureSheet() {
@@ -238,7 +162,7 @@ window.MapNavigator = (function () {
             '<div class="map-nav-backdrop" onclick="MapNavigator.closeSheet()"></div>' +
             '<div class="map-nav-panel">' +
             '  <div class="map-nav-head">' +
-            '    <span class="map-nav-title" id="mapNavTitle">Карта колдонмосун тандаңыз</span>' +
+            '    <span class="map-nav-title">Карта колдонмосун тандаңыз</span>' +
             '    <button type="button" class="map-nav-close" onclick="MapNavigator.closeSheet()" aria-label="Жабуу">✕</button>' +
             '  </div>' +
             '  <div class="map-nav-addr" id="mapNavAddr"></div>' +
@@ -256,7 +180,7 @@ window.MapNavigator = (function () {
             '    <span class="map-nav-title">Карта колдонмосу табылган жок</span>' +
             '    <button type="button" class="map-nav-close" onclick="MapNavigator.closeNoApp()" aria-label="Жабуу">✕</button>' +
             '  </div>' +
-            '  <p class="map-nav-msg" id="mapNavNoAppMsg">Телефондо карта колдонмосу орнотулган эмес.</p>' +
+            '  <p class="map-nav-msg">Телефондо карта колдонмосу орнотулган эмес. Браузерде маршрутту ача аласыз.</p>' +
             '  <button type="button" class="map-nav-btn map-nav-btn-primary" onclick="MapNavigator.openInBrowser()">🌐 Браузерде ачуу</button>' +
             '  <button type="button" class="map-nav-btn map-nav-btn-secondary" onclick="MapNavigator.closeNoApp()">Жабуу</button>' +
             '</div>';
@@ -292,11 +216,6 @@ window.MapNavigator = (function () {
         ensureSheet();
         injectStyles();
         _pendingDest = dest;
-        _pendingMode = dest.mode || 'navigate';
-
-        var titleEl = document.getElementById('mapNavTitle');
-        if (titleEl) titleEl.textContent = sheetTitle(_pendingMode);
-
         var addrEl = document.getElementById('mapNavAddr');
         var listEl = document.getElementById('mapNavList');
         if (addrEl) {
@@ -324,13 +243,6 @@ window.MapNavigator = (function () {
         ensureSheet();
         injectStyles();
         _pendingDest = dest;
-        _pendingMode = dest.mode || 'navigate';
-        var msgEl = document.getElementById('mapNavNoAppMsg');
-        if (msgEl) {
-            msgEl.textContent = _pendingMode === 'view'
-                ? 'Телефондо карта колдонмосу орнотулган эмес. Браузерде картаны ача аласыз.'
-                : 'Телефондо карта колдонмосу орнотулган эмес. Браузерде маршрутту ача аласыз.';
-        }
         _noAppEl.classList.remove('c-hidden');
     }
 
@@ -350,7 +262,6 @@ window.MapNavigator = (function () {
 
     function openAndroidChooser(dest) {
         _pendingDest = dest;
-        _pendingMode = dest.mode || 'navigate';
         var intent = buildAndroidChooserIntent(dest);
         var geo = buildGeoUri(dest);
         var openedAt = Date.now();
@@ -379,28 +290,28 @@ window.MapNavigator = (function () {
         if (!provider) return;
         closeSheet();
 
-        var webUrl = providerWebUrl(provider, dest);
-        var appScheme = providerAppScheme(provider, dest);
-
         if (isAndroid()) {
-            var intent = 'intent:' + webUrl.replace(/^https?:/, '') + '#Intent;scheme=https;package='
+            var url = provider.navigationUrl(dest);
+            var intent = 'intent:' + url.replace(/^https?:/, '') + '#Intent;scheme=https;package='
                 + provider.androidPackage + ';S.browser_fallback_url='
-                + encodeURIComponent(webUrl) + ';end';
+                + encodeURIComponent(url) + ';end';
             window.location.href = intent;
             return;
         }
 
-        if (isIOS() && appScheme) {
-            window.location.href = appScheme;
+        if (isIOS() && provider.iosScheme) {
+            var scheme = provider.iosScheme(dest);
+            var webFallback = provider.navigationUrl(dest);
+            window.location.href = scheme;
             setTimeout(function () {
                 if (document.visibilityState === 'visible') {
-                    openUrl(webUrl);
+                    openUrl(webFallback);
                 }
             }, 1500);
             return;
         }
 
-        openUrl(webUrl);
+        openUrl(provider.navigationUrl(dest));
     }
 
     function openInBrowser(dest) {
@@ -411,10 +322,8 @@ window.MapNavigator = (function () {
         openUrl(browserFallbackUrl(d));
     }
 
-    function openMap(dest, mode) {
-        dest.mode = mode || dest.mode || 'navigate';
-        _pendingMode = dest.mode;
-
+    function viewAddress(data) {
+        var dest = resolveDestination(data || {});
         if (!dest.hasCoords && !dest.address) {
             alert('Дарек көрсөтүлгөн эмес');
             return;
@@ -425,21 +334,12 @@ window.MapNavigator = (function () {
             return;
         }
 
+        if (isIOS()) {
+            showSheet(dest);
+            return;
+        }
+
         showSheet(dest);
-    }
-
-    /** Курьер: маршрут менен ачуу */
-    function viewAddress(data) {
-        var dest = resolveDestination(data || {});
-        dest.mode = 'navigate';
-        openMap(dest, 'navigate');
-    }
-
-    /** Кардар: жайгашкан жерди картада көрсөтүү (навигация ЭМЕС) */
-    function showLocation(data) {
-        var dest = resolveDestination(data || {});
-        dest.mode = 'view';
-        openMap(dest, 'view');
     }
 
     function viewAddressFromEl(el) {
@@ -455,7 +355,6 @@ window.MapNavigator = (function () {
         MAP_PROVIDERS: MAP_PROVIDERS,
         resolveDestination: resolveDestination,
         viewAddress: viewAddress,
-        showLocation: showLocation,
         viewAddressFromEl: viewAddressFromEl,
         openProvider: openProvider,
         openInBrowser: openInBrowser,

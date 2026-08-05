@@ -9,9 +9,9 @@
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="/family-customer.css">
     <link rel="stylesheet" th:href="${customerCss}" href="/aga-ini-customer.css">
-    <link rel="stylesheet" href="/jolchu-success.css?v=6">
+    <link rel="stylesheet" href="/jolchu-success.css?v=5">
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="">
-    <link rel="stylesheet" href="/address-picker.css?v=13">
+    <link rel="stylesheet" href="/address-picker.css?v=5">
     <script th:inline="javascript">
         window.RESTAURANT = {
             id: /*[[${restaurantId}]]*/ 3,
@@ -22,8 +22,8 @@
             bankRecipientName: /*[[${bankRecipientName}]]*/ 'Ратбек С.'
         };
     </script>
-    <script src="/restaurant-context.js?v=6"></script>
-    <script src="/restaurant-i18n.js?v=6"></script>
+    <script src="/restaurant-context.js?v=5"></script>
+    <script src="/restaurant-i18n.js?v=5"></script>
 </head>
 <body class="fam-body ai-fp-theme fp-checkout-body">
 
@@ -91,7 +91,7 @@
                 </div>
                 <div class="fp-field-body">
                     <div class="fp-field-label" id="addressLabel">Дарегиңиз</div>
-                    <div id="addressDisplay" class="fp-address-display ap-empty">Даректи жазуу</div>
+                    <div id="addressDisplay" class="fp-address-display ap-empty">Даректи тандаңыз</div>
                     <input type="hidden" id="address">
                     <input type="hidden" id="latitude">
                     <input type="hidden" id="longitude">
@@ -183,7 +183,7 @@
 <section id="successState" class="jc-success">
     <div class="jc-success-page">
         <div class="jc-header jc-anim">
-            <img class="jc-banner" src="/jolchu/header.png?v=6" alt="ДААМЖОЛ — тамак жеткирүү кызматы">
+            <img class="jc-banner" src="/jolchu/header.png?v=5" alt="ДААМЖОЛ — тамак жеткирүү кызматы">
         </div>
 
         <div class="jc-card jc-anim jc-anim-d1">
@@ -260,8 +260,7 @@
 </div>
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
-<script src="/geolocation.js?v=13"></script>
-<script src="/address-picker.js?v=13"></script>
+<script src="/address-picker.js?v=5"></script>
 <script>
     const DELIVERY = 0;
     let cart = [];
@@ -453,28 +452,14 @@
         }
     }
 
-    async function goToPayment() {
+    function goToPayment() {
         hideErrors();
         const customerName = document.getElementById('customerName').value.trim();
         const phone = document.getElementById('phone').value.trim();
+        const address = document.getElementById('address').value.trim();
 
         if (customerName.length < 2) { showError(CustomerI18n.t('errName')); return; }
         if (phone.replace(/\D/g, '').length < 9) { showError(CustomerI18n.t('errPhone')); return; }
-
-        const nextBtn = document.getElementById('nextButton');
-        if (nextBtn) nextBtn.disabled = true;
-
-        try {
-            if (window.AddressPicker) await AddressPicker.ensureLocation();
-        } catch (e) {
-            showError(e.message || CustomerI18n.t('errAddressPick'));
-            if (nextBtn) nextBtn.disabled = false;
-            return;
-        }
-
-        if (nextBtn) nextBtn.disabled = false;
-
-        const address = document.getElementById('address').value.trim();
         const lat = document.getElementById('latitude').value;
         if (address.length < 3 || !lat) { showError(CustomerI18n.t('errAddressPick')); return; }
 
@@ -520,27 +505,16 @@
 
     async function submitOrder() {
         hideErrors();
-        const btn = document.getElementById('submitButton');
-        btn.disabled = true;
-
-        try {
-            if (window.AddressPicker) await AddressPicker.ensureLocation();
-        } catch (e) {
-            showError(e.message || CustomerI18n.t('errAddressPick'), 'errorBoxPay');
-            btn.disabled = false;
-            return;
-        }
-
         const customerName = document.getElementById('customerName').value.trim();
         const phone = document.getElementById('phone').value.trim();
         const address = document.getElementById('address').value.trim();
         const comment = document.getElementById('comment').value.trim();
         const foodComment = getStoredFoodComment();
         const receiptInput = document.getElementById('receipt');
+        const btn = document.getElementById('submitButton');
 
         if (!receiptInput.files.length) {
             showError(CustomerI18n.t('errReceipt'), 'errorBoxPay');
-            btn.disabled = false;
             return;
         }
 
@@ -566,6 +540,7 @@
         formData.append('restaurantId', String(restaurantId));
         formData.append('receipt', receiptInput.files[0]);
 
+        btn.disabled = true;
         btn.querySelector('span').textContent = CustomerI18n.t('submitting');
 
         try {
@@ -590,7 +565,7 @@
     CustomerI18n.updatePillUi();
     applyReceiptLanguage();
     if (window.AddressPicker) {
-        AddressPicker.bindCheckout({ slug: restaurantSlug });
+        AddressPicker.bindCheckout({ slug: restaurantSlug, autoOpen: true });
     }
 </script>
 </body>
