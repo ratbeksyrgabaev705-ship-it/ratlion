@@ -10,7 +10,7 @@
     <link rel="stylesheet" href="/family-customer.css">
     <link rel="stylesheet" th:href="${customerCss}" href="/milan-customer.css">
     <link rel="stylesheet" href="/jolchu-success.css?v=6">
-    <link rel="stylesheet" href="/address-picker.css?v=9">
+    <link rel="stylesheet" href="/address-picker.css?v=10">
     <script th:inline="javascript">
         window.RESTAURANT = {
             id: /*[[${restaurantId}]]*/ 3,
@@ -258,9 +258,9 @@
     </button>
 </div>
 
-<script src="/geolocation.js?v=9"></script>
-<script src="/map-navigator.js?v=9"></script>
-<script src="/address-picker.js?v=9"></script>
+<script src="/geolocation.js?v=10"></script>
+<script src="/map-navigator.js?v=10"></script>
+<script src="/address-picker.js?v=10"></script>
 <script>
     const DELIVERY = 0;
     let cart = [];
@@ -589,7 +589,7 @@
     CustomerI18n.updatePillUi();
     applyReceiptLanguage();
     if (window.AddressPicker) {
-        AddressPicker.bindCheckout({ slug: restaurantSlug, autoLocate: true });
+        AddressPicker.bindCheckout({ slug: restaurantSlug });
     }
 </script>
 </body>
