@@ -139,13 +139,13 @@
         .c-action-row { display: flex; gap: 8px; margin-top: 14px; }
         .c-action-row .c-action { margin-top: 0; flex: 1; }
 
-        .c-map-links { display: flex; gap: 6px; margin-top: 10px; }
-        .c-map-links a {
-            flex: 1; text-align: center; padding: 8px 4px; border-radius: 8px;
-            font-size: 11px; font-weight: 700; text-decoration: none; color: #fff;
+        .c-view-address {
+            width: 100%; margin-top: 10px; padding: 12px; border: 1px solid var(--line);
+            border-radius: 10px; background: var(--surface2); color: var(--text);
+            font-size: 13px; font-weight: 700; cursor: pointer; font-family: inherit;
+            display: flex; align-items: center; justify-content: center; gap: 8px;
         }
-        .c-map-2gis { background: var(--green-d); }
-        .c-map-gmaps { background: #334155; }
+        .c-view-address:active { background: #252525; }
 
         /* Login */
         .c-login { background: var(--surface); border: 1px solid var(--line); border-radius: 16px; padding: 20px; }
@@ -304,6 +304,7 @@
 <div id="toastBox" class="c-hidden"></div>
 
 <script src="/push-notify.js"></script>
+<script src="/map-navigator.js"></script>
 <script>
     let currentCourier = null;
     let currentTab = 'active';
@@ -344,31 +345,6 @@
         return esc(parts.slice(0, 2).join(', ') + ' +' + (parts.length - 2));
     }
 
-    function normalizeAddress(address) {
-        const a = String(address || '').trim();
-        if (!a) return '';
-        if (/бишкек|bishkek/i.test(a)) return a;
-        return a + ', Бишкек';
-    }
-    function build2gisSearchUrl(address) {
-        return 'https://2gis.ru/bishkek/search/' + encodeURIComponent(normalizeAddress(address));
-    }
-    function get2gisHref(address) {
-        const q = encodeURIComponent(normalizeAddress(address));
-        const https = build2gisSearchUrl(address);
-        if (/Android/i.test(navigator.userAgent)) {
-            return 'intent://2gis.ru/bishkek/search/' + q
-                + '#Intent;scheme=https;package=ru.dublgis.dgismobile;S.browser_fallback_url='
-                + encodeURIComponent(https) + ';end';
-        }
-        return https;
-    }
-    function buildGoogleMapsUrl(address) {
-        return 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(normalizeAddress(address));
-    }
-    function buildDgisSchemeUrl(address) {
-        return 'dgis://2gis.ru/bishkek/search/' + encodeURIComponent(normalizeAddress(address));
-    }
     function isInAppBrowser() {
         return /Telegram|WhatsApp|Instagram|FBAN|FBAV/i.test(navigator.userAgent);
     }
@@ -377,28 +353,22 @@
         if (!box) return;
         if (isInAppBrowser()) {
             box.classList.remove('c-hidden');
-            box.innerHTML = '⚠️ Telegram ичинде 2GIS ачылбай калат — Chrome\'до ач.';
+            box.innerHTML = '⚠️ Telegram/WhatsApp ичинде карта ачылбай калат — Chrome\'до ачыңыз.';
         } else {
             box.classList.add('c-hidden');
         }
     }
-    window.copyAddress = function (address) {
-        if (!address) return;
-        const text = normalizeAddress(address);
-        if (navigator.clipboard && navigator.clipboard.writeText) {
-            navigator.clipboard.writeText(text).then(function () { alert('Дарек көчүрүлдү'); });
-        } else {
-            prompt('Дарек:', text);
-        }
-    };
 
-    function mapLinks(addr) {
-        if (!addr) return '';
-        return `<div class="c-map-links">
-            <a class="c-map-2gis" href="${get2gisHref(addr)}">🗺 2GIS</a>
-            <a class="c-map-gmaps" href="${buildGoogleMapsUrl(addr)}">Maps</a>
-            <a class="c-map-gmaps" href="#" onclick="copyAddress(${JSON.stringify(addr)});return false;">📋</a>
-        </div>`;
+    function viewAddressButton(o) {
+        const hasAddr = !!(o.address && String(o.address).trim());
+        const hasCoords = o.latitude != null && o.longitude != null
+            && !isNaN(parseFloat(o.latitude)) && !isNaN(parseFloat(o.longitude));
+        if (!hasAddr && !hasCoords) return '';
+        return `<button type="button" class="c-view-address"
+            data-address="${esc(o.address || '')}"
+            data-lat="${hasCoords ? esc(String(o.latitude)) : ''}"
+            data-lng="${hasCoords ? esc(String(o.longitude)) : ''}"
+            onclick="MapNavigator.viewAddressFromEl(this)">📍 Даректи көрүү</button>`;
     }
 
     function statusBadge(status, isOffer) {
@@ -434,7 +404,7 @@
                     ${o.comment ? `<div class="c-info-row"><span>🧭</span><span>${esc(o.comment)}</span></div>` : ''}
                     <div class="c-info-row"><span>👤</span><span>${esc(o.customerName)}</span></div>
                     ${o.phone ? `<div class="c-info-row"><span>📞</span><a href="tel:${esc(o.phone)}" style="color:var(--green);text-decoration:none">${esc(o.phone)}</a></div>` : ''}
-                    ${mapLinks(o.address)}
+                    ${viewAddressButton(o)}
                 </div>
                 <div class="c-card-right">
                     <div class="c-items-short">${shortItems(o.itemName)}</div>
@@ -471,7 +441,7 @@
                     ${o.comment ? `<div class="c-info-row"><span>🧭</span><span>${esc(o.comment)}</span></div>` : ''}
                     <div class="c-info-row"><span>👤</span><span>${esc(o.customerName)}</span></div>
                     ${o.phone ? `<div class="c-info-row"><span>📞</span><a href="tel:${esc(o.phone)}" style="color:var(--green);text-decoration:none">${esc(o.phone)}</a></div>` : ''}
-                    ${!isHistory ? mapLinks(o.address) : ''}
+                    ${viewAddressButton(o)}
                     ${isHistory ? `<div class="c-info-row"><span>🕐</span><span>${fmtTime(o.deliveredAt)}</span></div>` : ''}
                 </div>
                 <div class="c-card-right">

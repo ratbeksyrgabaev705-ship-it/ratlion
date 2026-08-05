@@ -273,6 +273,8 @@ public class CustomerOrderController {
             @RequestParam Double totalPrice,
             @RequestParam Double paymentAmount,
             @RequestParam(required = false) Long restaurantId,
+            @RequestParam(required = false) Double latitude,
+            @RequestParam(required = false) Double longitude,
             @RequestParam("receipt") MultipartFile receipt
     ) throws IOException {
 
@@ -280,6 +282,8 @@ public class CustomerOrderController {
         order.setCustomerName(customerName);
         order.setPhone(phone);
         order.setAddress(address);
+        order.setLatitude(latitude);
+        order.setLongitude(longitude);
         order.setComment(comment);
         order.setFoodComment(foodComment);
         order.setItemName(itemName);

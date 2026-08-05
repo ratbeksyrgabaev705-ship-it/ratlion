@@ -9,6 +9,8 @@
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" th:href="${customerCss}" href="/family-customer.css">
     <link rel="stylesheet" href="/jolchu-success.css?v=2">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="">
+    <link rel="stylesheet" href="/address-picker.css?v=1">
     <script th:inline="javascript">
         window.RESTAURANT = {
             id: /*[[${restaurantId}]]*/ 2,
@@ -82,13 +84,17 @@
                     <input id="phone" type="tel" placeholder="+996 700 123 456">
                 </div>
             </div>
-            <div class="fp-field-box fp-field-box-link">
+            <div class="fp-field-box fp-field-box-link" id="addressFieldBox">
                 <div class="fp-field-icon">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 21s7-4.5 7-10a7 7 0 10-14 0c0 5.5 7 10 7 10z"/><circle cx="12" cy="11" r="2.5"/></svg>
                 </div>
                 <div class="fp-field-body">
                     <div class="fp-field-label" id="addressLabel">Дарегиңиз</div>
-                    <input id="address" type="text" placeholder="Шаар, көчө, үй">
+                    <div id="addressDisplay" class="fp-address-display ap-empty">Картадан даректи тандаңыз</div>
+                    <input type="hidden" id="address">
+                    <input type="hidden" id="latitude">
+                    <input type="hidden" id="longitude">
+                    <button type="button" id="lastAddressChip" class="fp-last-chip hidden"></button>
                 </div>
                 <span class="fp-field-chevron">›</span>
             </div>
@@ -253,6 +259,8 @@
     </button>
 </div>
 
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
+<script src="/address-picker.js?v=1"></script>
 <script>
     const DELIVERY = 0;
     let cart = [];
@@ -281,7 +289,11 @@
         document.getElementById('customerName').placeholder = CustomerI18n.t('namePlaceholder');
         document.getElementById('phoneLabel').textContent = CustomerI18n.t('phone');
         document.getElementById('addressLabel').textContent = CustomerI18n.t('address');
-        document.getElementById('address').placeholder = CustomerI18n.t('addressPlaceholder');
+        const addrDisplay = document.getElementById('addressDisplay');
+        if (addrDisplay && !document.getElementById('address').value) {
+            addrDisplay.textContent = CustomerI18n.t('selectOnMap');
+        }
+        if (window.AddressPicker) AddressPicker.refreshI18n();
         document.getElementById('commentLabel').textContent = CustomerI18n.t('comment');
         document.getElementById('comment').placeholder = CustomerI18n.t('commentPlaceholder');
         document.getElementById('orderListTitle').textContent = CustomerI18n.t('orderList');
@@ -350,13 +362,25 @@
         localStorage.setItem(checkoutInfoKey('name'), document.getElementById('customerName').value.trim());
         localStorage.setItem(checkoutInfoKey('phone'), document.getElementById('phone').value.trim());
         localStorage.setItem(checkoutInfoKey('address'), document.getElementById('address').value.trim());
+        const lat = document.getElementById('latitude').value;
+        const lng = document.getElementById('longitude').value;
+        if (lat) localStorage.setItem(checkoutInfoKey('latitude'), lat);
+        if (lng) localStorage.setItem(checkoutInfoKey('longitude'), lng);
         saveStoredDeliveryComment(document.getElementById('comment').value.trim());
     }
 
     function loadCustomerFields() {
         document.getElementById('customerName').value = localStorage.getItem(checkoutInfoKey('name')) || '';
         document.getElementById('phone').value = localStorage.getItem(checkoutInfoKey('phone')) || '';
-        document.getElementById('address').value = localStorage.getItem(checkoutInfoKey('address')) || '';
+        const addr = localStorage.getItem(checkoutInfoKey('address')) || '';
+        document.getElementById('address').value = addr;
+        document.getElementById('latitude').value = localStorage.getItem(checkoutInfoKey('latitude')) || '';
+        document.getElementById('longitude').value = localStorage.getItem(checkoutInfoKey('longitude')) || '';
+        const addrDisplay = document.getElementById('addressDisplay');
+        if (addrDisplay) {
+            addrDisplay.textContent = addr || CustomerI18n.t('selectOnMap');
+            addrDisplay.classList.toggle('ap-empty', !addr);
+        }
         document.getElementById('comment').value = getStoredDeliveryComment();
     }
 
@@ -436,7 +460,8 @@
 
         if (customerName.length < 2) { showError(CustomerI18n.t('errName')); return; }
         if (phone.replace(/\D/g, '').length < 9) { showError(CustomerI18n.t('errPhone')); return; }
-        if (address.length < 3) { showError(CustomerI18n.t('errAddress')); return; }
+        const lat = document.getElementById('latitude').value;
+        if (address.length < 3 || !lat) { showError(CustomerI18n.t('errAddressPick')); return; }
 
         saveCustomerFields();
         document.getElementById('stepInfo').classList.add('hidden');
@@ -509,6 +534,10 @@
         formData.append('phone', phone);
         formData.append('address', address);
         formData.append('comment', comment);
+        const latVal = document.getElementById('latitude').value;
+        const lngVal = document.getElementById('longitude').value;
+        if (latVal) formData.append('latitude', latVal);
+        if (lngVal) formData.append('longitude', lngVal);
         if (foodComment) formData.append('foodComment', foodComment);
         formData.append('itemName', itemName);
         formData.append('quantity', String(totalQuantity));
@@ -526,7 +555,7 @@
             const saved = await res.json();
             localStorage.removeItem(cartStorageKey());
             clearStoredOrderComments();
-            ['name', 'phone', 'address'].forEach(f => localStorage.removeItem(checkoutInfoKey(f)));
+            ['name', 'phone', 'address', 'latitude', 'longitude'].forEach(f => localStorage.removeItem(checkoutInfoKey(f)));
             showJolchuSuccess();
         } catch (e) {
             showError(e.message || CustomerI18n.t('errGeneric'), 'errorBoxPay');
@@ -541,6 +570,9 @@
     CustomerI18n.onLanguageChange(applyReceiptLanguage);
     CustomerI18n.updatePillUi();
     applyReceiptLanguage();
+    if (window.AddressPicker) {
+        AddressPicker.bindCheckout({ slug: restaurantSlug, autoOpen: true });
+    }
 </script>
 </body>
 </html>
