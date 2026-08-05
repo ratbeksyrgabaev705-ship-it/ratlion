@@ -1,43 +1,46 @@
 /**
- * AddressPicker — Google Maps стилinde минималисттик дарек тандоо.
+ * AddressPicker — Google / Yandex Maps деңгээлinde дарек тандоо.
+ * GPS · издөө · карта синхрондуу.
  */
 window.AddressPicker = (function () {
     'use strict';
 
     var DEFAULT_CENTER = [42.8746, 74.5698];
-    var DEFAULT_ZOOM = 17;
+    var DEFAULT_ZOOM = 16;
     var GPS_ZOOM = 18;
-    var SHEET_COLLAPSED = 132;
 
     var TEXT = {
         ky: {
+            searchPlaceholder: 'Даректи жазыңыз...',
             myLocation: 'Менин жайгашкан жерим',
             confirmAddress: 'Бул даректи тандоо',
             selectOnMapCheckout: 'Даректи тандаңыз',
-            errAddressPick: 'Алгач дарегиңизди картадан тандаңыз',
-            gpsOffHint: 'GPS күйгүзүңүз',
+            errAddressPick: 'Алгач дарегиңизди тандаңыз',
+            gpsOff: 'GPS күйгүзүңүз',
             gpsDenied: 'Геолокацияга уруксат бериңиз'
         },
         ru: {
+            searchPlaceholder: 'Введите адрес...',
             myLocation: 'Моё местоположение',
             confirmAddress: 'Выбрать этот адрес',
             selectOnMapCheckout: 'Выберите адрес',
-            errAddressPick: 'Сначала выберите адрес на карте',
-            gpsOffHint: 'Включите GPS',
+            errAddressPick: 'Сначала выберите адрес',
+            gpsOff: 'Включите GPS',
             gpsDenied: 'Разрешите геолокацию'
         }
     };
 
     var _map = null;
     var _overlay = null;
-    var _debounceTimer = null;
-    var _geocodeRequestId = 0;
+    var _debounceGeo = null;
+    var _debounceSearch = null;
+    var _geocodeReq = 0;
+    var _searchReq = 0;
+    var _skipGeocode = false;
+    var _searchFocused = false;
     var _state = { lat: null, lng: null, address: '' };
     var _onConfirm = null;
     var _slug = '';
-    var _sheetExpanded = false;
-    var _dragStartY = 0;
-    var _dragStartH = 0;
 
     function lang() {
         if (window.CustomerI18n && CustomerI18n.getLang) {
@@ -51,8 +54,8 @@ window.AddressPicker = (function () {
         return (TEXT[L] && TEXT[L][key]) || TEXT.ky[key] || key;
     }
 
-    function storageKey(field) {
-        return 'checkout:' + (_slug || 'default') + ':' + field;
+    function storageKey(f) {
+        return 'checkout:' + (_slug || 'default') + ':' + f;
     }
 
     function saveLastAddress(data) {
@@ -64,6 +67,10 @@ window.AddressPicker = (function () {
         }));
     }
 
+    function esc(s) {
+        return String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    }
+
     function ensureOverlay() {
         if (_overlay) return;
 
@@ -71,111 +78,188 @@ window.AddressPicker = (function () {
         _overlay.id = 'addressPickerOverlay';
         _overlay.className = 'ap-overlay';
         _overlay.innerHTML =
-            '<div class="ap-map-area">' +
+            '<header class="ap-header">' +
             '  <button type="button" class="ap-back" onclick="AddressPicker.close()" aria-label="Артка">' +
             '    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M15 18l-6-6 6-6"/></svg>' +
             '  </button>' +
+            '  <div class="ap-search-wrap">' +
+            '    <svg class="ap-search-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#9aa0a6" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3-3"/></svg>' +
+            '    <input type="search" id="apSearchInput" class="ap-search-input" autocomplete="off" enterkeyhint="search">' +
+            '    <div id="apSuggestions" class="ap-suggestions hidden"></div>' +
+            '  </div>' +
+            '</header>' +
+            '<div class="ap-map-area">' +
             '  <div id="apMap" class="ap-map"></div>' +
-            '  <div class="ap-pin-layer">' +
+            '  <div class="ap-pin-layer" id="apPinLayer">' +
             '    <div class="ap-pin-shadow"></div>' +
-            '    <div class="ap-pin" id="apPin">' +
-            '      <svg viewBox="0 0 36 48" fill="none"><path d="M18 0C8.06 0 0 8.06 0 18c0 13.5 18 30 18 30s18-16.5 18-30C36 8.06 27.94 0 18 0z" fill="#EA4335"/><circle cx="18" cy="18" r="7" fill="#fff"/><circle cx="18" cy="18" r="3.5" fill="#EA4335"/></svg>' +
+            '    <div class="ap-pin">' +
+            '      <svg viewBox="0 0 40 52" fill="none"><path d="M20 0C9.5 0 1 8.5 1 19c0 14 19 33 19 33s19-19 19-33C39 8.5 30.5 0 20 0z" fill="#22c55e" stroke="#fff" stroke-width="2"/><circle cx="20" cy="19" r="7" fill="#fff"/></svg>' +
             '    </div>' +
             '  </div>' +
-            '  <button type="button" class="ap-locate" id="apLocateBtn" onclick="AddressPicker.locateMe()">' +
-            '    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#4285F4" stroke-width="2.2"><circle cx="12" cy="12" r="3" fill="#4285F4"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/></svg>' +
-            '    <span id="apLocateText"></span>' +
-            '  </button>' +
-            '  <div class="ap-zoom">' +
-            '    <button type="button" onclick="AddressPicker.zoomIn()">+</button>' +
-            '    <button type="button" onclick="AddressPicker.zoomOut()">−</button>' +
+            '  <div class="ap-controls">' +
+            '    <button type="button" class="ap-ctrl ap-locate" id="apLocateBtn" onclick="AddressPicker.locateMe()">' +
+            '      <span class="ap-locate-icon">◎</span>' +
+            '      <span id="apLocateText"></span>' +
+            '    </button>' +
+            '    <div class="ap-zoom">' +
+            '      <button type="button" onclick="AddressPicker.zoomIn()">+</button>' +
+            '      <button type="button" onclick="AddressPicker.zoomOut()">−</button>' +
+            '    </div>' +
             '  </div>' +
-            '  <div id="apGpsToast" class="ap-gps-toast hidden"></div>' +
+            '  <div id="apGpsToast" class="ap-toast hidden"></div>' +
             '</div>' +
             '<div class="ap-sheet" id="apSheet">' +
             '  <div class="ap-sheet-grab" id="apSheetGrab"></div>' +
-            '  <div class="ap-sheet-body">' +
-            '    <div class="ap-addr" id="apAddressText"></div>' +
-            '    <button type="button" class="ap-confirm" id="apConfirmBtn" onclick="AddressPicker.confirm()" disabled></button>' +
-            '  </div>' +
+            '  <div class="ap-sheet-addr" id="apAddressText">&nbsp;</div>' +
+            '  <button type="button" class="ap-confirm" id="apConfirmBtn" onclick="AddressPicker.confirm()" disabled></button>' +
             '</div>';
 
         document.body.appendChild(_overlay);
-        initSheetDrag();
+        bindSearch();
+        bindSheetDrag();
     }
 
     function applyLabels() {
+        var inp = document.getElementById('apSearchInput');
+        if (inp) inp.placeholder = t('searchPlaceholder');
+        var loc = document.getElementById('apLocateText');
+        if (loc) loc.textContent = t('myLocation');
         var btn = document.getElementById('apConfirmBtn');
         if (btn) btn.textContent = t('confirmAddress');
-        var locText = document.getElementById('apLocateText');
-        if (locText) locText.textContent = t('myLocation');
     }
 
-    function initSheetDrag() {
-        var grab = document.getElementById('apSheetGrab');
-        var sheet = document.getElementById('apSheet');
-        if (!grab || !sheet) return;
+    function bindSearch() {
+        var input = document.getElementById('apSearchInput');
+        if (!input) return;
 
-        function onStart(clientY) {
-            _dragStartY = clientY;
-            _dragStartH = sheet.offsetHeight;
-            sheet.classList.add('ap-sheet-dragging');
-        }
-
-        function onMove(clientY) {
-            var dy = _dragStartY - clientY;
-            var h = Math.min(window.innerHeight * 0.45, Math.max(SHEET_COLLAPSED, _dragStartH + dy));
-            sheet.style.height = h + 'px';
-        }
-
-        function onEnd() {
-            var sheetEl = document.getElementById('apSheet');
-            if (!sheetEl) return;
-            sheetEl.classList.remove('ap-sheet-dragging');
-            var h = sheetEl.offsetHeight;
-            _sheetExpanded = h > SHEET_COLLAPSED + 40;
-            sheetEl.style.height = '';
-            sheetEl.classList.toggle('ap-sheet-expanded', _sheetExpanded);
-        }
-
-        grab.addEventListener('touchstart', function (e) {
-            onStart(e.touches[0].clientY);
-        }, { passive: true });
-        grab.addEventListener('touchmove', function (e) {
-            onMove(e.touches[0].clientY);
-        }, { passive: true });
-        grab.addEventListener('touchend', onEnd);
-
-        grab.addEventListener('mousedown', function (e) {
-            onStart(e.clientY);
-            function mm(ev) { onMove(ev.clientY); }
-            function mu() {
-                onEnd();
-                document.removeEventListener('mousemove', mm);
-                document.removeEventListener('mouseup', mu);
+        input.addEventListener('focus', function () {
+            _searchFocused = true;
+            if (input.value.trim().length >= 2) runSearch(input.value.trim());
+        });
+        input.addEventListener('blur', function () {
+            setTimeout(function () {
+                _searchFocused = false;
+                hideSuggestions();
+            }, 180);
+        });
+        input.addEventListener('input', function () {
+            var q = input.value.trim();
+            clearTimeout(_debounceSearch);
+            if (q.length < 2) {
+                hideSuggestions();
+                return;
             }
-            document.addEventListener('mousemove', mm);
-            document.addEventListener('mouseup', mu);
+            _debounceSearch = setTimeout(function () { runSearch(q); }, 320);
         });
+    }
 
-        grab.addEventListener('click', function () {
-            _sheetExpanded = !_sheetExpanded;
-            sheet.classList.toggle('ap-sheet-expanded', _sheetExpanded);
+    function runSearch(q) {
+        var req = ++_searchReq;
+        fetch('/api/geocode/search?q=' + encodeURIComponent(q) + '&lang=ru')
+            .then(function (r) { return r.json(); })
+            .then(function (list) {
+                if (req !== _searchReq || !_searchFocused) return;
+                renderSuggestions(list || []);
+            })
+            .catch(function () { hideSuggestions(); });
+    }
+
+    function renderSuggestions(list) {
+        var box = document.getElementById('apSuggestions');
+        if (!box) return;
+        if (!list.length) {
+            box.classList.add('hidden');
+            box.innerHTML = '';
+            return;
+        }
+        box.innerHTML = list.map(function (item, i) {
+            return '<button type="button" class="ap-sug-item" data-i="' + i + '">' +
+                '<span class="ap-sug-pin">📍</span>' +
+                '<span class="ap-sug-text">' + esc(item.label || item.address) + '</span></button>';
+        }).join('');
+        box.classList.remove('hidden');
+        box._items = list;
+        box.querySelectorAll('.ap-sug-item').forEach(function (el) {
+            el.addEventListener('mousedown', function (e) {
+                e.preventDefault();
+                var idx = parseInt(el.getAttribute('data-i'), 10);
+                selectSearchResult(box._items[idx]);
+            });
         });
+    }
+
+    function hideSuggestions() {
+        var box = document.getElementById('apSuggestions');
+        if (box) {
+            box.classList.add('hidden');
+            box.innerHTML = '';
+        }
+    }
+
+    function selectSearchResult(item) {
+        if (!item) return;
+        hideSuggestions();
+        _searchFocused = false;
+        var input = document.getElementById('apSearchInput');
+        if (input) {
+            input.value = item.address || item.label || '';
+            input.blur();
+        }
+        setLocation(parseFloat(item.lat), parseFloat(item.lng), item.address || item.label, {
+            zoom: GPS_ZOOM,
+            skipGeocode: true
+        });
+    }
+
+    /** Бардыk каналдар үчүн бир синхрон точка */
+    function setLocation(lat, lng, address, opts) {
+        opts = opts || {};
+        _state.lat = lat;
+        _state.lng = lng;
+        if (address) _state.address = address;
+
+        updateSheet(address || _state.address);
+        setConfirmEnabled(!!(address || _state.address));
+
+        if (!_searchFocused) {
+            var input = document.getElementById('apSearchInput');
+            if (input && address) input.value = address;
+        }
+
+        if (_map) {
+            _skipGeocode = !!opts.skipGeocode;
+            _map.setView([lat, lng], opts.zoom || _map.getZoom() || GPS_ZOOM, { animate: true });
+        }
+
+        if (!opts.skipGeocode) {
+            reverseGeocode(lat, lng);
+        }
+    }
+
+    function updateSheet(text) {
+        var el = document.getElementById('apAddressText');
+        if (!el) return;
+        el.textContent = text || '\u00a0';
+        el.classList.toggle('ap-empty', !text);
+    }
+
+    function setConfirmEnabled(on) {
+        var btn = document.getElementById('apConfirmBtn');
+        if (btn) btn.disabled = !on;
     }
 
     function initMap(center, zoom) {
         if (typeof L === 'undefined') return;
-        var mapEl = document.getElementById('apMap');
-        if (!mapEl) return;
+        var el = document.getElementById('apMap');
+        if (!el) return;
 
         if (_map) {
-            _map.setView(center, zoom || DEFAULT_ZOOM, { animate: true });
+            _map.setView(center, zoom || DEFAULT_ZOOM, { animate: false });
             setTimeout(function () { _map.invalidateSize(); }, 80);
             return;
         }
 
-        _map = L.map(mapEl, {
+        _map = L.map(el, {
             center: center,
             zoom: zoom || DEFAULT_ZOOM,
             zoomControl: false,
@@ -188,28 +272,32 @@ window.AddressPicker = (function () {
         }).addTo(_map);
 
         _map.on('movestart', function () {
-            var layer = document.querySelector('.ap-pin-layer');
-            if (layer) layer.classList.add('ap-pin-lift');
-            var el = document.getElementById('apAddressText');
-            if (el) el.classList.add('ap-addr-dim');
+            var pin = document.getElementById('apPinLayer');
+            if (pin) pin.classList.add('ap-lift');
+            var sheet = document.getElementById('apAddressText');
+            if (sheet) sheet.classList.add('ap-dim');
         });
 
         _map.on('moveend', function () {
-            var layer = document.querySelector('.ap-pin-layer');
-            if (layer) layer.classList.remove('ap-pin-lift');
-            onMapMoved();
+            var pin = document.getElementById('apPinLayer');
+            if (pin) pin.classList.remove('ap-lift');
+            onMapStop();
         });
 
         setTimeout(function () { _map.invalidateSize(); }, 100);
     }
 
-    function zoomIn() { if (_map) _map.zoomIn(); }
-    function zoomOut() { if (_map) _map.zoomOut(); }
-
-    function onMapMoved() {
+    function onMapStop() {
         if (!_map) return;
-        clearTimeout(_debounceTimer);
-        _debounceTimer = setTimeout(function () {
+        if (_skipGeocode) {
+            _skipGeocode = false;
+            var sheet = document.getElementById('apAddressText');
+            if (sheet) sheet.classList.remove('ap-dim');
+            return;
+        }
+
+        clearTimeout(_debounceGeo);
+        _debounceGeo = setTimeout(function () {
             var c = _map.getCenter();
             _state.lat = c.lat;
             _state.lng = c.lng;
@@ -218,64 +306,76 @@ window.AddressPicker = (function () {
     }
 
     function reverseGeocode(lat, lng) {
-        var reqId = ++_geocodeRequestId;
-        document.getElementById('apConfirmBtn').disabled = true;
+        var req = ++_geocodeReq;
+        setConfirmEnabled(false);
 
         fetch('/api/geocode/reverse?lat=' + lat + '&lon=' + lng + '&lang=ru')
             .then(function (r) { return r.json(); })
             .then(function (data) {
-                if (reqId !== _geocodeRequestId) return;
+                if (req !== _geocodeReq) return;
                 _state.address = data.address || data.fullAddress || '';
-                updateAddressDisplay(_state.address);
-                document.getElementById('apConfirmBtn').disabled = !_state.address;
+                _state.lat = lat;
+                _state.lng = lng;
+                updateSheet(_state.address);
+                setConfirmEnabled(!!_state.address);
+                if (!_searchFocused) {
+                    var input = document.getElementById('apSearchInput');
+                    if (input) input.value = _state.address;
+                }
+                var sheet = document.getElementById('apAddressText');
+                if (sheet) sheet.classList.remove('ap-dim');
             })
             .catch(function () {
-                if (reqId !== _geocodeRequestId) return;
+                if (req !== _geocodeReq) return;
                 _state.address = lat.toFixed(5) + ', ' + lng.toFixed(5);
-                updateAddressDisplay(_state.address);
-                document.getElementById('apConfirmBtn').disabled = false;
+                updateSheet(_state.address);
+                setConfirmEnabled(true);
             });
     }
 
-    function updateAddressDisplay(text) {
-        var el = document.getElementById('apAddressText');
+    function showToast(msg) {
+        var el = document.getElementById('apGpsToast');
         if (!el) return;
-        el.textContent = text || '\u00a0';
-        el.classList.remove('ap-addr-dim');
-        el.classList.toggle('ap-addr-empty', !text);
-    }
-
-    function showGpsToast(msg) {
-        var t = document.getElementById('apGpsToast');
-        if (!t) return;
-        t.textContent = msg;
-        t.classList.remove('hidden');
-        clearTimeout(showGpsToast._tm);
-        showGpsToast._tm = setTimeout(function () { t.classList.add('hidden'); }, 3500);
+        el.textContent = msg;
+        el.classList.remove('hidden');
+        clearTimeout(showToast._t);
+        showToast._t = setTimeout(function () { el.classList.add('hidden'); }, 3200);
     }
 
     function locateMe() {
         if (!navigator.geolocation) {
-            showGpsToast(t('gpsOffHint'));
+            showToast(t('gpsOff'));
             return;
         }
         var btn = document.getElementById('apLocateBtn');
-        if (btn) btn.classList.add('ap-loading');
+        if (btn) btn.classList.add('ap-busy');
 
         navigator.geolocation.getCurrentPosition(
             function (pos) {
-                if (btn) btn.classList.remove('ap-loading');
-                if (_map) {
-                    _map.setView([pos.coords.latitude, pos.coords.longitude], GPS_ZOOM, { animate: true });
-                }
+                if (btn) btn.classList.remove('ap-busy');
+                setLocation(pos.coords.latitude, pos.coords.longitude, null, { zoom: GPS_ZOOM });
             },
             function (err) {
-                if (btn) btn.classList.remove('ap-loading');
-                showGpsToast(err.code === 1 ? t('gpsDenied') : t('gpsOffHint'));
+                if (btn) btn.classList.remove('ap-busy');
+                showToast(err.code === 1 ? t('gpsDenied') : t('gpsOff'));
             },
-            { enableHighAccuracy: true, timeout: 12000, maximumAge: 0 }
+            { enableHighAccuracy: true, timeout: 14000, maximumAge: 0 }
         );
     }
+
+    function bindSheetDrag() {
+        var grab = document.getElementById('apSheetGrab');
+        var sheet = document.getElementById('apSheet');
+        if (!grab || !sheet) return;
+        var expanded = false;
+        grab.addEventListener('click', function () {
+            expanded = !expanded;
+            sheet.classList.toggle('ap-expanded', expanded);
+        });
+    }
+
+    function zoomIn() { if (_map) _map.zoomIn(); }
+    function zoomOut() { if (_map) _map.zoomOut(); }
 
     function confirm() {
         if (!_state.address || _state.lat == null) return;
@@ -293,56 +393,58 @@ window.AddressPicker = (function () {
         options = options || {};
         _slug = options.slug || window.restaurantSlug || (window.RESTAURANT && window.RESTAURANT.slug) || 'default';
         _onConfirm = options.onConfirm || null;
-        _sheetExpanded = false;
+        _searchFocused = false;
+        _skipGeocode = false;
 
         ensureOverlay();
         applyLabels();
+        hideSuggestions();
+
+        var input = document.getElementById('apSearchInput');
+        if (input) input.value = options.address || '';
 
         var sheet = document.getElementById('apSheet');
-        if (sheet) {
-            sheet.classList.remove('ap-sheet-expanded');
-            sheet.style.height = '';
-        }
+        if (sheet) sheet.classList.remove('ap-expanded');
 
         _overlay.classList.add('ap-open');
         document.body.style.overflow = 'hidden';
 
-        var startCenter = DEFAULT_CENTER;
-        var startZoom = DEFAULT_ZOOM;
+        var center = DEFAULT_CENTER;
+        var zoom = DEFAULT_ZOOM;
 
         if (options.latitude != null && options.longitude != null) {
-            startCenter = [options.latitude, options.longitude];
-            startZoom = GPS_ZOOM;
+            center = [options.latitude, options.longitude];
+            zoom = GPS_ZOOM;
             _state.lat = options.latitude;
             _state.lng = options.longitude;
             _state.address = options.address || '';
-            updateAddressDisplay(_state.address);
-            document.getElementById('apConfirmBtn').disabled = !_state.address;
+            updateSheet(_state.address);
+            setConfirmEnabled(!!_state.address);
         } else {
-            _state.address = '';
-            updateAddressDisplay('');
-            document.getElementById('apConfirmBtn').disabled = true;
+            _state = { lat: null, lng: null, address: '' };
+            updateSheet('');
+            setConfirmEnabled(false);
         }
 
         setTimeout(function () {
-            initMap(startCenter, startZoom);
-            if (options.latitude == null) {
+            initMap(center, zoom);
+            if (options.latitude != null) {
+                if (!_state.address) reverseGeocode(options.latitude, options.longitude);
+            } else {
                 locateMe();
-            } else if (!_state.address) {
-                onMapMoved();
             }
-        }, 50);
+        }, 60);
     }
 
     function close() {
         if (_overlay) _overlay.classList.remove('ap-open');
         document.body.style.overflow = '';
+        hideSuggestions();
     }
 
     function bindCheckout(options) {
         options = options || {};
         var slug = options.slug || window.restaurantSlug || (window.RESTAURANT && window.RESTAURANT.slug) || 'default';
-        _slug = slug;
 
         var fieldBox = document.getElementById('addressFieldBox');
         var display = document.getElementById('addressDisplay');
@@ -351,8 +453,9 @@ window.AddressPicker = (function () {
         var addressInput = document.getElementById('address');
 
         function updateDisplay(text) {
+            var label = text || t('selectOnMapCheckout');
             if (display) {
-                display.textContent = text || t('selectOnMapCheckout');
+                display.textContent = label;
                 display.classList.toggle('ap-empty', !text);
             }
             if (addressInput) addressInput.value = text || '';
@@ -364,10 +467,10 @@ window.AddressPicker = (function () {
                 address: addressInput ? addressInput.value : '',
                 latitude: latInput && latInput.value ? parseFloat(latInput.value) : null,
                 longitude: lngInput && lngInput.value ? parseFloat(lngInput.value) : null,
-                onConfirm: function (result) {
-                    updateDisplay(result.address);
-                    if (latInput) latInput.value = result.latitude;
-                    if (lngInput) lngInput.value = result.longitude;
+                onConfirm: function (r) {
+                    updateDisplay(r.address);
+                    if (latInput) latInput.value = r.latitude;
+                    if (lngInput) lngInput.value = r.longitude;
                 }
             });
         }
@@ -376,7 +479,7 @@ window.AddressPicker = (function () {
         if (display) display.addEventListener('click', openPicker);
 
         if (options.autoOpen && (!latInput || !latInput.value)) {
-            setTimeout(openPicker, 300);
+            setTimeout(openPicker, 280);
         }
 
         return { open: openPicker, updateDisplay: updateDisplay };
