@@ -1,7 +1,6 @@
 package kg.restaurant.order.controller;
 
 import kg.restaurant.order.model.CustomerOrder;
-import kg.restaurant.order.model.Courier;
 import kg.restaurant.order.model.Restaurant;
 import kg.restaurant.order.repository.CourierNotificationRepository;
 import kg.restaurant.order.repository.CourierRepository;
@@ -9,6 +8,7 @@ import kg.restaurant.order.repository.CustomerOrderRepository;
 import kg.restaurant.order.repository.RestaurantRepository;
 import kg.restaurant.order.service.CourierNotificationService;
 import kg.restaurant.order.service.CourierOfferRotationService;
+import kg.restaurant.order.service.OrderVerificationService;
 import kg.restaurant.order.service.ReceiptStorageService;
 import kg.restaurant.order.service.TelegramService;
 import org.slf4j.Logger;
@@ -51,6 +51,7 @@ public class CustomerOrderController {
     private final TelegramService telegramService;
     private final CourierNotificationService courierNotificationService;
     private final CourierOfferRotationService courierOfferRotationService;
+    private final OrderVerificationService orderVerificationService;
 
     public CustomerOrderController(
             CustomerOrderRepository repo,
@@ -60,7 +61,8 @@ public class CustomerOrderController {
             ReceiptStorageService receiptStorageService,
             TelegramService telegramService,
             CourierNotificationService courierNotificationService,
-            CourierOfferRotationService courierOfferRotationService
+            CourierOfferRotationService courierOfferRotationService,
+            OrderVerificationService orderVerificationService
     ) {
         this.repo = repo;
         this.courierRepository = courierRepository;
@@ -70,6 +72,7 @@ public class CustomerOrderController {
         this.telegramService = telegramService;
         this.courierNotificationService = courierNotificationService;
         this.courierOfferRotationService = courierOfferRotationService;
+        this.orderVerificationService = orderVerificationService;
     }
 
     @GetMapping
@@ -371,34 +374,17 @@ public class CustomerOrderController {
             @PathVariable Long id,
             @RequestParam(required = false) String operator
     ) {
-        CustomerOrder order = repo.findById(id).orElse(null);
-        if (order == null) {
+        CustomerOrder existing = repo.findById(id).orElse(null);
+        if (existing == null) {
             return ResponseEntity.notFound().build();
         }
-
-        if (!"NEW".equals(order.getOrderStatus())) {
-            log.warn("Accept rejected for order {} — status is {}", id, order.getOrderStatus());
+        if (!"NEW".equals(existing.getOrderStatus())) {
+            log.warn("Accept rejected for order {} — status is {}", id, existing.getOrderStatus());
             return ResponseEntity.badRequest().build();
         }
-
-        if (order.getDisplayOrderNumber() == null || order.getDisplayOrderNumber().isBlank()) {
-            assignDisplayOrderNumber(order);
-        }
-
-        order.setOrderStatus("ACCEPTED");
-        order.setPaymentStatus("PAID");
-        order.setAcceptedAt(LocalDateTime.now(BISHKEK));
-        if (operator != null && !operator.isBlank()) {
-            order.setOperatorName(operator.trim());
-        }
-
-        CustomerOrder saved = repo.save(order);
-        try {
-            notifyOrderAccepted(saved);
-        } catch (Exception e) {
-            log.error("Accept ok for order {}, notify failed: {}", id, e.getMessage(), e);
-        }
-        return ResponseEntity.ok(saved);
+        return orderVerificationService.acceptOrder(id, operator)
+                .map(ResponseEntity::ok)
+                .orElseGet(() -> ResponseEntity.notFound().build());
     }
 
     @PutMapping("/{id}/cook")
@@ -454,15 +440,16 @@ public class CustomerOrderController {
             @PathVariable Long id,
             @RequestParam(required = false) String operator
     ) {
-        CustomerOrder order = repo.findById(id).orElse(null);
-        if (order == null) {
+        CustomerOrder existing = repo.findById(id).orElse(null);
+        if (existing == null) {
             return ResponseEntity.notFound().build();
         }
-        order.setOrderStatus("CANCELLED");
-        if (operator != null && !operator.isBlank()) {
-            order.setOperatorName(operator.trim());
+        if (!"NEW".equals(existing.getOrderStatus())) {
+            return ResponseEntity.badRequest().build();
         }
-        return ResponseEntity.ok(repo.save(order));
+        return orderVerificationService.rejectOrder(id, operator)
+                .map(ResponseEntity::ok)
+                .orElseGet(() -> ResponseEntity.notFound().build());
     }
 
     private LocalDateTime parseDateStart(String from) {
@@ -523,82 +510,9 @@ public class CustomerOrderController {
                 .orElse("Ресторан");
     }
 
-    /** Кардар заказ бергенде — гана менеджерге (чек текшерүү) */
+    /** Кардар заказ бергенде — Ratlion Telegram группасына (чек + баскычтар) */
     private void notifyNewOrder(CustomerOrder order) {
-        Double amount = order.getPaymentAmount() != null
-                ? order.getPaymentAmount()
-                : order.getTotalPrice();
-
-        telegramService.sendToManager(
-                "🔔 ЖАҢЫ ЗАКАЗ — " + restaurantLabel(order) + "\n\n"
-                        + "№" + order.getId() + "\n"
-                        + "👤 " + safe(order.getCustomerName()) + "\n"
-                        + "📞 " + safe(order.getPhone()) + "\n"
-                        + "📍 " + safe(order.getAddress()) + "\n"
-                        + "🍽 " + safe(order.getItemName()) + "\n"
-                        + (order.getFoodComment() != null && !order.getFoodComment().isBlank()
-                        ? "💬 " + safe(order.getFoodComment()) + "\n"
-                        : "")
-                        + "💰 " + formatAmount(amount) + " сом\n\n"
-                        + "👉 Чекти текшериңиз: /ratlion\n"
-                        + "✅ Кабыл алсаңыз — ресторанга билдирилет"
-        );
-    }
-
-    /** Менеджер кабыл алганда — ресторанга (Telegram + ашкана панели) */
-    private void notifyOrderAccepted(CustomerOrder order) {
-        String kitchenPath = adminPathFor(order);
-        String restName = restaurantLabel(order);
-
-        if (order.getRestaurantId() != null) {
-            restaurantRepository.findById(order.getRestaurantId())
-                    .ifPresent(restaurant -> {
-                        String chatId = restaurant.getTelegramChatId();
-                        String text = "🆕 ЖАҢЫ ЗАКАЗ — " + restName + "\n\n"
-                                + "🏷 " + order.getDisplayOrderNumber() + "\n"
-                                + "👤 " + safe(order.getCustomerName()) + "\n"
-                                + "📞 " + safe(order.getPhone()) + "\n"
-                                + "🍽 " + safe(order.getItemName()) + "\n"
-                                + (order.getFoodComment() != null && !order.getFoodComment().isBlank()
-                                ? "💬 " + safe(order.getFoodComment()) + "\n"
-                                : "")
-                                + "💰 " + formatAmount(order.getTotalPrice()) + " сом\n\n"
-                                + "👉 Ашкана панели: " + kitchenPath;
-                        if (chatId != null && !chatId.isBlank()) {
-                            telegramService.sendToChat(chatId, text);
-                        }
-                    });
-        }
-        notifyCouriersWaiting(order);
-    }
-
-    /** Курьерлерге: заказ кабыл алынды, ресторан даярдаганда сунуш келет */
-    private void notifyCouriersWaiting(CustomerOrder order) {
-        String rest = restaurantLabel(order);
-        String num = order.getDisplayOrderNumber() != null
-                ? order.getDisplayOrderNumber()
-                : "#" + order.getId();
-        String text = "📦 " + rest + " — заказ кабыл алынды\n\n"
-                + "🏷 " + num + "\n"
-                + "⏳ Ресторан «Даярдоону баштоо» басса — сунуш келет\n"
-                + "→ /courier";
-        courierRepository.findByActiveTrueOrderByNameAsc().stream()
-                .filter(this::courierHasTelegram)
-                .forEach(c -> telegramService.sendToCourier(c.getTelegramChatId(), text));
-    }
-
-    private boolean courierHasTelegram(Courier courier) {
-        String id = courier.getTelegramChatId();
-        return id != null && !id.isBlank() && !id.startsWith("phone:");
-    }
-
-    private String adminPathFor(CustomerOrder order) {
-        if (order.getRestaurantId() == null) {
-            return "/kitchen";
-        }
-        return restaurantRepository.findById(order.getRestaurantId())
-                .map(r -> "/kitchen/" + r.getSlug())
-                .orElse("/kitchen");
+        orderVerificationService.sendDispatcherVerification(order);
     }
 
     private void notifyCouriersPickup(CustomerOrder order) {

@@ -29,6 +29,22 @@
         document.head.appendChild(link);
     })();
 
+    (function loadTelegramApp() {
+        if (document.querySelector('script[data-telegram-app-js]')) {
+            return;
+        }
+        const css = document.createElement('link');
+        css.rel = 'stylesheet';
+        css.href = '/telegram-app.css?v=1';
+        css.setAttribute('data-telegram-app-css', '1');
+        document.head.appendChild(css);
+
+        const script = document.createElement('script');
+        script.src = '/telegram-app.js?v=1';
+        script.setAttribute('data-telegram-app-js', '1');
+        document.head.appendChild(script);
+    })();
+
     window.cartStorageKey = function () {
         return 'cart:' + slug;
     };

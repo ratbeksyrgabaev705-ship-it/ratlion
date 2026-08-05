@@ -70,13 +70,18 @@ git push -u origin main
 | Кухня | `https://SIZIN-DOMEN/kitchen/burger-men` |
 | Курьер | `https://SIZIN-DOMEN/courier` |
 
-### Telegram (милдеттүү эмес)
+### Telegram (Ratlion диспетчер группасы)
 
-Render → **ratlion** сервис → **Environment**:
+1. Telegram'да **Ratlion** группасын ачыңыз, ботту кошуп админ кылыңыз
+2. Группада `/id` жазыңыз → группанын ID алынат (мисалы `-1001234567890`)
+3. Render → **Environment**:
+   - `TELEGRAM_BOT_TOKEN` — BotFather токени
+   - `TELEGRAM_CHAT_ID` — **Ratlion группанын ID** (негизги)
+   - `TELEGRAM_MANAGER_CHAT_ID` — опционал (TELEGRAM_CHAT_ID жок болсо)
 
-- `TELEGRAM_BOT_TOKEN`
-- `TELEGRAM_CHAT_ID`
-- `TELEGRAM_MANAGER_CHAT_ID`
+**Иштеп жүрүшү:** кардар заказ бергенде Ratlion группасына чек + **✅ Кабыл алуу / ❌ Четке кагуу** келет. Диспетчер баскычты басат — ресторанга жиберилет.
+
+BotFather: `/setdomain` → `ratlion.onrender.com` (Web App үчүн).
 
 ### Эскертүүлөр
 

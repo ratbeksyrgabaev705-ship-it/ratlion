@@ -2,7 +2,9 @@ package kg.restaurant.order.controller;
 
 import kg.restaurant.order.model.Courier;
 import kg.restaurant.order.repository.CourierRepository;
+import kg.restaurant.order.service.OrderVerificationService;
 import kg.restaurant.order.service.TelegramService;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -16,18 +18,30 @@ public class TelegramWebhookController {
 
     private final CourierRepository courierRepository;
     private final TelegramService telegramService;
+    private final OrderVerificationService orderVerificationService;
+
+    @Value("${app.public-url:http://localhost:8080}")
+    private String publicUrl;
 
     public TelegramWebhookController(
             CourierRepository courierRepository,
-            TelegramService telegramService
+            TelegramService telegramService,
+            OrderVerificationService orderVerificationService
     ) {
         this.courierRepository = courierRepository;
         this.telegramService = telegramService;
+        this.orderVerificationService = orderVerificationService;
     }
 
     @PostMapping("/webhook")
     public void handleWebhook(@RequestBody Map<String, Object> update) {
         if (!telegramService.isConfigured()) {
+            return;
+        }
+
+        Map<String, Object> callback = asMap(update.get("callback_query"));
+        if (callback != null) {
+            orderVerificationService.handleTelegramCallback(callback);
             return;
         }
 
@@ -38,16 +52,43 @@ public class TelegramWebhookController {
 
         Map<String, Object> chat = asMap(message.get("chat"));
         String chatId = chat == null ? "" : asString(chat.get("id"));
+        String chatType = chat == null ? "" : asString(chat.get("type"));
         String text = asString(message.get("text")).trim();
 
-        if (chatId.isBlank() || text.isBlank()) {
+        if (chatId.isBlank()) {
+            return;
+        }
+
+        if ("/id".equals(text) || "/groupid".equals(text)) {
+            if ("group".equals(chatType) || "supergroup".equals(chatType)) {
+                telegramService.sendToChat(
+                        chatId,
+                        "📋 Ratlion группанын ID:\n\n"
+                                + chatId
+                                + "\n\nRender → TELEGRAM_CHAT_ID (же TELEGRAM_MANAGER_CHAT_ID)"
+                );
+            }
+            return;
+        }
+
+        if (text.isBlank()) {
             return;
         }
 
         Map<String, Object> from = asMap(message.get("from"));
         String firstName = from == null ? "" : asString(from.get("first_name"));
 
-        if (text.equals("/start") || text.equals("/id")) {
+        if (text.equals("/start")) {
+            if ("group".equals(chatType) || "supergroup".equals(chatType)) {
+                telegramService.sendToChat(
+                        chatId,
+                        "🔥 RATLION диспетчер группасы\n\n"
+                                + "Жаңы заказдар бул жерге чек менен келет.\n"
+                                + "✅ Кабыл алуу / ❌ Четке кагуу баскычтарын басыңыз.\n\n"
+                                + "Группа ID: " + chatId
+                );
+                return;
+            }
             handleStart(chatId, firstName);
             return;
         }
@@ -70,18 +111,33 @@ public class TelegramWebhookController {
     }
 
     private void handleStart(String chatId, String firstName) {
-        telegramService.sendToCourier(
+        String greeting = "Салам" + (firstName.isBlank() ? "!" : ", " + firstName + "!")
+                + "\n\n"
+                + "🔥 RATLION — Базар-Коргон тамак жеткирүү.\n\n"
+                + "Төмөнкү баскыч менен ресторан тандап, заказ бериңиз.\n\n"
+                + "🛵 Курьер болуу үчүн: /register Атыңыз";
+
+        String orderUrl = normalizePublicUrl(publicUrl) + "/";
+        var result = telegramService.sendWithWebAppButton(
                 chatId,
-                "Салам" + (firstName.isBlank() ? "!" : ", " + firstName + "!")
-                        + "\n\n"
-                        + "RATLION курьер боту.\n\n"
-                        + "Сиздин Telegram ID:\n"
-                        + chatId + "\n\n"
-                        + "Курьер каттоо:\n"
-                        + "/register Атыңыз\n"
-                        + "Мисалы: /register Азамат\n\n"
-                        + "Менеджер /owner панелинен да каттоо кылса болот."
+                greeting,
+                "🍔 Заказ берүү",
+                orderUrl
         );
+        if (!result.success()) {
+            telegramService.sendToCourier(chatId, greeting + "\n\n🌐 " + orderUrl);
+        }
+    }
+
+    private String normalizePublicUrl(String url) {
+        if (url == null || url.isBlank()) {
+            return "https://ratlion.onrender.com";
+        }
+        String trimmed = url.trim();
+        if (trimmed.endsWith("/")) {
+            return trimmed.substring(0, trimmed.length() - 1);
+        }
+        return trimmed;
     }
 
     private void handleRegister(String chatId, String text, String firstName) {

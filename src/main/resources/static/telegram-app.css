@@ -1,0 +1,43 @@
+/* Telegram WebView / Mini App */
+html.telegram-webapp,
+html.telegram-browser {
+    height: 100%;
+    -webkit-text-size-adjust: 100%;
+}
+
+body.telegram-webapp,
+body.telegram-browser {
+    min-height: 100%;
+    min-height: 100dvh;
+    padding-top: env(safe-area-inset-top, 0);
+    padding-bottom: env(safe-area-inset-bottom, 0);
+    padding-left: env(safe-area-inset-left, 0);
+    padding-right: env(safe-area-inset-right, 0);
+    overscroll-behavior-y: contain;
+    -webkit-overflow-scrolling: touch;
+}
+
+/* iOS Telegram: zoom болбош үчүн */
+body.telegram-webapp input,
+body.telegram-webapp textarea,
+body.telegram-webapp select,
+body.telegram-browser input,
+body.telegram-browser textarea,
+body.telegram-browser select {
+    font-size: 16px !important;
+}
+
+body.telegram-webapp .fp-checkout-head,
+body.telegram-browser .fp-checkout-head {
+    padding-top: max(12px, env(safe-area-inset-top, 0));
+}
+
+body.telegram-webapp #submitFixed,
+body.telegram-browser #submitFixed {
+    padding-bottom: max(12px, env(safe-area-inset-bottom, 0));
+}
+
+body.telegram-webapp .fam-cart-bar,
+body.telegram-browser .fam-cart-bar {
+    padding-bottom: max(10px, env(safe-area-inset-bottom, 0));
+}
