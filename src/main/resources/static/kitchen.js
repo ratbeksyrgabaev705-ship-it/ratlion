@@ -682,11 +682,27 @@ ${order.comment ? `<div class="meta small">🚚 ${esc(order.comment)}</div>` : '
     }
 
     function menuName(item) { return item.nameKg || item.name || item.nameRu || '—'; }
-    function menuCategory(item) { return item.categoryKg || item.category || item.categoryRu || '—'; }
+    function menuCategory(item) {
+        const c = item.categoryKg || item.category || item.categoryRu || '—';
+        return String(c).trim();
+    }
     function menuDesc(item) { return item.descriptionKg || item.descriptionRu || ''; }
 
     function categoryDomId(cat) {
-        return 'kMenuCat-' + String(cat).replace(/\s+/g, '-').replace(/[^\w\u0400-\u04FF-]/gi, '');
+        const norm = String(cat).trim().replace(/\s+/g, ' ');
+        let hash = 0;
+        for (let i = 0; i < norm.length; i++) {
+            hash = ((hash << 5) - hash + norm.charCodeAt(i)) | 0;
+        }
+        return 'kMenuCat-' + Math.abs(hash);
+    }
+
+    function scrollToMenuSection(el) {
+        if (!el) return;
+        const scrollRoot = document.scrollingElement || document.documentElement;
+        const offset = 112;
+        const top = el.getBoundingClientRect().top + scrollRoot.scrollTop - offset;
+        scrollRoot.scrollTo({ top: Math.max(0, top), behavior: 'smooth' });
     }
 
     function renderMenuItemCard(item) {
@@ -725,19 +741,31 @@ ${order.comment ? `<div class="meta small">🚚 ${esc(order.comment)}</div>` : '
 
     window.kScrollToCategory = function (cat) {
         activeCategory = cat || '';
-        renderCategoryFilters(menuItems);
-        const listEl = q('kMenuList');
-        if (!listEl) return;
-        if (!cat) {
-            listEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
-            window.scrollTo({ top: Math.max(0, listEl.getBoundingClientRect().top + window.scrollY - 100), behavior: 'smooth' });
-            return;
+        const searchEl = q('kMenuSearch');
+        if (searchEl && searchEl.value.trim()) {
+            searchEl.value = '';
+            renderMenuList();
+        } else {
+            renderCategoryFilters(menuItems);
         }
-        const target = document.getElementById(categoryDomId(cat));
-        if (target) {
-            const top = target.getBoundingClientRect().top + window.scrollY - 96;
-            window.scrollTo({ top: Math.max(0, top), behavior: 'smooth' });
-        }
+        requestAnimationFrame(function () {
+            requestAnimationFrame(function () {
+                if (!cat) {
+                    scrollToMenuSection(q('kMenuList')?.querySelector('.k-menu-cat-section') || q('kMenuList'));
+                    return;
+                }
+                const normCat = String(cat).trim();
+                let target = document.getElementById(categoryDomId(normCat));
+                if (!target) {
+                    target = Array.from(document.querySelectorAll('.k-menu-cat-section')).find(function (el) {
+                        return el.getAttribute('data-cat') === normCat;
+                    });
+                }
+                if (target) {
+                    scrollToMenuSection(target);
+                }
+            });
+        });
     };
 
     window.kFilterCategory = window.kScrollToCategory;
@@ -763,7 +791,7 @@ ${order.comment ? `<div class="meta small">🚚 ${esc(order.comment)}</div>` : '
         el.innerHTML = cats.map(function (cat) {
             const items = list.filter(function (i) { return menuCategory(i) === cat; });
             if (!items.length) return '';
-            return '<section class="k-menu-cat-section" id="' + categoryDomId(cat) + '">' +
+            return '<section class="k-menu-cat-section" id="' + categoryDomId(cat) + '" data-cat=' + JSON.stringify(cat) + '>' +
                 '<h3 class="k-menu-cat-head">' + esc(cat) + ' <span class="k-menu-cat-count">(' + items.length + ')</span></h3>' +
                 '<div class="k-menu-cat-items">' + items.map(renderMenuItemCard).join('') + '</div>' +
             '</section>';

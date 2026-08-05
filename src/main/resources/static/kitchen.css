@@ -311,7 +311,7 @@ body.kitchen-body {
 }
 .k-cat-btn.active, .k-cat-btn:hover { border-color: var(--k-accent); color: #fff; background: #14532d; }
 
-.k-menu-cat-section { scroll-margin-top: 96px; }
+.k-menu-cat-section { scroll-margin-top: 120px; }
 .k-menu-cat-head {
     font-size: 15px; font-weight: 800; color: #4ade80;
     padding: 18px 0 10px; margin: 4px 0 10px;
