@@ -1,14 +1,15 @@
-/* Address picker — Yandex Go / 2GIS style */
+/* Address picker — жөнөкөй, түшүнүктүү */
 .ap-overlay {
     position: fixed;
     inset: 0;
     z-index: 500;
-    background: #f4f4f5;
+    background: #e8edf2;
     display: flex;
     flex-direction: column;
     opacity: 0;
     visibility: hidden;
-    transition: opacity 0.22s ease, visibility 0.22s ease;
+    transition: opacity 0.2s ease, visibility 0.2s ease;
+    font-family: 'Noto Sans', system-ui, sans-serif;
 }
 .ap-overlay.ap-open {
     opacity: 1;
@@ -18,30 +19,52 @@
 .ap-map-wrap {
     flex: 1;
     position: relative;
-    min-height: 0;
+    min-height: 55vh;
 }
 .ap-map {
     width: 100%;
     height: 100%;
     z-index: 1;
+    background: #dce3ea;
 }
 
-.ap-pin {
+.ap-pin-zone {
     position: absolute;
     top: 50%;
     left: 50%;
-    transform: translate(-50%, -100%);
+    transform: translate(-50%, -50%);
     z-index: 10;
     pointer-events: none;
+    width: 0;
+    height: 0;
+}
+.ap-pin-shadow {
+    position: absolute;
+    width: 18px;
+    height: 8px;
+    background: rgba(0,0,0,0.22);
+    border-radius: 50%;
+    left: -9px;
+    top: 6px;
+    transition: transform 0.15s ease, opacity 0.15s ease;
+}
+.ap-pin {
+    position: absolute;
+    left: -24px;
+    top: -52px;
     transition: transform 0.15s ease;
 }
-.ap-pin.ap-pin-drop {
-    transform: translate(-50%, -110%) scale(1.08);
+.ap-pin-zone.ap-pin-lift .ap-pin {
+    transform: translateY(-10px);
+}
+.ap-pin-zone.ap-pin-lift .ap-pin-shadow {
+    transform: scale(0.65);
+    opacity: 0.3;
 }
 .ap-pin svg {
-    width: 44px;
-    height: 52px;
-    filter: drop-shadow(0 4px 8px rgba(0,0,0,0.25));
+    width: 48px;
+    height: 56px;
+    filter: drop-shadow(0 6px 10px rgba(0,0,0,0.28));
 }
 
 .ap-top {
@@ -50,125 +73,162 @@
     left: 0;
     right: 0;
     z-index: 20;
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    padding: 12px 14px;
-    padding-top: max(12px, env(safe-area-inset-top));
+    padding: 10px 12px;
+    padding-top: max(10px, env(safe-area-inset-top));
     pointer-events: none;
 }
 .ap-top > * { pointer-events: auto; }
 
 .ap-back {
+    width: 46px;
+    height: 46px;
+    border: none;
+    border-radius: 50%;
+    background: #fff;
+    box-shadow: 0 2px 14px rgba(0,0,0,0.15);
+    font-size: 22px;
+    cursor: pointer;
+    color: #111;
+}
+
+.ap-map-hint {
+    position: absolute;
+    top: max(64px, calc(env(safe-area-inset-top) + 54px));
+    left: 12px;
+    right: 12px;
+    z-index: 15;
+    background: rgba(255,255,255,0.94);
+    border-radius: 12px;
+    padding: 10px 14px;
+    font-size: 13px;
+    font-weight: 600;
+    color: #333;
+    line-height: 1.4;
+    text-align: center;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+    pointer-events: none;
+}
+
+.ap-locate-fab {
+    position: absolute;
+    bottom: 16px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 20;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 14px 22px;
+    border: none;
+    border-radius: 999px;
+    background: #fff;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.18);
+    font-size: 15px;
+    font-weight: 800;
+    color: #111;
+    cursor: pointer;
+    font-family: inherit;
+    white-space: nowrap;
+}
+.ap-locate-fab:active { transform: translateX(-50%) scale(0.97); }
+.ap-locate-fab.ap-loading { opacity: 0.65; pointer-events: none; }
+
+.ap-zoom-btns {
+    position: absolute;
+    right: 12px;
+    bottom: 80px;
+    z-index: 20;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+.ap-zoom-btns button {
     width: 44px;
     height: 44px;
     border: none;
-    border-radius: 14px;
+    border-radius: 12px;
     background: #fff;
-    box-shadow: 0 2px 12px rgba(0,0,0,0.12);
-    font-size: 20px;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    flex-shrink: 0;
-}
-
-.ap-locate {
-    flex: 1;
-    height: 44px;
-    border: none;
-    border-radius: 14px;
-    background: #fff;
-    box-shadow: 0 2px 12px rgba(0,0,0,0.12);
-    font-size: 14px;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.14);
+    font-size: 22px;
     font-weight: 700;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 8px;
-    font-family: inherit;
     color: #111;
+    cursor: pointer;
+    line-height: 1;
 }
-.ap-locate:active { transform: scale(0.98); }
-.ap-locate.ap-loading { opacity: 0.7; pointer-events: none; }
 
 .ap-sheet {
     position: relative;
     z-index: 30;
     background: #fff;
-    border-radius: 20px 20px 0 0;
-    box-shadow: 0 -4px 24px rgba(0,0,0,0.1);
-    padding: 8px 16px calc(16px + env(safe-area-inset-bottom));
+    border-radius: 22px 22px 0 0;
+    box-shadow: 0 -6px 30px rgba(0,0,0,0.12);
+    padding: 6px 16px calc(18px + env(safe-area-inset-bottom));
     transform: translateY(100%);
-    transition: transform 0.28s cubic-bezier(0.32, 0.72, 0, 1);
+    transition: transform 0.26s cubic-bezier(0.32, 0.72, 0, 1);
 }
-.ap-overlay.ap-open .ap-sheet {
-    transform: translateY(0);
-}
+.ap-overlay.ap-open .ap-sheet { transform: translateY(0); }
 
 .ap-sheet-handle {
-    width: 36px;
+    width: 40px;
     height: 4px;
-    background: #ddd;
+    background: #d4d4d4;
     border-radius: 999px;
-    margin: 0 auto 14px;
+    margin: 8px auto 16px;
 }
 
 .ap-last-addr {
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: 8px;
     width: 100%;
     padding: 12px 14px;
     margin-bottom: 12px;
-    border: 1px solid #e5e5e5;
+    border: 1px solid #e5e7eb;
     border-radius: 14px;
-    background: #fafafa;
+    background: #f9fafb;
     cursor: pointer;
     text-align: left;
     font-family: inherit;
-    transition: background 0.15s ease;
+    font-size: 14px;
+    color: #111;
+    line-height: 1.35;
 }
-.ap-last-addr:active { background: #f0f0f0; }
-.ap-last-addr-icon { font-size: 18px; flex-shrink: 0; }
-.ap-last-addr-body { flex: 1; min-width: 0; }
-.ap-last-addr-label { font-size: 11px; font-weight: 700; color: #888; text-transform: uppercase; letter-spacing: 0.04em; }
-.ap-last-addr-text { font-size: 14px; font-weight: 600; color: #111; margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ap-last-addr:active { background: #f3f4f6; }
 
-.ap-field { margin-bottom: 12px; }
-.ap-field-label {
+.ap-address-box {
+    background: #f0fdf4;
+    border: 1px solid #bbf7d0;
+    border-radius: 16px;
+    padding: 14px 16px;
+    margin-bottom: 12px;
+}
+.ap-address-label {
     font-size: 12px;
     font-weight: 700;
-    color: #666;
+    color: #15803d;
     margin-bottom: 6px;
-    display: flex;
-    align-items: center;
-    gap: 6px;
 }
-.ap-field-value {
-    font-size: 16px;
-    font-weight: 700;
+.ap-address-value {
+    font-size: 17px;
+    font-weight: 800;
     color: #111;
-    line-height: 1.4;
-    min-height: 22px;
+    line-height: 1.35;
+    word-break: break-word;
 }
-.ap-field-value.ap-loading-text {
-    color: #999;
-    font-weight: 500;
-}
+.ap-address-value.ap-loading { color: #6b7280; font-weight: 600; }
+.ap-address-value.ap-empty { color: #9ca3af; font-weight: 600; }
+
 .ap-field-input {
     width: 100%;
     padding: 14px 16px;
-    border: 1px solid #e5e5e5;
+    margin-bottom: 12px;
+    border: 1px solid #e5e7eb;
     border-radius: 14px;
-    font-size: 15px;
+    font-size: 16px;
     font-family: inherit;
     background: #fafafa;
     color: #111;
     outline: none;
-    transition: border-color 0.15s ease;
 }
 .ap-field-input:focus {
     border-color: #22c55e;
@@ -177,49 +237,35 @@
 
 .ap-confirm {
     width: 100%;
-    padding: 16px;
-    margin-top: 4px;
+    padding: 18px;
     border: none;
     border-radius: 16px;
-    background: #22c55e;
+    background: #16a34a;
     color: #fff;
-    font-size: 16px;
+    font-size: 18px;
     font-weight: 800;
     cursor: pointer;
     font-family: inherit;
-    transition: transform 0.12s ease, opacity 0.12s ease;
 }
 .ap-confirm:active { transform: scale(0.98); }
-.ap-confirm:disabled { opacity: 0.45; cursor: not-allowed; }
+.ap-confirm:disabled { opacity: 0.4; cursor: not-allowed; }
 
 .ap-gps-banner {
     position: absolute;
-    top: 72px;
-    left: 14px;
-    right: 14px;
+    top: max(120px, calc(env(safe-area-inset-top) + 110px));
+    left: 12px;
+    right: 12px;
     z-index: 25;
-    background: #fef3c7;
-    border: 1px solid #fcd34d;
-    border-radius: 14px;
+    background: #fef9c3;
+    border-radius: 12px;
     padding: 12px 14px;
-    font-size: 13px;
+    font-size: 14px;
     font-weight: 600;
-    color: #92400e;
-    line-height: 1.45;
-    box-shadow: 0 2px 12px rgba(0,0,0,0.08);
-    animation: apSlideDown 0.25s ease;
-}
-@keyframes apSlideDown {
-    from { opacity: 0; transform: translateY(-8px); }
-    to { opacity: 1; transform: translateY(0); }
+    color: #854d0e;
+    line-height: 1.4;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.1);
 }
 
-.ap-address-empty {
-    color: #999 !important;
-    font-weight: 500 !important;
-}
-
-/* Checkout field — selected address display */
 .fp-field-box-link .fp-address-display {
     font-size: 15px;
     font-weight: 600;
@@ -228,22 +274,19 @@
     cursor: pointer;
 }
 .fp-field-box-link .fp-address-display.ap-empty {
-    color: #999;
+    color: #9ca3af;
     font-weight: 500;
 }
 .fp-last-chip {
     display: inline-flex;
-    align-items: center;
-    gap: 6px;
     margin-top: 8px;
     padding: 8px 12px;
     border-radius: 999px;
-    border: 1px solid #e5e5e5;
-    background: #fafafa;
+    border: 1px solid #e5e7eb;
+    background: #f9fafb;
     font-size: 12px;
     font-weight: 700;
     color: #333;
     cursor: pointer;
     font-family: inherit;
 }
-.fp-last-chip:active { background: #f0f0f0; }

@@ -1,49 +1,64 @@
 /**
- * AddressPicker — картадан дарек тандоо (Yandex Go / 2GIS стилinde).
- * Leaflet + fixed center pin + reverse geocoding.
+ * AddressPicker — картадан дарек тандоо (жөнөкөй, кыргызча).
  */
 window.AddressPicker = (function () {
     'use strict';
 
     var DEFAULT_CENTER = [42.8746, 74.5698];
-    var DEFAULT_ZOOM = 16;
-    var GPS_ZOOM = 17;
+    var DEFAULT_ZOOM = 17;
+    var GPS_ZOOM = 18;
+
+    var TEXT = {
+        ky: {
+            myLocation: 'Жайгашкан жерим',
+            mapHint: 'Картаны сүйрөп, пин турган жерге жеткирүү дарегин тандаңыз',
+            address: 'Дарегиңиз',
+            addressLoading: 'Дарек аныкталууда…',
+            selectOnMap: 'Картаны сүйрөңүз',
+            apartment: 'Батир / подъезд (милдеттүү эмес)',
+            apartmentPlaceholder: 'Мисалы: 12-батир',
+            confirmAddress: 'Даяр ✓',
+            lastAddress: 'Акыркы дарек',
+            gpsOffHint: 'GPS өчүк. Телефондо геолокацияны күйгүзүңүз.',
+            gpsDenied: 'Геолокацияга уруксат бериңиз же картаны сүйрөңүз.',
+            selectOnMapCheckout: 'Даректи тандаңыз',
+            errAddressPick: 'Алгач дарегиңизди картадан тандаңыз'
+        },
+        ru: {
+            myLocation: 'Где я сейчас',
+            mapHint: 'Двигайте карту — метка показывает адрес доставки',
+            address: 'Ваш адрес',
+            addressLoading: 'Определяем адрес…',
+            selectOnMap: 'Двигайте карту',
+            apartment: 'Квартира / подъезд (необязательно)',
+            apartmentPlaceholder: 'Например: кв. 12',
+            confirmAddress: 'Готово ✓',
+            lastAddress: 'Прошлый адрес',
+            gpsOffHint: 'GPS выключен. Включите геолокацию.',
+            gpsDenied: 'Разрешите геолокацию или двигайте карту.',
+            selectOnMapCheckout: 'Выберите адрес',
+            errAddressPick: 'Сначала выберите адрес на карте'
+        }
+    };
 
     var _map = null;
     var _overlay = null;
     var _debounceTimer = null;
     var _geocodeRequestId = 0;
-    var _state = {
-        lat: null,
-        lng: null,
-        address: '',
-        apartment: '',
-        comment: '',
-        geocoding: false
-    };
+    var _state = { lat: null, lng: null, address: '', geocoding: false };
     var _onConfirm = null;
     var _slug = '';
 
-    function t(key, params) {
-        if (window.CustomerI18n && CustomerI18n.t) {
-            return CustomerI18n.t(key, params);
+    function lang() {
+        if (window.CustomerI18n && CustomerI18n.getLang) {
+            return CustomerI18n.getLang() === 'ru' ? 'ru' : 'ky';
         }
-        var fallbacks = {
-            addressPickTitle: 'Дарек',
-            myLocation: 'Жайгашкан жерим',
-            lastAddress: 'Акыркы дарек',
-            addressLoading: 'Дарек аныкталууда…',
-            apartment: 'Батир / Подъезд',
-            apartmentPlaceholder: 'Мисалы: 12, 3-подъезд',
-            courierComment: 'Курьерге комментарий',
-            courierCommentPlaceholder: 'Мисалы: кызыл дарбаза',
-            confirmAddress: 'Даректи тастыктоо',
-            gpsOffHint: 'GPS өчүк. Телефондо геолокацияны күйгүзүңүз же картаны сүйрөп дарек тандаңыз.',
-            gpsDenied: 'Геолокацияга уруксат берилген жок. Картаны сүйрөп дарек тандаңыз.',
-            selectOnMap: 'Картадан даректи тандаңыз',
-            errAddressPick: 'Дарегиңизди картадан тандаңыз'
-        };
-        return fallbacks[key] || key;
+        return 'ky';
+    }
+
+    function t(key) {
+        var L = lang();
+        return (TEXT[L] && TEXT[L][key]) || TEXT.ky[key] || key;
     }
 
     function storageKey(field) {
@@ -65,7 +80,6 @@ window.AddressPicker = (function () {
             latitude: data.latitude,
             longitude: data.longitude,
             apartment: data.apartment || '',
-            comment: data.comment || '',
             savedAt: Date.now()
         }));
     }
@@ -79,45 +93,54 @@ window.AddressPicker = (function () {
         _overlay.innerHTML =
             '<div class="ap-map-wrap">' +
             '  <div class="ap-top">' +
-            '    <button type="button" class="ap-back" onclick="AddressPicker.close()" aria-label="Жабуу">←</button>' +
-            '    <button type="button" class="ap-locate" id="apLocateBtn" onclick="AddressPicker.locateMe()">' +
-            '      <span>📍</span><span id="apLocateText">' + t('myLocation') + '</span>' +
-            '    </button>' +
+            '    <button type="button" class="ap-back" onclick="AddressPicker.close()" aria-label="Артка">←</button>' +
             '  </div>' +
+            '  <div id="apMapHint" class="ap-map-hint"></div>' +
             '  <div id="apGpsBanner" class="ap-gps-banner hidden"></div>' +
             '  <div id="apMap" class="ap-map"></div>' +
-            '  <div class="ap-pin" id="apPin">' +
-            '    <svg viewBox="0 0 44 52" fill="none"><path d="M22 0C11.5 0 3 8.5 3 19c0 13.5 19 33 19 33s19-19.5 19-33C41 8.5 32.5 0 22 0z" fill="#22c55e"/><circle cx="22" cy="19" r="8" fill="#fff"/></svg>' +
+            '  <div class="ap-pin-zone">' +
+            '    <div class="ap-pin-shadow"></div>' +
+            '    <div class="ap-pin" id="apPin">' +
+            '      <svg viewBox="0 0 48 56" fill="none"><path d="M24 2C13.5 2 5 10.5 5 21c0 14 19 33 19 33s19-19 19-33C43 10.5 34.5 2 24 2z" fill="#16a34a" stroke="#fff" stroke-width="2"/><circle cx="24" cy="21" r="7" fill="#fff"/></svg>' +
+            '    </div>' +
+            '  </div>' +
+            '  <button type="button" class="ap-locate-fab" id="apLocateBtn" onclick="AddressPicker.locateMe()">' +
+            '    <span>📍</span><span id="apLocateText"></span>' +
+            '  </button>' +
+            '  <div class="ap-zoom-btns">' +
+            '    <button type="button" onclick="AddressPicker.zoomIn()" aria-label="+">+</button>' +
+            '    <button type="button" onclick="AddressPicker.zoomOut()" aria-label="−">−</button>' +
             '  </div>' +
             '</div>' +
             '<div class="ap-sheet">' +
             '  <div class="ap-sheet-handle"></div>' +
             '  <div id="apLastAddr" class="hidden"></div>' +
-            '  <div class="ap-field">' +
-            '    <div class="ap-field-label">📍 ' + t('addressPickTitle') + '</div>' +
-            '    <div class="ap-field-value" id="apAddressText">' + t('selectOnMap') + '</div>' +
+            '  <div class="ap-address-box">' +
+            '    <div class="ap-address-label" id="apAddressLabel"></div>' +
+            '    <div class="ap-address-value" id="apAddressText"></div>' +
             '  </div>' +
-            '  <div class="ap-field">' +
-            '    <div class="ap-field-label">' + t('apartment') + '</div>' +
-            '    <input type="text" class="ap-field-input" id="apApartment" placeholder="' + t('apartmentPlaceholder') + '">' +
-            '  </div>' +
-            '  <div class="ap-field">' +
-            '    <div class="ap-field-label">' + t('courierComment') + '</div>' +
-            '    <input type="text" class="ap-field-input" id="apComment" placeholder="' + t('courierCommentPlaceholder') + '">' +
-            '  </div>' +
-            '  <button type="button" class="ap-confirm" id="apConfirmBtn" onclick="AddressPicker.confirm()" disabled>' +
-            t('confirmAddress') +
-            '</button>' +
+            '  <input type="text" class="ap-field-input" id="apApartment" autocomplete="off">' +
+            '  <button type="button" class="ap-confirm" id="apConfirmBtn" onclick="AddressPicker.confirm()" disabled></button>' +
             '</div>';
 
         document.body.appendChild(_overlay);
     }
 
+    function applyLabels() {
+        var hint = document.getElementById('apMapHint');
+        if (hint) hint.textContent = t('mapHint');
+        var locate = document.getElementById('apLocateText');
+        if (locate) locate.textContent = t('myLocation');
+        var label = document.getElementById('apAddressLabel');
+        if (label) label.textContent = '📍 ' + t('address');
+        var apt = document.getElementById('apApartment');
+        if (apt) apt.placeholder = t('apartmentPlaceholder');
+        var btn = document.getElementById('apConfirmBtn');
+        if (btn) btn.textContent = t('confirmAddress');
+    }
+
     function initMap(center, zoom) {
-        if (typeof L === 'undefined') {
-            console.error('Leaflet not loaded');
-            return;
-        }
+        if (typeof L === 'undefined') return;
 
         var mapEl = document.getElementById('apMap');
         if (!mapEl) return;
@@ -134,23 +157,31 @@ window.AddressPicker = (function () {
             attributionControl: false
         });
 
-        L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
             maxZoom: 19,
-            subdomains: 'abcd'
+            subdomains: ['a', 'b', 'c']
         }).addTo(_map);
 
         _map.on('movestart', function () {
-            var pin = document.getElementById('apPin');
-            if (pin) pin.classList.add('ap-pin-drop');
+            var zone = document.querySelector('.ap-pin-zone');
+            if (zone) zone.classList.add('ap-pin-lift');
         });
 
         _map.on('moveend', function () {
-            var pin = document.getElementById('apPin');
-            if (pin) pin.classList.remove('ap-pin-drop');
+            var zone = document.querySelector('.ap-pin-zone');
+            if (zone) zone.classList.remove('ap-pin-lift');
             onMapMoved();
         });
 
-        setTimeout(function () { _map.invalidateSize(); }, 100);
+        setTimeout(function () { _map.invalidateSize(); }, 120);
+    }
+
+    function zoomIn() {
+        if (_map) _map.zoomIn();
+    }
+
+    function zoomOut() {
+        if (_map) _map.zoomOut();
     }
 
     function onMapMoved() {
@@ -161,7 +192,7 @@ window.AddressPicker = (function () {
             _state.lat = center.lat;
             _state.lng = center.lng;
             reverseGeocode(center.lat, center.lng);
-        }, 350);
+        }, 300);
     }
 
     function reverseGeocode(lat, lng) {
@@ -170,9 +201,9 @@ window.AddressPicker = (function () {
         updateAddressDisplay(t('addressLoading'), true);
         document.getElementById('apConfirmBtn').disabled = true;
 
-        var lang = (window.CustomerI18n && CustomerI18n.getLang) ? CustomerI18n.getLang() : 'ru';
+        var geoLang = lang() === 'ru' ? 'ru' : 'ru';
 
-        fetch('/api/geocode/reverse?lat=' + lat + '&lon=' + lng + '&lang=' + lang)
+        fetch('/api/geocode/reverse?lat=' + lat + '&lon=' + lng + '&lang=' + geoLang)
             .then(function (r) { return r.json(); })
             .then(function (data) {
                 if (reqId !== _geocodeRequestId) return;
@@ -194,8 +225,8 @@ window.AddressPicker = (function () {
         var el = document.getElementById('apAddressText');
         if (!el) return;
         el.textContent = text || t('selectOnMap');
-        el.classList.toggle('ap-loading-text', !!loading);
-        el.classList.toggle('ap-address-empty', !text || text === t('selectOnMap'));
+        el.classList.toggle('ap-loading', !!loading);
+        el.classList.toggle('ap-empty', !text || text === t('selectOnMap') || text === t('addressLoading'));
     }
 
     function showGpsBanner(msg) {
@@ -222,11 +253,8 @@ window.AddressPicker = (function () {
         container.classList.remove('hidden');
         container.innerHTML =
             '<button type="button" class="ap-last-addr" onclick="AddressPicker.useLastAddress()">' +
-            '<span class="ap-last-addr-icon">🕐</span>' +
-            '<span class="ap-last-addr-body">' +
-            '<div class="ap-last-addr-label">' + t('lastAddress') + '</div>' +
-            '<div class="ap-last-addr-text">' + escapeHtml(last.address) + '</div>' +
-            '</span></button>';
+            '<span>🕐</span><span><strong>' + t('lastAddress') + '</strong> — ' + escapeHtml(last.address) + '</span>' +
+            '</button>';
     }
 
     function escapeHtml(v) {
@@ -247,19 +275,13 @@ window.AddressPicker = (function () {
             function (pos) {
                 if (btn) btn.classList.remove('ap-loading');
                 hideGpsBanner();
-                var lat = pos.coords.latitude;
-                var lng = pos.coords.longitude;
                 if (_map) {
-                    _map.setView([lat, lng], GPS_ZOOM, { animate: true });
+                    _map.setView([pos.coords.latitude, pos.coords.longitude], GPS_ZOOM, { animate: true });
                 }
             },
             function (err) {
                 if (btn) btn.classList.remove('ap-loading');
-                if (err.code === 1) {
-                    showGpsBanner(t('gpsDenied'));
-                } else {
-                    showGpsBanner(t('gpsOffHint'));
-                }
+                showGpsBanner(err.code === 1 ? t('gpsDenied') : t('gpsOffHint'));
             },
             { enableHighAccuracy: true, timeout: 12000, maximumAge: 0 }
         );
@@ -279,17 +301,14 @@ window.AddressPicker = (function () {
         updateAddressDisplay(last.address);
 
         var apt = document.getElementById('apApartment');
-        var cmt = document.getElementById('apComment');
         if (apt) apt.value = last.apartment || '';
-        if (cmt) cmt.value = last.comment || '';
 
         document.getElementById('apConfirmBtn').disabled = false;
     }
 
     function buildFullAddress() {
         var addr = _state.address || '';
-        var apt = (document.getElementById('apApartment') || {}).value || '';
-        apt = apt.trim();
+        var apt = ((document.getElementById('apApartment') || {}).value || '').trim();
         if (apt && addr) return addr + ', ' + apt;
         if (apt) return apt;
         return addr;
@@ -299,38 +318,32 @@ window.AddressPicker = (function () {
         if (!_state.address || _state.lat == null) return;
 
         var apartment = ((document.getElementById('apApartment') || {}).value || '').trim();
-        var comment = ((document.getElementById('apComment') || {}).value || '').trim();
-        var fullAddress = buildFullAddress();
-
         var result = {
-            address: fullAddress,
+            address: buildFullAddress(),
             streetAddress: _state.address,
             latitude: _state.lat,
             longitude: _state.lng,
             apartment: apartment,
-            comment: comment
+            comment: ''
         };
 
         saveLastAddress(result);
-
         if (_onConfirm) _onConfirm(result);
-
         close();
     }
 
     function open(options) {
         options = options || {};
-        _slug = options.slug || (window.restaurantSlug) || (window.RESTAURANT && window.RESTAURANT.slug) || 'default';
+        _slug = options.slug || window.restaurantSlug || (window.RESTAURANT && window.RESTAURANT.slug) || 'default';
         _onConfirm = options.onConfirm || null;
 
         ensureOverlay();
+        applyLabels();
         renderLastAddressChip();
         hideGpsBanner();
 
         var aptEl = document.getElementById('apApartment');
-        var cmtEl = document.getElementById('apComment');
         if (aptEl) aptEl.value = options.apartment || '';
-        if (cmtEl) cmtEl.value = options.comment || '';
 
         _overlay.classList.add('ap-open');
         document.body.style.overflow = 'hidden';
@@ -356,13 +369,9 @@ window.AddressPicker = (function () {
 
         setTimeout(function () {
             initMap(startCenter, startZoom);
-            if (!options.address && options.latitude == null) {
-                onMapMoved();
-            }
-            if (options.autoLocate !== false && options.latitude == null) {
-                locateMe();
-            }
-        }, 50);
+            if (!options.address && options.latitude == null) onMapMoved();
+            if (options.autoLocate !== false && options.latitude == null) locateMe();
+        }, 60);
     }
 
     function close() {
@@ -372,7 +381,7 @@ window.AddressPicker = (function () {
 
     function bindCheckout(options) {
         options = options || {};
-        var slug = options.slug || (window.restaurantSlug) || (window.RESTAURANT && window.RESTAURANT.slug) || 'default';
+        var slug = options.slug || window.restaurantSlug || (window.RESTAURANT && window.RESTAURANT.slug) || 'default';
         _slug = slug;
 
         var fieldBox = document.getElementById('addressFieldBox');
@@ -380,12 +389,12 @@ window.AddressPicker = (function () {
         var latInput = document.getElementById('latitude');
         var lngInput = document.getElementById('longitude');
         var addressInput = document.getElementById('address');
-        var commentInput = document.getElementById('comment');
         var lastChip = document.getElementById('lastAddressChip');
 
         function updateDisplay(text) {
+            var label = text || t('selectOnMapCheckout');
             if (display) {
-                display.textContent = text || t('selectOnMap');
+                display.textContent = label;
                 display.classList.toggle('ap-empty', !text);
             }
             if (addressInput) addressInput.value = text || '';
@@ -395,9 +404,6 @@ window.AddressPicker = (function () {
             updateDisplay(result.address);
             if (latInput) latInput.value = result.latitude;
             if (lngInput) lngInput.value = result.longitude;
-            if (commentInput && result.comment) {
-                commentInput.value = result.comment;
-            }
             renderCheckoutLastChip();
         }
 
@@ -408,39 +414,28 @@ window.AddressPicker = (function () {
                 latitude: latInput && latInput.value ? parseFloat(latInput.value) : null,
                 longitude: lngInput && lngInput.value ? parseFloat(lngInput.value) : null,
                 apartment: '',
-                comment: commentInput ? commentInput.value : '',
                 autoLocate: !latInput || !latInput.value,
                 onConfirm: applyResult
             });
         }
 
-        if (fieldBox) {
-            fieldBox.addEventListener('click', function (e) {
-                if (e.target.tagName === 'INPUT') return;
-                openPicker();
-            });
-        }
+        if (fieldBox) fieldBox.addEventListener('click', function () { openPicker(); });
         if (display) display.addEventListener('click', openPicker);
 
         function renderCheckoutLastChip() {
             if (!lastChip) return;
             var last = getLastAddress();
-            if (!last || !last.address) {
-                lastChip.classList.add('hidden');
-                return;
-            }
-            if (addressInput && addressInput.value) {
+            if (!last || !last.address || (addressInput && addressInput.value)) {
                 lastChip.classList.add('hidden');
                 return;
             }
             lastChip.classList.remove('hidden');
-            lastChip.innerHTML = '🕐 ' + t('lastAddress') + ': ' + escapeHtml(last.address);
+            lastChip.textContent = '🕐 ' + t('lastAddress') + ': ' + last.address;
             lastChip.onclick = function () {
                 applyResult({
                     address: last.apartment ? last.address + ', ' + last.apartment : last.address,
                     latitude: last.latitude,
-                    longitude: last.longitude,
-                    comment: last.comment || ''
+                    longitude: last.longitude
                 });
             };
         }
@@ -455,10 +450,7 @@ window.AddressPicker = (function () {
     }
 
     function refreshI18n() {
-        var locateText = document.getElementById('apLocateText');
-        if (locateText) locateText.textContent = t('myLocation');
-        var confirmBtn = document.getElementById('apConfirmBtn');
-        if (confirmBtn) confirmBtn.textContent = t('confirmAddress');
+        applyLabels();
     }
 
     return {
@@ -469,8 +461,9 @@ window.AddressPicker = (function () {
         useLastAddress: useLastAddress,
         bindCheckout: bindCheckout,
         getLastAddress: getLastAddress,
-        saveLastAddress: saveLastAddress,
         refreshI18n: refreshI18n,
+        zoomIn: zoomIn,
+        zoomOut: zoomOut,
         t: t
     };
 })();
