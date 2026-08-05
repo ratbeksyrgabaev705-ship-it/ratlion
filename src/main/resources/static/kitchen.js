@@ -501,19 +501,29 @@ ${order.comment ? `<div class="meta small">🚚 ${esc(order.comment)}</div>` : '
     };
 
     const K_REP_AYLAR = ['Учт', 'Бир', 'Же', 'Чап', 'Беш', 'Кул', 'Тек', 'Баш', 'Аяк', 'Тог', 'Жет', 'Бек'];
+    const K_REP_WD = ['Дш', 'Шш', 'Шр', 'Бш', 'Жм', 'Иш', 'Жк'];
     let reportsInited = false;
+    let calYear = new Date().getFullYear();
+    let calMonth = new Date().getMonth() + 1;
+    let calSelectedDate = null;
+    let calDayMap = {};
 
     function getActiveReportPreset() {
         const active = document.querySelector('#kRepPills .k-rep-pill.active');
-        return active?.dataset?.preset || 'today';
+        return active?.dataset?.preset || 'live';
     }
 
     function setActiveReportPreset(preset) {
         document.querySelectorAll('#kRepPills .k-rep-pill').forEach(function (btn) {
             btn.classList.toggle('active', btn.dataset.preset === preset);
         });
-        const customRow = q('kRepCustomRow');
-        if (customRow) customRow.style.display = preset === 'custom' ? 'flex' : 'none';
+    }
+
+    function clearCalendarSelection() {
+        calSelectedDate = null;
+        document.querySelectorAll('.k-rep-cal-day.k-rep-cal-selected').forEach(function (el) {
+            el.classList.remove('k-rep-cal-selected');
+        });
     }
 
     function initReportPills() {
@@ -523,42 +533,95 @@ ${order.comment ? `<div class="meta small">🚚 ${esc(order.comment)}</div>` : '
         pills.addEventListener('click', function (e) {
             const btn = e.target.closest('.k-rep-pill');
             if (!btn) return;
-            const preset = btn.dataset.preset || 'today';
-            setActiveReportPreset(preset);
-            if (preset !== 'custom') kLoadReports();
+            clearCalendarSelection();
+            setActiveReportPreset(btn.dataset.preset || 'live');
+            kLoadReports();
         });
     }
 
-    async function loadReportMonthNav() {
-        const nav = q('kRepMonthNav');
-        if (!nav || !scopeId) return;
+    function formatCalRevenue(v) {
+        const n = Number(v || 0);
+        if (n <= 0) return '';
+        if (n >= 1000) return Math.round(n / 1000) + 'k';
+        return String(Math.round(n));
+    }
+
+    function localIsoDate(d) {
+        return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+    }
+
+    async function renderReportCalendar() {
+        const wrap = q('kRepCalendar');
+        if (!wrap || !scopeId) return;
+        wrap.innerHTML = '<div class="k-rep-loading">⏳...</div>';
         try {
-            const years = await ReportsUI.fetchYears(scopeId);
-            nav.innerHTML = years.map(function (y) {
-                return '<div class="k-rep-month-year">' +
-                    '<span class="rep-year-label">' + y + '</span>' +
-                    K_REP_AYLAR.map(function (m, i) {
-                        return '<button type="button" class="rep-month-btn" onclick="kLoadMonthReport(' + y + ',' + (i + 1) + ')">' + m + '</button>';
-                    }).join('') +
-                    '</div>';
-            }).join('');
+            const data = await ReportsUI.fetchCalendar(calYear, calMonth, scopeId);
+            calDayMap = {};
+            (data.days || []).forEach(function (d) { calDayMap[d.date] = d; });
+
+            const first = new Date(calYear, calMonth - 1, 1);
+            const lastDay = new Date(calYear, calMonth, 0).getDate();
+            const startPad = (first.getDay() + 6) % 7;
+            const todayIso = localIsoDate(new Date());
+            const monthLabel = K_REP_AYLAR[calMonth - 1] + ' ' + calYear;
+
+            let cells = '';
+            for (let i = 0; i < startPad; i++) {
+                cells += '<div class="k-rep-cal-day k-rep-cal-empty"></div>';
+            }
+            for (let day = 1; day <= lastDay; day++) {
+                const iso = calYear + '-' + String(calMonth).padStart(2, '0') + '-' + String(day).padStart(2, '0');
+                const info = calDayMap[iso] || {};
+                const rev = Number(info.totalRevenue || 0);
+                const orders = Number(info.totalOrders || 0);
+                const cls = [
+                    'k-rep-cal-day',
+                    iso === todayIso ? 'k-rep-cal-today' : '',
+                    iso === calSelectedDate ? 'k-rep-cal-selected' : ''
+                ].filter(Boolean).join(' ');
+                const revHtml = rev > 0
+                    ? '<span class="k-rep-cal-day-rev">' + formatCalRevenue(rev) + ' с</span>'
+                    : (orders > 0 ? '<span class="k-rep-cal-day-rev">' + orders + ' зак.</span>' : '<span class="k-rep-cal-day-zero">—</span>');
+                cells += '<button type="button" class="' + cls + '" data-date="' + iso + '" onclick="kLoadDayReport(\'' + iso + '\')">' +
+                    '<span class="k-rep-cal-day-num">' + day + '</span>' + revHtml + '</button>';
+            }
+
+            wrap.innerHTML =
+                '<div class="k-rep-cal-head">' +
+                    '<span class="k-rep-cal-title">' + monthLabel + '</span>' +
+                    '<div class="k-rep-cal-nav">' +
+                        '<button type="button" onclick="kCalPrevMonth()" aria-label="Мурунку ай">‹</button>' +
+                        '<button type="button" onclick="kCalNextMonth()" aria-label="Кийинки ай">›</button>' +
+                    '</div>' +
+                '</div>' +
+                '<div class="k-rep-cal-weekdays">' + K_REP_WD.map(function (w) { return '<span>' + w + '</span>'; }).join('') + '</div>' +
+                '<div class="k-rep-cal-grid">' + cells + '</div>';
         } catch (e) {
-            nav.innerHTML = '<p class="k-rep-hint">Ай тизмеси жүктөлбөдү</p>';
+            wrap.innerHTML = '<p class="k-rep-hint">Календарь жүктөлбөдү</p>';
         }
     }
+
+    window.kCalPrevMonth = function () {
+        calMonth -= 1;
+        if (calMonth < 1) { calMonth = 12; calYear -= 1; }
+        renderReportCalendar();
+    };
+
+    window.kCalNextMonth = function () {
+        calMonth += 1;
+        if (calMonth > 12) { calMonth = 1; calYear += 1; }
+        renderReportCalendar();
+    };
 
     function initReports() {
         initReportPills();
         if (!reportsInited) {
-            const today = new Date();
-            const iso = today.toISOString().slice(0, 10);
-            const fromEl = q('kRepFrom');
-            const toEl = q('kRepTo');
-            if (fromEl && !fromEl.value) fromEl.value = iso;
-            if (toEl && !toEl.value) toEl.value = iso;
+            const now = new Date();
+            calYear = now.getFullYear();
+            calMonth = now.getMonth() + 1;
             reportsInited = true;
         }
-        loadReportMonthNav();
+        renderReportCalendar();
         kLoadReports();
     }
 
@@ -567,16 +630,23 @@ ${order.comment ? `<div class="meta small">🚚 ${esc(order.comment)}</div>` : '
         await kLoadReports();
     }
 
-    window.kLoadMonthReport = async function (year, month) {
-        if (!scopeId) return;
+    window.kLoadDayReport = async function (isoDate) {
+        if (!scopeId || !isoDate) return;
+        calSelectedDate = isoDate;
         setActiveReportPreset('');
         document.querySelectorAll('#kRepPills .k-rep-pill').forEach(function (b) { b.classList.remove('active'); });
+        document.querySelectorAll('.k-rep-cal-day.k-rep-cal-selected').forEach(function (el) {
+            el.classList.remove('k-rep-cal-selected');
+        });
+        const sel = document.querySelector('.k-rep-cal-day[data-date="' + isoDate + '"]');
+        if (sel) sel.classList.add('k-rep-cal-selected');
+
         const loading = q('kRepLoading');
         const result = q('kRepResult');
         if (loading) loading.style.display = 'block';
         if (result) result.innerHTML = '';
         try {
-            const data = await ReportsUI.fetchMonthly(year, month, scopeId);
+            const data = await ReportsUI.fetchDaily(isoDate, scopeId);
             if (result) result.innerHTML = ReportsUI.renderReport(data);
         } catch (e) {
             if (result) result.innerHTML = '<div class="kitchen-empty">Жүктөлбөдү</div>';
@@ -592,12 +662,7 @@ ${order.comment ? `<div class="meta small">🚚 ${esc(order.comment)}</div>` : '
         const result = q('kRepResult');
         if (loading) loading.style.display = 'block';
         try {
-            const data = await ReportsUI.fetchSummary(
-                preset,
-                scopeId,
-                q('kRepFrom')?.value || null,
-                q('kRepTo')?.value || null
-            );
+            const data = await ReportsUI.fetchSummary(preset, scopeId, null, null);
             if (result) result.innerHTML = ReportsUI.renderReport(data);
         } catch (e) {
             if (result) result.innerHTML = '<div class="kitchen-empty">Жүктөлбөдү</div>';

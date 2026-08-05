@@ -30,6 +30,7 @@ window.ReportsUI = (function () {
         const type = data.reportType || '';
         const date = data.date || data.periodLabel || '';
         const titles = {
+            live: 'Коруу — азыркы убакытка чейин',
             daily: 'Күнүмдük отчет',
             evening: 'Кечки отчет (17:00 – 24:00)',
             weekly: 'Апталык отчет (7 күн)',
@@ -222,5 +223,19 @@ window.ReportsUI = (function () {
         return res.json();
     }
 
-    return { renderReport, fetchSummary, fetchYears, fetchMonthly, money, esc, fmtTime };
+    async function fetchDaily(date, restaurantId) {
+        let url = '/reports/daily?date=' + encodeURIComponent(date);
+        if (restaurantId) url += '&restaurantId=' + encodeURIComponent(restaurantId);
+        const res = await fetch(url);
+        return res.json();
+    }
+
+    async function fetchCalendar(year, month, restaurantId) {
+        let url = '/reports/calendar?year=' + year + '&month=' + month;
+        if (restaurantId) url += '&restaurantId=' + encodeURIComponent(restaurantId);
+        const res = await fetch(url);
+        return res.json();
+    }
+
+    return { renderReport, fetchSummary, fetchYears, fetchMonthly, fetchDaily, fetchCalendar, money, esc, fmtTime };
 })();

@@ -130,29 +130,16 @@
                     </div>
                 </div>
 
-                <div class="k-rep-block-title">1. Мезгил тандаңыз</div>
+                <div class="k-rep-block-title">Отчет</div>
                 <div class="k-rep-pills" id="kRepPills">
-                    <button type="button" class="k-rep-pill active" data-preset="today">📅 Бүгүн</button>
-                    <button type="button" class="k-rep-pill" data-preset="yesterday">Кечээ</button>
-                    <button type="button" class="k-rep-pill" data-preset="evening" title="17:00–24:00">🌙 Кечки</button>
-                    <button type="button" class="k-rep-pill" data-preset="week">📆 Бул апта</button>
-                    <button type="button" class="k-rep-pill" data-preset="month">🗓 Бул ай</button>
-                    <button type="button" class="k-rep-pill" data-preset="lastmonth">← Өткөн ай</button>
-                    <button type="button" class="k-rep-pill" data-preset="year">📊 Бул жыл</button>
-                    <button type="button" class="k-rep-pill" data-preset="custom">✏️ Башка күн</button>
+                    <button type="button" class="k-rep-pill active" data-preset="live">👁 Коруу</button>
+                    <button type="button" class="k-rep-pill" data-preset="evening" title="17:00–24:00">🌙 Кечки отчет</button>
                 </div>
+                <p class="k-rep-hint k-rep-hint-inline">«Коруу» — бүгүн саат 00:00дан азыркы убакытка чейинки сатуу</p>
 
-                <div id="kRepCustomRow" class="k-rep-custom" style="display:none">
-                    <label>Башталган күн</label>
-                    <input id="kRepFrom" class="kitchen-input kitchen-input-sm" type="date">
-                    <label>Аяктаган күн</label>
-                    <input id="kRepTo" class="kitchen-input kitchen-input-sm" type="date">
-                    <button type="button" class="kitchen-btn kitchen-btn-primary kitchen-btn-sm" onclick="kLoadReports()">Көрсөт</button>
-                </div>
-
-                <div class="k-rep-block-title">2. Ай боюнча (тарых)</div>
-                <p class="k-rep-hint">Тандаңыз — ошол айдын толук отчети чыгат</p>
-                <div id="kRepMonthNav" class="k-rep-month-nav"></div>
+                <div class="k-rep-block-title">Календарь</div>
+                <p class="k-rep-hint">Күн тандаңыз — ошол күн эмне сатылганын жана канча түшкөнүн көрөсүз</p>
+                <div id="kRepCalendar" class="k-rep-calendar"></div>
 
                 <div id="kRepLoading" class="k-rep-loading" style="display:none">⏳ Отчет жүктөлүүдө...</div>
                 <div id="kRepResult"></div>

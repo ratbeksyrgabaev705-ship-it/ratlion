@@ -25,6 +25,11 @@ public class ReportController {
         return reportService.buildTodayReport(restaurantId);
     }
 
+    @GetMapping("/live")
+    public Map<String, Object> liveReport(@RequestParam(required = false) Long restaurantId) {
+        return reportService.buildLiveReport(restaurantId);
+    }
+
     @GetMapping("/daily")
     public Map<String, Object> dailyReport(
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date,
@@ -77,7 +82,16 @@ public class ReportController {
         return reportService.buildRangeReport(from, to, restaurantId);
     }
 
-    /** preset: today | yesterday | evening | week | month | lastmonth | year | custom */
+    @GetMapping("/calendar")
+    public Map<String, Object> calendarMonth(
+            @RequestParam int year,
+            @RequestParam int month,
+            @RequestParam(required = false) Long restaurantId
+    ) {
+        return reportService.buildCalendarMonth(year, month, restaurantId);
+    }
+
+    /** preset: live | evening | today | yesterday | week | month | lastmonth | year | custom */
     @GetMapping("/summary")
     public Map<String, Object> summaryReport(
             @RequestParam(defaultValue = "today") String preset,

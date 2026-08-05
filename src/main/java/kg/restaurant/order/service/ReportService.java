@@ -11,6 +11,7 @@ import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.Month;
 import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
 import java.time.format.TextStyle;
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -50,6 +51,16 @@ public class ReportService {
         LocalDateTime end = date.plusDays(1).atStartOfDay();
         List<CustomerOrder> delivered = findDelivered(start, end, restaurantId);
         return buildFullReport(delivered, restaurantId, start, end, "daily", date.toString());
+    }
+
+    /** Бүгүн 00:00 — азыркы убакыт (Коруу) */
+    public Map<String, Object> buildLiveReport(Long restaurantId) {
+        LocalDate today = LocalDate.now(BISHKEK);
+        LocalDateTime start = today.atStartOfDay();
+        LocalDateTime end = LocalDateTime.now(BISHKEK);
+        List<CustomerOrder> delivered = findDelivered(start, end, restaurantId);
+        String timeStr = end.format(DateTimeFormatter.ofPattern("HH:mm"));
+        return buildFullReport(delivered, restaurantId, start, end, "live", today + " (00:00 — " + timeStr + ")");
     }
 
     public Map<String, Object> buildEveningReport(LocalDate date, Long restaurantId) {
@@ -125,7 +136,9 @@ public class ReportService {
 
     public Map<String, Object> buildByPreset(String preset, Long restaurantId, LocalDate customFrom, LocalDate customTo) {
         LocalDate today = LocalDate.now(BISHKEK);
-        return switch (preset == null ? "today" : preset.toLowerCase(Locale.ROOT)) {
+        return switch (preset == null ? "live" : preset.toLowerCase(Locale.ROOT)) {
+            case "live", "view", "koruu" -> buildLiveReport(restaurantId);
+            case "today" -> buildDailyReport(today, restaurantId);
             case "yesterday" -> buildDailyReport(today.minusDays(1), restaurantId);
             case "evening" -> buildEveningReport(today, restaurantId);
             case "week", "last7days" -> buildWeeklyReport(today, restaurantId);
@@ -136,8 +149,31 @@ public class ReportService {
             }
             case "year", "thisyear" -> buildYearlyReport(today.getYear(), restaurantId);
             case "custom" -> buildRangeReport(customFrom, customTo, restaurantId);
-            default -> buildDailyReport(today, restaurantId);
+            default -> buildLiveReport(restaurantId);
         };
+    }
+
+    /** Календарь: ай боюнча күн сайын кыскача маалымат */
+    public Map<String, Object> buildCalendarMonth(int year, int month, Long restaurantId) {
+        LocalDate first = LocalDate.of(year, month, 1);
+        LocalDate last = first.withDayOfMonth(first.lengthOfMonth());
+        List<Map<String, Object>> days = new ArrayList<>();
+        for (LocalDate d = first; !d.isAfter(last); d = d.plusDays(1)) {
+            LocalDateTime s = d.atStartOfDay();
+            LocalDateTime e = d.plusDays(1).atStartOfDay();
+            List<CustomerOrder> dayOrders = findDelivered(s, e, restaurantId);
+            days.add(Map.of(
+                    "date", d.toString(),
+                    "totalOrders", dayOrders.size(),
+                    "totalRevenue", sumRevenue(dayOrders)
+            ));
+        }
+        Map<String, Object> result = new HashMap<>();
+        result.put("year", year);
+        result.put("month", month);
+        result.put("monthName", Month.of(month).getDisplayName(TextStyle.FULL_STANDALONE, new Locale("ky")));
+        result.put("days", days);
+        return result;
     }
 
     public List<Integer> getReportYears(Long restaurantId) {
