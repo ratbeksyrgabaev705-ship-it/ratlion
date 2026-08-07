@@ -113,7 +113,6 @@
             <div id="orderLines"></div>
             <div class="fp-totals">
                 <div class="fp-total-row"><span id="itemsLabel">Товарлар (0)</span><span id="foodTotal">0 сом</span></div>
-                <div class="fp-total-row"><span id="deliveryLabel">Жеткируу</span><span>0 сом</span></div>
                 <div class="fp-total-row grand"><span id="grandTotalLabel">Жалпы сумма</span><span id="grandTotal">0 сом</span></div>
             </div>
         </section>
@@ -253,7 +252,6 @@
 </div>
 
 <script>
-    const DELIVERY = 0;
     let cart = [];
     let paymentAmount = 0;
     let currentStep = 2;
@@ -285,7 +283,6 @@
         document.getElementById('comment').placeholder = CustomerI18n.t('commentPlaceholder');
         document.getElementById('orderListTitle').textContent = CustomerI18n.t('orderList');
         document.getElementById('editLinkText').textContent = CustomerI18n.t('edit');
-        document.getElementById('deliveryLabel').textContent = CustomerI18n.t('delivery');
         document.getElementById('grandTotalLabel').textContent = CustomerI18n.t('grandTotal');
         document.getElementById('orderInfoTitle').textContent = CustomerI18n.t('orderInfoTitle');
         document.getElementById('orderInfoP1').textContent = CustomerI18n.t('orderInfoP1');
@@ -417,7 +414,7 @@
         document.getElementById('orderLines').innerHTML = html;
         document.getElementById('itemsLabel').textContent = CustomerI18n.t('itemsLabel', { count: qty });
         document.getElementById('foodTotal').textContent = formatMoney(foodTotal) + currencySuffix();
-        paymentAmount = foodTotal + DELIVERY;
+        paymentAmount = foodTotal;
         document.getElementById('grandTotal').textContent = formatMoney(paymentAmount) + currencySuffix();
         document.getElementById('paymentAmount').textContent = formatMoney(paymentAmount) + currencySuffix();
 

@@ -61,7 +61,6 @@
     <section id="summaryBox" class="fp-form-card hidden">
         <div class="fp-totals">
             <div class="fp-total-row"><span id="itemsLabel">Товарлар (0)</span><span id="foodTotal">0 сом</span></div>
-            <div class="fp-total-row"><span>Жеткируу</span><span id="deliveryFee">0 сом</span></div>
             <div class="fp-total-row grand"><span>Жалпы сумма</span><span id="grandTotal">0 сом</span></div>
         </div>
     </section>
@@ -93,7 +92,6 @@
 </nav>
 
 <script>
-    const DELIVERY = 0;
     let cart = getStoredCart();
 
     function formatMoney(v) { return Number(v || 0).toLocaleString('ru-RU', { maximumFractionDigits: 0 }); }
@@ -142,8 +140,7 @@
         list.innerHTML = html;
         document.getElementById('itemsLabel').textContent = CustomerI18n.t('itemsLabel', { count: qty });
         document.getElementById('foodTotal').textContent = formatMoney(foodTotal) + ' сом';
-        document.getElementById('deliveryFee').textContent = formatMoney(DELIVERY) + ' сом';
-        document.getElementById('grandTotal').textContent = formatMoney(foodTotal + DELIVERY) + ' сом';
+        document.getElementById('grandTotal').textContent = formatMoney(foodTotal) + ' сом';
         const nb = document.getElementById('navBadge');
         nb.textContent = qty;
         nb.classList.add('show');
@@ -181,8 +178,6 @@
         document.getElementById('checkoutBtnText').textContent = CustomerI18n.t('toCheckout');
         document.getElementById('navHomeLabel').textContent = CustomerI18n.t('home');
         document.getElementById('navCartLabel').textContent = CustomerI18n.t('cart');
-        const delLabel = document.querySelector('#summaryBox .fp-total-row:nth-child(2) span');
-        if (delLabel) delLabel.textContent = CustomerI18n.t('delivery');
         const grandLabel = document.querySelector('#summaryBox .fp-total-row.grand span');
         if (grandLabel) grandLabel.textContent = CustomerI18n.t('grandTotal');
         document.getElementById('cartCommentLabel').textContent = CustomerI18n.t('foodComment');

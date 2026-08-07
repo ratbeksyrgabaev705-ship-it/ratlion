@@ -277,10 +277,6 @@
                     <span id="itemsCountLabel">Товарлар (0)</span>
                     <strong id="foodTotal">0 сом</strong>
                 </div>
-                <div class="summary-row">
-                    <span id="deliveryLabel">Жеткируу акысы</span>
-                    <strong id="deliveryFee">150 сом</strong>
-                </div>
                 <div class="summary-row summary-total">
                     <span id="totalPriceLabel">Жалпы сумма</span>
                     <span id="totalPrice">0 сом</span>
@@ -321,7 +317,7 @@
 
     let orderComment = (typeof getStoredComment === 'function' ? getStoredComment() : localStorage.getItem("orderComment")) || "";
 
-    const DELIVERY_PRICE = 150;
+    const DELIVERY_PRICE = 0;
     let currentLanguage = localStorage.getItem("customerLanguage") || "ky";
 
     const translations = {
@@ -360,7 +356,6 @@
         document.getElementById("emptyTitle").textContent = t("emptyCart");
         document.getElementById("emptyText").textContent = t("emptyText");
         document.getElementById("emptyMenuButton").textContent = t("backToMenu");
-        document.getElementById("deliveryLabel").textContent = t("delivery");
         document.getElementById("totalPriceLabel").textContent = t("total");
         document.getElementById("checkoutText").textContent = t("checkout");
         document.getElementById("navMenu").textContent = t("menu");
@@ -446,7 +441,7 @@
         document.getElementById("cartItems").innerHTML = html;
         document.getElementById("itemsCountLabel").textContent = t("itemsCount").replace("{count}", totalQty);
         document.getElementById("foodTotal").textContent = formatMoney(foodTotal) + " " + t("som");
-        document.getElementById("totalPrice").textContent = formatMoney(foodTotal + DELIVERY_PRICE) + " " + t("som");
+        document.getElementById("totalPrice").textContent = formatMoney(foodTotal) + " " + t("som");
         document.getElementById("headerBadge").textContent = totalQty;
         document.getElementById("navBadge").textContent = totalQty;
     }
