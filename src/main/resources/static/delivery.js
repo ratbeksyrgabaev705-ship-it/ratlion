@@ -189,10 +189,117 @@
                 }).join('');
             if (prev) sel.value = prev;
         }
+        const passSel = q('dPassRest');
+        if (passSel) {
+            passSel.innerHTML = '<option value="">Ресторан тандаңыз</option>' +
+                restaurants.map(function (r) {
+                    return `<option value="${r.id}">${esc(r.emoji || '🏪')} ${esc(r.name)}</option>`;
+                }).join('');
+        }
         const op = q('dOperator');
         if (op && !op.value) op.value = localStorage.getItem('ratlionOperator') || '';
         dLoadBankSettings();
+        initPasswordSettings();
     }
+
+    let passwordMeta = null;
+
+    async function initPasswordSettings() {
+        const panel = q('dPasswordPanel');
+        if (!panel) return;
+        try {
+            await RatlionAdmin.load();
+            if (RatlionAdmin.isReadOnly()) {
+                panel.style.display = 'none';
+                return;
+            }
+            const res = await fetch('/api/admin/passwords', { credentials: 'same-origin' });
+            if (!res.ok) {
+                panel.style.display = 'none';
+                return;
+            }
+            passwordMeta = await res.json();
+            const st = q('dPlatPassStatus');
+            if (st) {
+                st.textContent = (passwordMeta.platformAdminSet ? '✅ Админ пароль орнотулган' : '⚠️ Админ пароль жок')
+                    + ' · ' + (passwordMeta.platformViewSet ? '✅ Көрүү пароль бар' : 'Көрүү пароль жок');
+            }
+        } catch (e) {
+            panel.style.display = 'none';
+        }
+    }
+
+    window.dLoadRestPasswordStatus = function () {
+        const id = q('dPassRest')?.value;
+        const box = q('dRestPassBox');
+        const title = q('dRestPassTitle');
+        const st = q('dRestPassStatus');
+        if (!id || !passwordMeta) {
+            if (box) box.style.display = 'none';
+            return;
+        }
+        const r = (passwordMeta.restaurants || []).find(function (x) { return String(x.id) === String(id); });
+        if (!r || !box) return;
+        box.style.display = 'block';
+        if (title) title.textContent = (r.emoji || '🏪') + ' ' + r.name + ' (/kitchen/' + r.slug + ')';
+        if (st) {
+            st.textContent = (r.adminSet ? '✅ Админ пароль бар' : '⚠️ Демейки: ' + r.slug + '123')
+                + ' · ' + (r.viewSet ? '✅ Көрүү пароль бар' : 'Демейки: ' + r.slug + 'view');
+        }
+        if (q('dRestAdminPass')) q('dRestAdminPass').value = '';
+        if (q('dRestViewPass')) q('dRestViewPass').value = '';
+    };
+
+    window.dSavePlatformPasswords = async function () {
+        const adminPassword = q('dPlatAdminPass')?.value || '';
+        const viewPassword = q('dPlatViewPass')?.value || '';
+        if (!adminPassword && !viewPassword) {
+            alert('Жаңы пароль жазыңыз');
+            return;
+        }
+        const res = await fetch('/api/admin/passwords/platform', {
+            method: 'PUT',
+            credentials: 'same-origin',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ adminPassword: adminPassword || null, viewPassword: viewPassword || null })
+        });
+        const data = await res.json().catch(function () { return {}; });
+        if (!res.ok) {
+            alert(data.error || 'Сакталган жок');
+            return;
+        }
+        alert('✅ RATLION пароль сакталды');
+        if (q('dPlatAdminPass')) q('dPlatAdminPass').value = '';
+        if (q('dPlatViewPass')) q('dPlatViewPass').value = '';
+        initPasswordSettings();
+    };
+
+    window.dSaveRestaurantPasswords = async function () {
+        const id = q('dPassRest')?.value;
+        if (!id) { alert('Ресторан тандаңыз'); return; }
+        const adminPassword = q('dRestAdminPass')?.value || '';
+        const viewPassword = q('dRestViewPass')?.value || '';
+        if (!adminPassword && !viewPassword) {
+            alert('Жаңы пароль жазыңыз');
+            return;
+        }
+        const res = await fetch('/api/admin/passwords/restaurant/' + id, {
+            method: 'PUT',
+            credentials: 'same-origin',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ adminPassword: adminPassword || null, viewPassword: viewPassword || null })
+        });
+        const data = await res.json().catch(function () { return {}; });
+        if (!res.ok) {
+            alert(data.error || 'Сакталган жок');
+            return;
+        }
+        alert('✅ Ресторан пароль сакталды');
+        if (q('dRestAdminPass')) q('dRestAdminPass').value = '';
+        if (q('dRestViewPass')) q('dRestViewPass').value = '';
+        initPasswordSettings();
+        dLoadRestPasswordStatus();
+    };
 
     window.dLoadBankSettings = function () {
         const id = q('dBankRest')?.value;

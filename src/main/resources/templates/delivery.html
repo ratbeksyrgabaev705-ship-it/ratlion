@@ -163,6 +163,34 @@
                     <button type="button" class="delivery-btn delivery-btn-primary" onclick="dSaveOperator()">Сактоо</button>
                 </div>
             </div>
+            <div class="delivery-panel" style="margin-top:16px" id="dPasswordPanel">
+                <label class="delivery-label">🔐 RATLION парольдери</label>
+                <p style="font-size:13px;color:var(--d-muted);margin:8px 0 12px;line-height:1.5">
+                    RATLION панели жана бардыk ресторан панельдерinin парольдерин бул жерден өзгөртөсүз.
+                </p>
+                <div style="margin-bottom:16px;padding:14px;background:var(--d-surface2);border-radius:12px">
+                    <strong style="display:block;margin-bottom:8px">🔥 RATLION (борбордук)</strong>
+                    <input id="dPlatAdminPass" class="delivery-input" type="password" placeholder="Жаңы админ пароль" style="margin-bottom:8px">
+                    <input id="dPlatViewPass" class="delivery-input" type="password" placeholder="Жаңы көрүү пароль (optional)">
+                    <button type="button" class="delivery-btn delivery-btn-primary" style="margin-top:8px" onclick="dSavePlatformPasswords()">RATLION пароль сактоо</button>
+                    <p id="dPlatPassStatus" style="font-size:12px;color:var(--d-muted);margin-top:8px"></p>
+                </div>
+                <div class="delivery-toolbar" style="flex-wrap:wrap;margin-bottom:10px">
+                    <select id="dPassRest" class="delivery-select" onchange="dLoadRestPasswordStatus()">
+                        <option value="">Ресторан тандаңыз</option>
+                    </select>
+                </div>
+                <div id="dRestPassBox" style="display:none;padding:14px;background:var(--d-surface2);border-radius:12px">
+                    <strong id="dRestPassTitle" style="display:block;margin-bottom:8px">Ресторан</strong>
+                    <p style="font-size:12px;color:var(--d-muted);margin-bottom:10px">
+                        Админ пароль — /kitchen/slug толук укук. Көрүү пароль — гана көрүү.
+                    </p>
+                    <input id="dRestAdminPass" class="delivery-input" type="password" placeholder="Жаңы админ пароль" style="margin-bottom:8px">
+                    <input id="dRestViewPass" class="delivery-input" type="password" placeholder="Жаңы көрүү пароль">
+                    <button type="button" class="delivery-btn delivery-btn-primary" style="margin-top:8px" onclick="dSaveRestaurantPasswords()">Ресторан пароль сактоо</button>
+                    <p id="dRestPassStatus" style="font-size:12px;color:var(--d-muted);margin-top:8px"></p>
+                </div>
+            </div>
         </section>
 
     </main>
@@ -196,6 +224,7 @@
 
 <script src="/reports-ui.js"></script>
 <script src="/push-notify.js"></script>
-<script src="/delivery.js?v=8"></script>
+<script src="/admin-auth.js?v=1"></script>
+<script src="/delivery.js?v=9"></script>
 </body>
 </html>

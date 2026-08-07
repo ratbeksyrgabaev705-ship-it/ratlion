@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>RATLION — Админ кирүү</title>
+    <title>RATLION — Кирүү</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@500;600;700;800&display=swap" rel="stylesheet">
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -50,14 +50,16 @@
             cursor: pointer;
         }
         button:disabled { opacity: 0.6; cursor: not-allowed; }
+        .hint { font-size: 12px; color: #64748b; margin-bottom: 14px; line-height: 1.5; }
         .error { color: #f87171; font-size: 13px; min-height: 18px; margin-top: 10px; }
         .back { display: inline-block; margin-top: 16px; color: #94a3b8; text-decoration: none; font-size: 13px; }
     </style>
 </head>
 <body>
-<div class="login-card">
-    <h1>🔒 RATLION админ</h1>
-    <p>Бул бөлüm тек менеджерлер үчүн. Парольду киргизиңиз.</p>
+<div class="login-card admin-login-card">
+    <h1 id="loginTitle">🔒 RATLION</h1>
+    <p id="loginDesc">Парольду киргизиңиз.</p>
+    <p id="loginHint" class="hint"></p>
     <form id="loginForm">
         <label for="password">Пароль</label>
         <input id="password" type="password" autocomplete="current-password" placeholder="••••••" required>
@@ -70,6 +72,23 @@
 (function () {
     const params = new URLSearchParams(window.location.search);
     const next = params.get('next') || '/ratlion';
+    const kitchenMatch = next.match(/^\/kitchen\/([^/?#]+)/i);
+    const slug = kitchenMatch ? kitchenMatch[1] : null;
+
+    const titleEl = document.getElementById('loginTitle');
+    const descEl = document.getElementById('loginDesc');
+    const hintEl = document.getElementById('loginHint');
+
+    if (slug) {
+        titleEl.textContent = '🏪 ' + slug + ' — ресторан панели';
+        descEl.textContent = 'Ресторандын админ же көрүү паролу.';
+        hintEl.textContent = 'Админ пароль — толук башкаруу. Көрүү пароль — гана заказдар/отчеттор.';
+    } else {
+        titleEl.textContent = '🔥 RATLION — башкаруу';
+        descEl.textContent = 'RATLION админ же көрүү паролу.';
+        hintEl.textContent = 'Көрүү пароль — гана көрүү, өзгөртүү жок.';
+    }
+
     const form = document.getElementById('loginForm');
     const errorEl = document.getElementById('error');
     const submitBtn = document.getElementById('submitBtn');
@@ -79,10 +98,13 @@
         errorEl.textContent = '';
         submitBtn.disabled = true;
         try {
+            const body = { password: document.getElementById('password').value };
+            if (slug) body.slug = slug;
             const res = await fetch('/api/admin/login', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ password: document.getElementById('password').value })
+                credentials: 'same-origin',
+                body: JSON.stringify(body)
             });
             const data = await res.json().catch(function () { return {}; });
             if (!res.ok) {

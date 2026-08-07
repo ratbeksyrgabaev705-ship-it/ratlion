@@ -6,6 +6,7 @@ import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import kg.restaurant.order.service.AdminAuthService;
+import kg.restaurant.order.service.AdminSession;
 import org.springframework.core.Ordered;
 import org.springframework.core.annotation.Order;
 import org.springframework.http.MediaType;
@@ -16,6 +17,7 @@ import java.io.IOException;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.util.Set;
+import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 @Component
@@ -25,11 +27,11 @@ public class AdminAuthFilter extends OncePerRequestFilter {
     public static final String COOKIE_NAME = "ratlion_admin_token";
     public static final String HEADER_NAME = "X-Ratlion-Admin-Token";
 
-    private static final Set<String> ADMIN_PAGES = Set.of(
-            "/ratlion", "/ratlion-legacy", "/kitchen", "/owner", "/platform", "/admin", "/admin-menu", "/cafe"
+    private static final Set<String> PLATFORM_PAGES = Set.of(
+            "/ratlion", "/ratlion-legacy", "/owner", "/platform", "/admin", "/admin-menu", "/cafe"
     );
 
-    private static final Pattern ADMIN_PAGE_PREFIX = Pattern.compile("^/kitchen/.*");
+    private static final Pattern KITCHEN_PAGE = Pattern.compile("^/kitchen(?:/([^/?#]+))?$");
     private static final Pattern ORDER_ID_PATH = Pattern.compile("^/orders/\\d+(/.*)?$");
     private static final Pattern COURIER_ORDER_PATH = Pattern.compile("^/orders/courier(/.*)?$");
     private static final Pattern MENU_MUTATION = Pattern.compile("^/menu/\\d+(/.*)?$");
@@ -62,25 +64,98 @@ public class AdminAuthFilter extends OncePerRequestFilter {
             return;
         }
 
-        String token = extractToken(request);
-        if (adminAuthService.isValidToken(token)) {
-            filterChain.doFilter(request, response);
+        AdminSession session = adminAuthService.resolveSession(extractToken(request)).orElse(null);
+        if (session == null) {
+            deny(request, response, path, null);
             return;
         }
 
+        if (!canAccessPath(session, request.getMethod(), path, request)) {
+            deny(request, response, path, session);
+            return;
+        }
+
+        if (session.isReadOnly() && isMutation(request.getMethod(), path)) {
+            response.setStatus(HttpServletResponse.SC_FORBIDDEN);
+            response.setContentType(MediaType.APPLICATION_JSON_VALUE);
+            response.getWriter().write("{\"error\":\"Көрүү гана — өзгөртүүгө укук жок\"}");
+            return;
+        }
+
+        filterChain.doFilter(request, response);
+    }
+
+    private boolean canAccessPath(AdminSession session, String method, String path, HttpServletRequest request) {
+        if (session.isPlatform()) {
+            return true;
+        }
+
+        if (PLATFORM_PAGES.contains(path) || path.startsWith("/api/platform/")) {
+            return false;
+        }
+        if (path.equals("/orders") || path.equals("/orders/new")
+                || path.equals("/orders/history") || path.equals("/orders/active")) {
+            return false;
+        }
+        if (path.startsWith("/api/couriers") || path.startsWith("/api/admin/passwords")) {
+            return false;
+        }
+
+        Matcher kitchen = KITCHEN_PAGE.matcher(path);
+        if (kitchen.matches()) {
+            String slug = kitchen.group(1);
+            return slug == null || session.canAccessRestaurantSlug(slug);
+        }
+
+        Long restaurantId = extractRestaurantId(path, request);
+        if (restaurantId != null) {
+            return session.canAccessRestaurant(restaurantId);
+        }
+
+        if (ORDER_ID_PATH.matcher(path).matches()
+                || path.startsWith("/reports/")
+                || path.startsWith("/menu")
+                || path.equals("/orders/cafe")) {
+            return true;
+        }
+
+        return false;
+    }
+
+    private Long extractRestaurantId(String path, HttpServletRequest request) {
+        String param = request.getParameter("restaurantId");
+        if (param != null && !param.isBlank()) {
+            try {
+                return Long.parseLong(param.trim());
+            } catch (NumberFormatException ignored) {
+                return null;
+            }
+        }
+        Matcher rest = Pattern.compile("^/api/restaurants/(\\d+)").matcher(path);
+        if (rest.find()) {
+            return Long.parseLong(rest.group(1));
+        }
+        return null;
+    }
+
+    private void deny(HttpServletRequest request, HttpServletResponse response, String path, AdminSession session)
+            throws IOException {
         if (acceptsHtml(request)) {
             String next = URLEncoder.encode(path, StandardCharsets.UTF_8);
+            if (session != null && !session.isPlatform() && session.restaurantSlug() != null) {
+                response.sendRedirect("/admin-login?next=/kitchen/" + session.restaurantSlug());
+                return;
+            }
             response.sendRedirect("/admin-login?next=" + next);
             return;
         }
-
         response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
         response.setContentType(MediaType.APPLICATION_JSON_VALUE);
         response.getWriter().write("{\"error\":\"Админ пароль талап кылынат\"}");
     }
 
     private boolean requiresAdmin(String method, String path) {
-        if (ADMIN_PAGES.contains(path) || ADMIN_PAGE_PREFIX.matcher(path).matches()) {
+        if (PLATFORM_PAGES.contains(path) || KITCHEN_PAGE.matcher(path).matches()) {
             return true;
         }
 
@@ -138,7 +213,18 @@ public class AdminAuthFilter extends OncePerRequestFilter {
             return isAdminCourierPath(method, path);
         }
 
+        if (path.startsWith("/api/admin/passwords")) {
+            return true;
+        }
+
         return false;
+    }
+
+    private boolean isMutation(String method, String path) {
+        if ("GET".equalsIgnoreCase(method) || "HEAD".equalsIgnoreCase(method)) {
+            return false;
+        }
+        return requiresAdmin(method, path);
     }
 
     private boolean isAdminOrderMutation(String method, String path) {
@@ -162,16 +248,15 @@ public class AdminAuthFilter extends OncePerRequestFilter {
         if (path.matches("^/api/couriers/\\d+/online$")) {
             return false;
         }
-        if (path.matches("^/api/couriers/\\d+/take$")) {
-            return false;
-        }
         return true;
     }
 
     private boolean isPublicPath(String path) {
         return path.equals("/")
                 || path.equals("/admin-login")
-                || path.startsWith("/api/admin/")
+                || path.equals("/api/admin/login")
+                || path.equals("/api/admin/session")
+                || path.equals("/api/admin/logout")
                 || path.startsWith("/api/telegram/")
                 || path.equals("/health")
                 || path.startsWith("/uploads/")

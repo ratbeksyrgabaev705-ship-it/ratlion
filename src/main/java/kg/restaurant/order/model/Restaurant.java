@@ -1,5 +1,6 @@
 package kg.restaurant.order.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
@@ -54,6 +55,14 @@ public class Restaurant {
 
     /** Алуучунун аты-жönü (банк которуу) */
     private String bankRecipientName;
+
+    /** Ресторан панели — толук укук */
+    @JsonIgnore
+    private String panelPasswordHash;
+
+    /** Ресторан панели — гана көрүү */
+    @JsonIgnore
+    private String panelViewPasswordHash;
 
     public Restaurant() {
     }
@@ -209,5 +218,29 @@ public class Restaurant {
 
     public void setBankRecipientName(String bankRecipientName) {
         this.bankRecipientName = bankRecipientName;
+    }
+
+    public String getPanelPasswordHash() {
+        return panelPasswordHash;
+    }
+
+    public void setPanelPasswordHash(String panelPasswordHash) {
+        this.panelPasswordHash = panelPasswordHash;
+    }
+
+    public String getPanelViewPasswordHash() {
+        return panelViewPasswordHash;
+    }
+
+    public void setPanelViewPasswordHash(String panelViewPasswordHash) {
+        this.panelViewPasswordHash = panelViewPasswordHash;
+    }
+
+    public boolean hasPanelPassword() {
+        return panelPasswordHash != null && !panelPasswordHash.isBlank();
+    }
+
+    public boolean hasPanelViewPassword() {
+        return panelViewPasswordHash != null && !panelViewPasswordHash.isBlank();
     }
 }
